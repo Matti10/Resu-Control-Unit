@@ -1,0 +1,20 @@
+<div class="shiftLight-container">
+    %CONTENT%
+</div>
+
+<input type="color" id="colorPicker" style="display: none;" onchange="changeColor(event)">
+
+<script>
+    let selectedCircle = null;
+
+    function pickColor(circle) {
+        selectedCircle = circle; // Store the clicked circle
+        document.getElementById('colorPicker').click();
+    }
+
+    function changeColor(event) {
+        if (selectedCircle) {
+            selectedCircle.style.backgroundColor = event.target.value;
+        }
+    }
+</script>
