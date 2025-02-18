@@ -7,6 +7,24 @@
     <title>Responsive Side Menu &ndash; Layout Examples &ndash; Pure</title>
     <link rel="stylesheet" href="H:\SteeringWheelButtons\src\web\pure-min.css">
     <link rel="stylesheet" href="H:\SteeringWheelButtons\src\web\styles.css">
+    <style>
+        .shiftLight-container {
+            display: flex;
+            justify-content: space-between; /* Ensures circles are evenly spaced */
+            align-items: center;
+            flex-wrap: nowrap; /* Prevents wrapping */
+            gap: 5px; /* Adds small spacing between circles */
+            padding: 10px;
+            overflow-x: auto; /* Allows horizontal scrolling if needed */
+        }
+
+        .circle {
+            aspect-ratio: 1/1; 
+            border-radius: 50%;
+            background-color: red;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
@@ -42,60 +60,41 @@
 
         <div class="content">
             <div class="shiftLight-container">
-                <div class="shiftLight-container">
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                    <div class="circle" id="%ID%" style="background-color: red;" onclick="pickColor(this)"></div>
-                </div>
-                
-                <input type="color" id="colorPicker" style="display: none;" onchange="changeColor(event)">
-                
-                <script>
-                    let selectedCircle = null;
-                
-                    function pickColor(circle) {
-                        selectedCircle = circle; // Store the clicked circle
-                        document.getElementById('colorPicker').click();
-                    }
-                
-                    function changeColor(event) {
-                        if (selectedCircle) {
-                            selectedCircle.style.backgroundColor = event.target.value;
-                        }
-                    }
-                </script>
-                
+                <!-- Circles -->
+                <div class="circle" id="circle1" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle2" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle3" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle4" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle5" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle6" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle7" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle8" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle9" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle10" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle11" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle12" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle13" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle14" onclick="pickColor(this)"></div>
+                <div class="circle" id="circle15" onclick="pickColor(this)"></div>
             </div>
-            
+
             <input type="color" id="colorPicker" style="display: none;" onchange="changeColor(event)">
             
             <script>
                 let selectedCircle = null;
-            
+
                 function pickColor(circle) {
                     selectedCircle = circle; // Store the clicked circle
                     document.getElementById('colorPicker').click();
                 }
-            
+
                 function changeColor(event) {
                     if (selectedCircle) {
                         selectedCircle.style.backgroundColor = event.target.value;
                     }
                 }
             </script>
-            
+
         </div>
     </div>
 </div>
