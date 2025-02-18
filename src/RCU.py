@@ -1,61 +1,82 @@
+
 import array
-
-class RCU:
-    configPath = ""
-
-    def import_config(json):
-
-
-    def export_config()
+import json
 
 
 
-class Page:
-    placeHolderFix = "%"
+def import_config(configPath = "src\\data\\config.json"):
+    with open(configPath, "r") as file:
+       return json.load(file)  # Parse JSON file into a dictionary
 
-    def __init__(self,template="H:\\SteeringWheelButtons\\src\\web\\templates\\page.html",**kwargs):
+
+
+def export_config(self):
+    with open(self.configPath, "w") as file:
+        json.dump(self.config, file)
+
+
+
+
+class RCU_Function:
+    placeHolderFix = "%" # prefix/sufix for placeholder values
+
+    def __init__(
+        self,
+        template="H:\\SteeringWheelButtons\\src\\web\\templates\\page.html",
+        children=None,
+        **kwargs
+    ):
+
+        if children is None:
+            self.children = []
+        else:
+            self.children = children
+
         self.placeholders = kwargs
-        self.template = template
+        self.importInterfaceTemplate(template)
 
-    def read_template():
+    def importInterfaceTemplate(self):
         with open(self.template, "r") as templateFile:
-            content = templateFile.read()  # Reads the entire file as a string
+            return templateFile.read()        
+         
+
+    def populate_placeholders(self, interface):       
+        for placeholder in self.placeholders.keys():
+            return interface.replace(f"{self.placeHolderFix}{placeholder}{self.placeHolderFix}",self.placeholders.get(placeholder))
         
-        return content
+    def build_interface(self):
+        for child in self.children:
+            child.build_interface()
 
-    def populate_placeholders():
-        content = read_template()
-
-        for placeholder in placegolders.keys():
-            content.replace(f"{placeHolderFix}{placeholder}{placeHolderFix}",placeholders.get(placeholder))
-
-        return content
-
-
-class ShiftLights(Page):
-    shiftLights = array.array("O",[])
-    interfaceTemplate = "H:\\SteeringWheelButtons\\src\\web\\templates\\shiftLights.html"
-
-    def __init__(self,config):
-        self.limitPattern = config['limitPattern']
-        self.limitColor = config['limitColor']
-        self.pin = config['pin']
-
-        for shiftLightConfig in config['shiftLights']:
-            self.shiftLights.append(ShiftLight(shiftLightConfig))
+        
     
-        super().__init__(
-            template=interfaceTemplate,
-            Content = ''.join(map(lambda shiftLight: shiftLight.populate_placeholders(), shiftLights))
-        )
+    def add_child(self,child):           
+        self.children.append(child)
+
+    def add_placeholder(self,**kwargs):
+        self.placeholders.update(kwargs)
 
 
+class ShiftLights(RCU_Function):
+    interfaceTemplate = "H:\\SteeringWheelButtons\\src\\web\\templates\\shiftLights.html"
+    shiftLights = []
+    def __init__(self,config):
+        self.config = config
+        super().__init__(template=self.interfaceTemplate)
 
-class ShiftLight(Page):
+        # super().__init__(
+        #     template=self.interfaceTemplate,
+        #     Content = ''.join(map(lambda shiftLight: shiftLight.populate_placeholders(), self.shiftLights))
+        # )
+        # for shiftLightConfig in config['ShiftLights']:
+        #     self.shiftLights.append(ShiftLight(shiftLightConfig))
+    
+
+class ShiftLight(RCU_Function):
     interfaceTemplate = "H:\\SteeringWheelButtons\\src\\web\\templates\\shiftLight.html"
 
     def __init__(self,config):
-        self.id = config['id']
+        self.config = config
         self.color = Color(config['color'])
         self.active = False
         super().__init__(
@@ -65,14 +86,18 @@ class ShiftLight(Page):
         )
 
 
-
-
-class WebInterface(Page):
+class WebInterface(RCU_Function):
     interfaceTemplate = "H:\\SteeringWheelButtons\\src\\web\\templates\\webInterface.html"
 
-    def __init__(self, config, **kwargs):
-        self.shiftLights = ShiftLights(config(ShiftLights))
-    
+
+    def __init__(self):
+        self.html = super().__init__(template=self.interfaceTemplate)
+
+    def add_rcu_function(self, rcu_function):
+        self.pages.append(rcu_function)
+
+    def build_interface(self):
+        for child in self.children:
 
 
 
@@ -82,5 +107,5 @@ class Color:
         self.green = config['green']
         self.blue = config['blue']
 
-    def toHTMLString():
-        return f"rgb({red}, {green}, {blue})"
+    def toHTMLString(self):
+        return f"rgb({self.red}, {self.green}, {self.blue})"
