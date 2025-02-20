@@ -6,13 +6,12 @@ import ujson
 
 def import_config(configPath = "src\\data\\config.json"):
     with open(configPath, "r") as file:
-        return json.load(file)  # Parse JSON file into a dictionary
+        return ujson.load(file)  # Parse JSON file into a dictionary
 
-        ujson.
 
 def export_config(self):
     with open(self.configPath, "w") as file:
-        json.dump(self.config, file)
+        ujson.dump(self.config, file)
 
 
 

@@ -1,5 +1,4 @@
 {
-  "python.pythonPath": "python3",
   "python.languageServer": "Pylance",
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.diagnosticSeverityOverrides": {
@@ -10,6 +9,8 @@
     "typings"
   ],
   "python.autoComplete.extraPaths": [
-      "/micropython/ports/unix/build-standard/lib"
+      "/micropython/ports/unix/build-standard/lib",
+      "/micropython/ports/unix/build-standard",
+      "/path/to/micropython-stubs"
     ]
 }

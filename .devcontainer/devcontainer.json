@@ -1,20 +1,21 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-	"name": "Python 3",
+	"name": "Micropython",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "dockerfile",
 
+	"forwardPorts": [5000],
 
 	"customizations": {
 		"vscode": {
 			"extensions": [
-		"eamodio.gitlens",
-		"ms-python.debugpy",
-		"ms-python.python",
-		"ms-python.vscode-pylance",
-		"oderwat.indent-rainbow",
-		"pycom.pymakr"
+				"eamodio.gitlens",
+				"ms-python.debugpy",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"oderwat.indent-rainbow",
+				"pycom.pymakr"
 			]
 		}
 	},
