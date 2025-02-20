@@ -5,6 +5,20 @@
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	"image": "dockerfile",
 
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+		"eamodio.gitlens",
+		"ms-python.debugpy",
+		"ms-python.python",
+		"ms-python.vscode-pylance",
+		"oderwat.indent-rainbow",
+		"pycom.pymakr"
+			]
+		}
+	},
+
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 

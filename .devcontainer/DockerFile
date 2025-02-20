@@ -1,5 +1,10 @@
 FROM micropython/build-micropython-unix
 
+RUN apt update 
+RUN apt install -y python3-pip
+RUN apt install -y python3-venv
+RUN pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org --upgrade micropy-cli 
+
 WORKDIR /
 
 # Clone MicroPython

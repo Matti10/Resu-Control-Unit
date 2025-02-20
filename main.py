@@ -1,4 +1,5 @@
 import network
+import ujson
 
 SSID = "ESP32-Access-Point"  # Name of your Wi-Fi network
 PASSWORD = "12345678"         # Password (at least 8 characters)

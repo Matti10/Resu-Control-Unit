@@ -1,14 +1,14 @@
 
 import array
-import json
+import ujson
 
 
 
 def import_config(configPath = "src\\data\\config.json"):
     with open(configPath, "r") as file:
-       return json.load(file)  # Parse JSON file into a dictionary
+        return json.load(file)  # Parse JSON file into a dictionary
 
-
+        ujson.
 
 def export_config(self):
     with open(self.configPath, "w") as file:
@@ -38,7 +38,7 @@ class RCU_Function:
     def importInterfaceTemplate(self):
         with open(self.template, "r") as templateFile:
             return templateFile.read()        
-         
+
 
     def populate_placeholders(self, interface):       
         for placeholder in self.placeholders.keys():
@@ -98,6 +98,7 @@ class WebInterface(RCU_Function):
 
     def build_interface(self):
         for child in self.children:
+            print("placeholder")
 
 
 
