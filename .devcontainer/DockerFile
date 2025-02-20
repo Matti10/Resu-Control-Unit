@@ -9,6 +9,8 @@ WORKDIR /
 
 # Clone MicroPython
 RUN git config --global http.sslVerify false
+RUN git config --global user.email mattias.winsen@outlook.com.au
+RUN git config --global user.name Mattias Winsen
 RUN git clone --recursive https://github.com/micropython/micropython.git
 
 #Build MicroPython
