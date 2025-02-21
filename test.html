@@ -84,8 +84,21 @@
                 let selectedCircle = null;
 
                 function pickColor(circle) {
-                    selectedCircle = circle; // Store the clicked circle
-                    document.getElementById('colorPicker').click();
+                    selectedCircle = circle;  // Store the clicked circle
+                    
+                    // Get the position of the clicked circle on the screen
+                    const rect = circle.getBoundingClientRect();
+                    
+                    // Get the color picker element
+                    const colorPicker = document.getElementById('colorPicker');
+                    
+                    // Position the color picker at the clicked circle's location
+                    colorPicker.style.position = 'absolute';
+                    colorPicker.style.left = `${rect.left}px`;  // X position
+                    colorPicker.style.top = `${rect.top + rect.height + 10}px`;  // Y position (10px below the circle)
+
+                    // Trigger a click event to show the color picker
+                    colorPicker.click();
                 }
 
                 function changeColor(event) {

@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A layout example with a side menu that hides on mobile, just like the Pure website.">
+    <title>Responsive Side Menu &ndash; Layout Examples &ndash; Pure</title>
+    <link rel="stylesheet" href="/workspaces/Resu-Control-Unit/src/web/pure-min.css">
+    <link rel="stylesheet" href="/workspaces/Resu-Control-Unit/src/web/styles.css">
+    
+    <style>
+        .shiftLight-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 2px;
+            padding: 5px;
+            width: 100%; /* Container takes full width */
+        }
+
+        .circle {
+            flex-grow: 1; /* Makes each circle grow to fit the available space */
+            aspect-ratio: 1 / 1; /* Ensures the height matches the width */
+            max-width: 40px; /* Prevents circles from becoming too large */
+            border-radius: 50%; /* Makes the circle round */
+            background-color: red;
+            cursor: pointer;
+        }
+
+        /* Ensure the body or layout has relative positioning for absolute elements */
+        body {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+<div id="layout">
+    <!-- Menu toggle -->
+    <a href="#menu" id="menuLink" class="menu-link">
+        <!-- Hamburger icon -->
+        <span></span>
+    </a>
+
+    <div id="menu">
+        <div class="pure-menu">
+            <a class="pure-menu-heading" href="#company"><img src="/workspaces/Resu-Control-Unit/src/web/resu-horiz-white.png" alt="Resu" style="width: 90%;"></a>
+
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item"><a href="#home" class="pure-menu-link">Home</a></li>
+                <li class="pure-menu-item"><a href="#about" class="pure-menu-link">About</a></li>
+
+                <li class="pure-menu-item menu-item-divided pure-menu-selected">
+                    <a href="#" class="pure-menu-link">Services</a>
+                </li>
+
+                <li class="pure-menu-item"><a href="#contact" class="pure-menu-link">Contact</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="main">
+        <div class="header">
+            <h1>Resu Control Unit Settings</h1>
+        </div>
+
+        <div class="content">
+            
+            <h2>Shift Lights</h2>
+            <h3>Light Color</h3>
+            <p>Select the color of each of the 15 shift lights by clicking on the corresponding light below. The color will update once you click "out" of the color picker.</p>
+            <div class="shiftLight-container"><!--This is dynamically set by JS --></div>
+            <input type="color" id="colorPicker" style="opacity: 0; position: absolute; pointer-events: none;" onchange="changeColor(event)">
+
+            <div class="pure-g">
+                <div class="pure-u-2-3">
+                    <h3>Limiter Color</h3>
+                    <p>Select the color the shiftlights change to when the shift point is reached</p>
+                </div>
+                <div class="pure-u-1-3">
+                    <br>
+                    <button class="pure-button" style="align-items: center;" onclick="changeColor(this)">Limiter Color</button>
+                </div>
+            </div>
+            
+            
+            <script>
+                let selectedCircle = null;
+
+                function pickColor(circle) {
+                    selectedCircle = circle;  // Store the clicked circle
+                    
+                    // Get the position of the clicked circle on the screen
+                    const rect = circle.getBoundingClientRect();
+                    
+                    // Get the color picker element
+                    const colorPicker = document.getElementById('colorPicker');
+                    
+                    // Position the color picker at the clicked circle's location
+                    colorPicker.style.left = `${rect.left}px`;  // X position
+                    colorPicker.style.top = `${rect.top + rect.height + 10}px`;  // Y position (10px below the circle)
+
+                    // Show the color picker before triggering the click event
+                    colorPicker.style.display = 'block';
+
+                    // Trigger a click event to show the color picker
+                    colorPicker.click();
+                }
+
+                function changeColor(event) {
+                   // Change the circle's background color
+                    const newColor = event.target.value;
+                    selectedCircle.style.backgroundColor = newColor;
+
+                    // Prepare the request payload
+                    const requestBody = {
+                        color: newColor
+                    };
+
+                    // Send a POST request to your API
+                    fetch(`/shiftLights/${selectedCircle.id}`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(requestBody)
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Failed to update color: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => console.log("Color update successful:", data))
+                    .catch(error => console.error("Error updating color:", error));
+                }
+                
+
+                document.addEventListener("DOMContentLoaded", () => {
+                    fetch('/shiftLights')  // Fetch JSON data from the server
+                        .then(response => response.json())
+                        .then(data => {
+                            const container = document.querySelector('.shiftLight-container');
+                            
+                            data.ShiftLights.forEach(light => {
+                                const circle = document.createElement('div');
+                                circle.className = 'circle';
+                                circle.id = `${light.id}`;
+                                circle.onclick = function() { pickColor(this); };
+
+                                // Convert color values to CSS format (assuming they are 0-255)
+                                const red = light.color.red;
+                                const green = light.color.green;
+                                const blue = light.color.blue;
+                                circle.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
+
+                                container.appendChild(circle);  // Append to shiftLight-container
+                            });
+                        })
+                        .catch(error => console.error('Error fetching shiftLights:', error));
+                });
+            </script>
+
+        </div>
+    </div>
+</div>
+
+<script src="/workspaces/Resu-Control-Unit/src/web/ui.js"></script>
+
+</body>
+</html>
