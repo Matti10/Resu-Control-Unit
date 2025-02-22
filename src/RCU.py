@@ -2,16 +2,16 @@
 import array
 import ujson
 
+CONFIG_PATH = "src/data/config.json"
 
-
-def import_config(configPath = "src\\data\\config.json"):
+def import_config(configPath = CONFIG_PATH):
     with open(configPath, "r") as file:
         return ujson.load(file)  # Parse JSON file into a dictionary
 
 
-def export_config(self):
-    with open(self.configPath, "w") as file:
-        ujson.dump(self.config, file)
+def export_config(config,configPath = CONFIG_PATH):
+    with open(configPath, "w") as file:
+        ujson.dump(config, file)
 
 
 

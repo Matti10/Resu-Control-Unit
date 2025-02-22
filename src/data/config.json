@@ -1,12 +1,28 @@
 {
     "ShiftLights": {
         "Pin": 1,
-        "LimiterColor": {
-            "red": "200",
-            "green": "0",
-            "blue": "0"
+        "LimiterColor":{
+            "id": "LimiterColor",
+            "color": {
+                "red": "200",
+                "green": "0",
+                "blue": "0"
+            }
         },
-        "LimiterPattern": "flash",
+        "LimiterPattern": [
+            {
+                "id":"Flash",
+                "selected": true
+            },
+            {
+                "id":"Wave",
+                "selected": false
+            },
+            {
+                "id":"Solid",
+                "selected": false
+            }
+        ],
         "ShiftLights": [
             {
                 "id": "0",
