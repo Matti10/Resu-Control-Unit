@@ -1,7 +1,130 @@
 {
+    "Pins": {
+        "note" : "pin number represents number on board/show in UI",
+        "1": {
+            "Name": "GPIO8",
+            "FirmwareID": 8,
+            "function" : ""
+        },
+        "2": {
+            "Name": "GPIO5",
+            "FirmwareID": 5,
+            "function" : ""
+        },
+        "3": {
+            "Name": "GPIO20",
+            "FirmwareID": 20,
+            "function" : ""
+        },
+        "4": {
+            "Name": "GPIO7",
+            "FirmwareID": 7,
+            "function" : ""
+        },
+        "5": {
+            "Name": "GPIO4",
+            "FirmwareID": 4,
+            "function" : ""
+        },
+        "6": {
+            "Name": "GPIO2",
+            "FirmwareID": 2,
+            "function" : ""
+        },
+        "7": {
+            "Name": "GPIO25",
+            "FirmwareID": 25,
+            "function" : ""
+        },
+        "13": {
+            "Name": "GPIO26",
+            "FirmwareID": 26,
+            "function" : ""
+        },
+        "14": {
+            "Name": "GPI39",
+            "FirmwareID": 39,
+            "function" : ""
+        },
+        "15": {
+            "Name": "GPIO33",
+            "FirmwareID": 33,
+            "function" : ""
+        },
+        "16": {
+            "Name": "GPIO32",
+            "FirmwareID": 32,
+            "function" : ""
+        },
+        "17": {
+            "Name": "GPI34",
+            "FirmwareID": 34,
+            "function" : ""
+        },
+        "18": {
+            "Name": "GPIO35",
+            "FirmwareID": 35,
+            "function" : ""
+        },
+        "19": {
+            "Name": "GPI37",
+            "FirmwareID": 37,
+            "function" : ""
+        },
+        "20": {
+            "Name": "GPIO27",
+            "FirmwareID": 27,
+            "function" : ""
+        },
+        "21": {
+            "Name": "UART-TX",
+            "FirmwareID": "UART-TX",
+            "function" : ""
+        },
+        "22": {
+            "Name": "UART-RX",
+            "FirmwareID": "UART-RX",
+            "function" : ""
+        },
+        "23": {
+            "Name": "TDI",
+            "FirmwareID": 15,
+            "function" : ""
+        },
+        "24": {
+            "Name": "TMS",
+            "FirmwareID": 13,
+            "function" : ""
+        },
+        "25": {
+            "Name": "TCK",
+            "FirmwareID": 12,
+            "function" : ""
+        },
+        "26": {
+            "Name": "TDO",
+            "FirmwareID": 14,
+            "function" : ""
+        },
+        "27": {
+            "Name": "GPI36",
+            "FirmwareID": 36,
+            "function" : ""
+        },
+        "28": {
+            "Name": "GPI38",
+            "FirmwareID": 38,
+            "function" : ""
+        },
+        "29": {
+            "Name": "BOOT",
+            "FirmwareID": 0,
+            "function" : ""
+        }
+    },
     "ShiftLights": {
-        "Pin": 1,
-        "LimiterColor":{
+        "pinIDs": ["1"],
+        "LimiterColor": {
             "id": "LimiterColor",
             "color": {
                 "red": "200",
@@ -9,20 +132,16 @@
                 "blue": "0"
             }
         },
-        "LimiterPattern": [
-            {
-                "id":"Flash",
-                "selected": true
-            },
-            {
-                "id":"Wave",
-                "selected": false
-            },
-            {
-                "id":"Solid",
-                "selected": false
-            }
-        ],
+        "LimiterPattern": {
+            "patterns": [
+                "Flash",
+                "Wave",
+                "Solid"
+            ],
+            "selected": "Flash"
+        },
+        "startRPM": 0,
+        "endRPM": 7000,
         "ShiftLights": [
             {
                 "id": "0",

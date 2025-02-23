@@ -99,113 +99,12 @@
                     </div>
                 </div>
             </div>
-            
-            
-            <script>
-                let selectedCircle = null;
-
-                funciton pickLimiterPattern()
-
-                function pickColor(circle) {
-                    selectedCircle = circle;  // Store the clicked circle
-                    
-                    // Get the position of the clicked circle on the screen
-                    const rect = circle.getBoundingClientRect();
-                    
-                    // Get the color picker element
-                    const colorPicker = document.getElementById('colorPicker');
-                    
-                    // Position the color picker at the clicked circle's location
-                    colorPicker.style.left = `${rect.left}px`;  // X position
-                    colorPicker.style.top = `${rect.top + rect.height + 10}px`;  // Y position (10px below the circle)
-
-                    // Show the color picker before triggering the click event
-                    colorPicker.style.display = 'block';
-
-                    // Trigger a click event to show the color picker
-                    colorPicker.click();
-                }
-
-                function changeColor(event) {
-                   // Change the circle's background color
-                    const newColor = event.target.value;
-                    selectedCircle.style.backgroundColor = newColor;
-
-                    // Prepare the request payload
-                    const requestBody = {
-                        color: newColor
-                    };
-
-                    // Send a POST request to your API
-                    fetch(`/shiftLights/${selectedCircle.id}`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(requestBody)
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`Failed to update color: ${response.statusText}`);
-                        }
-                        return response;
-                    })
-                    .then(data => console.log("Color update successful:", data))
-                    .catch(error => console.error("Error updating color:", error));
-                }
-                
-                function addCirle(container,color,id) {
-                    const circle = document.createElement('div');
-                    circle.className = 'circle';
-                    circle.id = `${id}`;
-                    circle.onclick = function() { pickColor(this); };
-
-                    // Convert color values to CSS format (assuming they are 0-255)
-                    const red = color.red;
-                    const green = color.green;
-                    const blue = color.blue;
-                    circle.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
-                    
-                    container.appendChild(circle);  // Append to shiftLight-container
-                }
-
-                document.addEventListener("DOMContentLoaded", () => {
-                    fetch('/shiftLights')  // Fetch JSON data from the server
-                        .then(response => response.json())
-                        .then(data => {
-                            const circleContainer = document.querySelector('.shiftLight-container');
-                            
-                            data.ShiftLights.forEach(light => {
-                                addCirle(circleContainer,light.color,light.id)
-                            });
-                            addCirle(circleContainer,data.LimiterColor.color,data.LimiterColor.id)
-                            
-                            const limiterContainer =  document.querySelector('.limiterPattern-containter');
-
-                            data.LimiterPattern.forEach(pattern => {
-                                const button = document.createElement('button');
-                                button.id = pattern.id;
-                                button.innerText = pattern.id
-
-                                if (pattern.selected) {
-                                    button.className = "pure-button pure-button-active";
-                                } else {
-                                    button.className = "pure-button";
-                                }
-                                limiterContainer.appendChild(button);
-
-                            })
-
-                        })
-                        .catch(error => console.error('Error fetching shiftLights:', error));
-                });
-            </script>
-
         </div>
     </div>
 </div>
 
 <script src="/webFiles/ui.js"></script>
+<script src="/webFiles/ui-extended.js"></script>
 
 </body>
 </html>

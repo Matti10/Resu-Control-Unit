@@ -1,3 +1,4 @@
+from urllib import request
 import os
 import re
 import uos
@@ -5,6 +6,7 @@ import RCU
 import ujson
 import micropyserver
 import utils
+import machine
 
 WEB_FILES_ROUTE = "/webFiles"
 WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
@@ -25,18 +27,21 @@ class RCU_server:
         self.server.add_route("/", self.get_webFiles)
         self.server.add_route("/shiftLights", self.get_shiftLights)
         self.server.add_route("/shiftLights", self.post_shiftLight,method="POST")
+        self.server.add_route("/pins", self.get_shiftLights)
+        self.server.add_route("/pins", self.post_shiftLight,method="POST")
         self.server.add_route(WEB_FILES_ROUTE, self.get_webFiles)
         self.server.add_route("/save", self.get_webFiles,method="POST")
             
         self.server._print_routes()
         self.server.start()
     
-    def set_light_config_color(self,lightsConfig,hex_color):
-        red,green,blue = self.hex_to_rgb(hex_color)
-        
-        lightsConfig["color"]["red"] = red
-        lightsConfig["color"]["green"] = green
-        lightsConfig["color"]["blue"] = blue
+    # Utils
+    def post_saveConfig(self,request):
+        try:
+            RCU.export_config(self.config)
+            utils.send_response(self.server, "Config Saved", http_code=201)
+        except:
+            utils.send_response(self.server, f"Error saving config with request:\n{request}", http_code=500)
     
     def hex_to_rgb(self,hex_color):
         # Remove '#' if present
@@ -49,14 +54,13 @@ class RCU_server:
         else:
             raise ValueError("Invalid hex color format. Use #RRGGBB.")
 
-
     def file_exists(self,path):
         try:
             uos.stat(path)  # Check file stats
             return True         # File exists
         except OSError:         # File not found or inaccessible
             return False
-        
+
     def get_webFiles(self,request):
         _,path,_ = utils.parse_request(request)
         path = path.replace(WEB_FILES_ROUTE,WEB_FILES_PATH)
@@ -77,10 +81,10 @@ class RCU_server:
             while chunk := f.read(512):  # Read in chunks (512 bytes)
                 self.server.send_bytes(chunk)  # Send each chunk
 
-
     def serve_json(self,data):      
         utils.send_response(self.server,ujson.dumps(data),content_type="application/json")
 
+    # Shift Lights
     def post_shiftLight(self,request):
         _,path,body = utils.parse_request(request)
         if "" != body:
@@ -104,29 +108,38 @@ class RCU_server:
 
         elif re.match(r"/shiftLights/limitPattern", path):
             message = "setting limiter pattern"
-            print(message)
+            try:
+                self.config["ShiftLights"]["LimiterPattern"]["Selected"] = data["pattern"]
+                print(f"Set limiter pattern to: {self.config["ShiftLights"]["LimiterPattern"]["Selected"]}")
+            except Exception as e:
+                message = f"Pattern set failed with with error{e}"
+                utils.send_response(self.server, message, http_code=201)
+                print(message)
+                return
         else:
             #return 404
             self.server._route_not_found(request)
             return
 
         utils.send_response(self.server, message, http_code=201)
+
+    def set_light_config_color(self,lightsConfig,hex_color):
+        red,green,blue = self.hex_to_rgb(hex_color)
         
+        lightsConfig["color"]["red"] = red
+        lightsConfig["color"]["green"] = green
+        lightsConfig["color"]["blue"] = blue
 
     def get_shiftLights(self,request):
         self.serve_json(self.config["ShiftLights"])
-        
-    def post_saveConfig(self,request):
-        try:
-            RCU.export_config(self.config)
-            utils.send_response(self.server, "Config Saved", http_code=201)
-        except:
-            utils.send_response(self.server, f"Error saving config with request:\n{request}", http_code=500)
-            
-    def test(self,request):
-        print(request)
-        utils.send_response(self.server,"<h1> test</h1>")
 
+    # Pins 
+    def post_pin(self, _):
+        print("setting pin")
+    
+    def get_pins(self, _):
+        self.serve_json(self.config["Pins"])
+        
 RCU_server()
     # self.server.add_route("/another_action", another_action)
     # ''' start self.server '''
