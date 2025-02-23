@@ -122,32 +122,38 @@ document.addEventListener("DOMContentLoaded", () => {
         })
         .catch(error => console.error('Error fetching shiftLights:', error));
 
+        //pin Selection
         fetch('/pins')  
         .then(response => response.json())
         .then(data => {
             pinSelectors = document.querySelectorAll('.pinSelector-container');
-
+            
+            
             pinSelectors.forEach(pinSelector => {
-                console.log(pinSelector.innerText); // Do something with each container
+                Object.entries(data.Pins).forEach(([pinNumber, pinData]) => {
+
+                    element = document.createElement('button');
+                    button.id = pattern;
+                    button.innerText = pattern
+                    button.onclick = function(pinSelectors.parentElement) { selectPin };
+    
+                    if (pattern == selected) {
+                        button.className = "pure-button pure-button-active";
+                    } else {
+                        button.className = "pure-button";
+                    }
+                    limiterContainer.appendChild(button); 
+
+                });
             });
             
             
             //limiter pattern buttons
             selected = data.LimiterPattern.selected
-            data.LimiterPattern.patterns.forEach(pattern => {
-                const button = document.createElement('button');
-                button.id = pattern;
-                button.innerText = pattern
-                button.onclick = function() { pickLimiterPattern(pattern); };
 
-                if (pattern == selected) {
-                    button.className = "pure-button pure-button-active";
-                } else {
-                    button.className = "pure-button";
-                }
-                limiterContainer.appendChild(button);
+            selected = 
 
-            })
+           
 
         })
         .catch(error => console.error('Error fetching shiftLights:', error));
