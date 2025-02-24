@@ -1,4 +1,3 @@
-from urllib import request
 import os
 import re
 import uos
@@ -7,10 +6,13 @@ import ujson
 import micropyserver
 import utils
 import machine
+from shiftLights import ShiftLight
 
 WEB_FILES_ROUTE = "/webFiles"
 WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
 INDEX_PATH = f"{WEB_FILES_PATH}/index.html"
+FAVICON_ROUTE = "/favicon.ico"
+FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
 
 PORT = 8000
 
@@ -18,24 +20,29 @@ class RCU_server:
     
     def __init__(self,config=None):
         
+        
         if None == config:
             self.config = RCU.import_config() # dont duplicate config
         else:
             self.config = config    
+        
+        self.shiftLights = ShiftLight(self.config)
 
         self.server = micropyserver.MicroPyServer(port=PORT)
         self.server.add_route("/", self.get_webFiles)
         self.server.add_route("/shiftLights", self.get_shiftLights)
         self.server.add_route("/shiftLights", self.post_shiftLight,method="POST")
-        self.server.add_route("/pins", self.get_shiftLights)
-        self.server.add_route("/pins", self.post_shiftLight,method="POST")
+        self.server.add_route("/pins", self.get_pins)
         self.server.add_route(WEB_FILES_ROUTE, self.get_webFiles)
-        self.server.add_route("/save", self.get_webFiles,method="POST")
+        self.server.add_route(FAVICON_ROUTE, self.get_favicon)
+        self.server.add_route("/downloadConfig", self.download_config)
+        self.server.add_route("/uploadConfig", self.upload_config, method="POST")
             
         self.server._print_routes()
         self.server.start()
     
     # Utils
+
     def post_saveConfig(self,request):
         try:
             RCU.export_config(self.config)
@@ -61,22 +68,25 @@ class RCU_server:
         except OSError:         # File not found or inaccessible
             return False
 
+    def get_favicon(self,_):
+        self.serve_file(FAVICON_PATH)
+        
+
     def get_webFiles(self,request):
         _,path,_ = utils.parse_request(request)
         path = path.replace(WEB_FILES_ROUTE,WEB_FILES_PATH)
         print(f"path:{path}")
         if path == "/":
             path = INDEX_PATH
-        if self.file_exists(path):
-            self.server.send(f"HTTP/1.1 200 OK\r\nContent-Type: {utils.get_content_type(path)}\r\n\r\n")
             
+        if self.file_exists(path):
             self.serve_file(path)
         else:
             self.server._route_not_found(request)
 
     def serve_file(self,path):
         print(f"serving:{path}")
-        
+        self.server.send(f"HTTP/1.1 200 OK\r\nContent-Type: {utils.get_content_type(path)}\r\n\r\n")
         with open(path, "rb") as f:  # Open file in binary mode
             while chunk := f.read(512):  # Read in chunks (512 bytes)
                 self.server.send_bytes(chunk)  # Send each chunk
@@ -87,6 +97,8 @@ class RCU_server:
     # Shift Lights
     def post_shiftLight(self,request):
         _,path,body = utils.parse_request(request)
+        message = f"endpoint not found for {path}" # this will get overwritten
+        
         if "" != body:
             data = ujson.loads(body)
             print(f"data:{data}")
@@ -94,79 +106,81 @@ class RCU_server:
         if re.match(r"/shiftLights/\d+", path):  
             id = int(re.search(r"\d+", path).group(0))  # Extracts the ID
             message = f"Set light color @ index {id}"
-            print(message)
-
-            self.set_light_config_color(self.config["ShiftLights"]["ShiftLights"][id],data.get("color"))
-
-            print(self.config["ShiftLights"]["ShiftLights"][id])
-            
+            self.shiftLights.set_configed_color(id,self.hex_to_rgb(data.get("color")))
         elif re.match(r"/shiftLights/LimiterColor", path):
             message = "setting limiter color"
-            print(message)
-            
-            self.set_light_config_color(self.config["ShiftLights"]["LimiterColor"],data.get("color"))
+            self.shiftLights.set_configed_limiter_color(self.hex_to_rgb(data.get("color")))
 
         elif re.match(r"/shiftLights/limitPattern", path):
             message = "setting limiter pattern"
-            try:
-                self.config["ShiftLights"]["LimiterPattern"]["Selected"] = data["pattern"]
-                print(f"Set limiter pattern to: {self.config["ShiftLights"]["LimiterPattern"]["Selected"]}")
-            except Exception as e:
-                message = f"Pattern set failed with with error{e}"
-                utils.send_response(self.server, message, http_code=201)
-                print(message)
-                return
+            self.shiftLights.set_limiter_pattern(data.get("pattern"))
+        elif re.match(r"/shiftLights/pin", path):
+            message = f"setting shift light pin to {data.get("selectedPin")}"
+            self.shiftLights.set_pin(data.get("selectedPin"))
         else:
             #return 404
             self.server._route_not_found(request)
             return
 
+        print(message)
         utils.send_response(self.server, message, http_code=201)
-
-    def set_light_config_color(self,lightsConfig,hex_color):
-        red,green,blue = self.hex_to_rgb(hex_color)
         
-        lightsConfig["color"]["red"] = red
-        lightsConfig["color"]["green"] = green
-        lightsConfig["color"]["blue"] = blue
+        # save changes
+        RCU.export_config(self.config)
 
-    def get_shiftLights(self,request):
-        self.serve_json(self.config["ShiftLights"])
+    
+
+    def get_shiftLights(self,_):
+        self.serve_json(self.shiftLights.get_shiftLights())
 
     # Pins 
-    def post_pin(self, _):
-        print("setting pin")
-    
     def get_pins(self, _):
         self.serve_json(self.config["Pins"])
         
-RCU_server()
-    # self.server.add_route("/another_action", another_action)
-    # ''' start self.server '''
-    # print('listening on', addr)
-
-    # while True:
-    #     self.server, addr = s.accept()
-    #     print('client connected from', str(addr))
-    #     request = self.server.recv(1024).decode()
-    #     print('Content = %s' % request)
+    def download_config(self,_):
+        self.download_file(RCU.get_rawConfig())
         
-        # method,path,body = parse_request(request)
-
-    #     print(f"method:{method}")
-    #     print(f"path:{path}")
-    #     print(f"body:{body}")
-
-    #     if path == "/":
-    #         serve_file(INDEX_PATH)
-    #     elif "/shiftLights" in path:
-    #         if method == "GET":
-    #             serve_json(config["ShiftLights"])
-    #         elif method == "POST":
-    #             handle_shiftLight(path,body)
-
-
-    #     elif method == "GET":
-    #         serve_file(path)
-
-    #     self.server.close()
+    def download_file(self,file_content):
+        try:
+            self.server.send("HTTP/1.1 200 OK\r\n")
+            self.server.send("Content-Type: application/json\r\n")
+            self.server.send(f"Content-Disposition: attachment; filename=\"config.json\"\r\n")
+            self.server.send("Content-Length: {}\r\n".format(len(file_content)))
+            self.server.send("\r\n")
+            self.server.send_bytes(file_content)
+        except OSError as e:
+            print(f"Error serving file: {e}")
+            self.server.send("HTTP/1.1 500 Internal Server Error\r\n")
+            self.server.send("Content-Type: text/plain\r\n")
+            self.server.send("\r\n")
+            self.server.send("Error serving file")
+    
+    def upload_config(self, request):
+        try:
+            headers, _, body = utils.parse_request(request)
+            content_type_header = [header for header in headers.split('\r\n') if 'Content-Type' in header][0]
+            boundary = content_type_header.split('=')[1]
+            parts = body.split(f'--{boundary}')
+            
+            for part in parts:
+                if 'Content-Disposition' in part:
+                    headers, file_content = part.split('\r\n\r\n', 1)
+                    file_content = file_content.rsplit('\r\n', 1)[0]
+                    with open(RCU.CONFIG_PATH, 'wb') as f:
+                        f.write(file_content.encode('utf-8'))
+                    break
+            
+            self.server.send("HTTP/1.1 200 OK\r\n")
+            self.server.send("Content-Type: application/json\r\n")
+            self.server.send("\r\n")
+            self.server.send(ujson.dumps({"message": "File uploaded successfully"}))
+            
+            self.config = RCU.import_config(RCU.CONFIG_PATH)
+        except Exception as e:
+            print(f"Error uploading file: {e}")
+            self.server.send("HTTP/1.1 500 Internal Server Error\r\n")
+            self.server.send("Content-Type: text/plain\r\n")
+            self.server.send("\r\n")
+            self.server.send("Error uploading file")
+    
+RCU_server()

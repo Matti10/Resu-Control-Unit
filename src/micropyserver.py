@@ -75,7 +75,9 @@ class MicroPyServer(object):
             except Exception as e:
                 self._internal_error(e)
             finally:
-                self._connect.close()
+                if self._connect:
+                    self._connect.close()
+                
 
     def stop(self):
         """ Stop the server """
@@ -166,6 +168,6 @@ class MicroPyServer(object):
         print("Server Routes:")
         for route in self._routes:
             print(route)
-        
+
 
 
