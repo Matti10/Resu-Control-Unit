@@ -18,7 +18,7 @@ PORT = 8000
 
 class RCU_server:
     
-    def __init__(self,config=None):
+    def __init__(self,config=None,test=False):
         
         
         if None == config:
@@ -37,9 +37,13 @@ class RCU_server:
         self.server.add_route(FAVICON_ROUTE, self.get_favicon)
         self.server.add_route("/downloadConfig", self.download_config)
         self.server.add_route("/uploadConfig", self.upload_config, method="POST")
-            
         self.server._print_routes()
-        self.server.start()
+        
+        print(test)
+        print(not test)
+        if not test:
+            print("sdfsdfsdf")
+            self.server.start()
     
     # Utils
 
