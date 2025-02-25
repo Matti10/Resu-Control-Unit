@@ -132,7 +132,12 @@ class RCU_server:
         # save changes
         RCU.export_config(self.config)
 
-    
+    def server_internalError(self,message="Internal Server Error"):
+        print(message)
+        self.server.send("HTTP/1.1 500 Internal Server Error\r\n")
+        self.server.send("Content-Type: text/plain\r\n")
+        self.server.send("\r\n")
+        self.server.send("Error uploading file")
 
     def get_shiftLights(self,_):
         self.serve_json(self.shiftLights.get_shiftLights())
@@ -153,11 +158,7 @@ class RCU_server:
             self.server.send("\r\n")
             self.server.send_bytes(file_content)
         except OSError as e:
-            print(f"Error serving file: {e}")
-            self.server.send("HTTP/1.1 500 Internal Server Error\r\n")
-            self.server.send("Content-Type: text/plain\r\n")
-            self.server.send("\r\n")
-            self.server.send("Error serving file")
+            self.server_internalError(f"Error serving file: {e}")
     
     def upload_config(self, request):
         try:
@@ -181,10 +182,8 @@ class RCU_server:
             
             self.config = RCU.import_config(RCU.CONFIG_PATH)
         except Exception as e:
-            print(f"Error uploading file: {e}")
-            self.server.send("HTTP/1.1 500 Internal Server Error\r\n")
-            self.server.send("Content-Type: text/plain\r\n")
-            self.server.send("\r\n")
-            self.server.send("Error uploading file")
+            self.server_internalError(f"Error uploading file: {e}")
+            
+        
     
 RCU_server()
