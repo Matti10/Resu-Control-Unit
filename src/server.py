@@ -51,8 +51,8 @@ class RCU_server:
         try:
             RCU.export_config(self.config)
             utils.send_response(self.server, "Config Saved", http_code=201)
-        except:
-            utils.send_response(self.server, f"Error saving config with request:\n{request}", http_code=500)
+        except Exception as e:
+            self.server_internalError(f"Error saving config with request:\n{request}\n Error:{e}")
     
     def hex_to_rgb(self,hex_color):
         # Remove '#' if present
