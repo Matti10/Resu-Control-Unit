@@ -1,11 +1,9 @@
-import os
 import re
 import uos
 import RCU
 import ujson
 import micropyserver
 import utils
-import machine
 from shiftLights import ShiftLight
 
 WEB_FILES_ROUTE = "/webFiles"
@@ -13,22 +11,22 @@ WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
 INDEX_PATH = f"{WEB_FILES_PATH}/index.html"
 FAVICON_ROUTE = "/favicon.ico"
 FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
-
 PORT = 8000
+
 
 class RCU_server:
     
-    def __init__(self,config=None,test=False):
-        
-        
+    def __init__(self,config=None,testMode=False):
         if None == config:
             self.config = RCU.import_config() # dont duplicate config
         else:
-            self.config = config    
+            self.config = config
+
+        self.testMode = testMode
         
         self.shiftLights = ShiftLight(self.config)
 
-        self.server = micropyserver.MicroPyServer(port=PORT)
+        self.server = micropyserver.MicroPyServer(port=PORT,testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
         self.server.add_route("/shiftLights", self.get_shiftLights)
         self.server.add_route("/shiftLights", self.post_shiftLight,method="POST")
@@ -39,14 +37,10 @@ class RCU_server:
         self.server.add_route("/uploadConfig", self.upload_config, method="POST")
         self.server._print_routes()
         
-        print(test)
-        print(not test)
-        if not test:
-            print("sdfsdfsdf")
+        if not testMode:
             self.server.start()
     
     # Utils
-
     def post_saveConfig(self,request):
         try:
             RCU.export_config(self.config)
@@ -89,14 +83,21 @@ class RCU_server:
             self.server._route_not_found(request)
 
     def serve_file(self,path):
+        result = [] #used for tests becasue no mocking in micropy
         print(f"serving:{path}")
-        self.server.send(f"HTTP/1.1 200 OK\r\nContent-Type: {utils.get_content_type(path)}\r\n\r\n")
-        with open(path, "rb") as f:  # Open file in binary mode
-            while chunk := f.read(512):  # Read in chunks (512 bytes)
-                self.server.send_bytes(chunk)  # Send each chunk
+        try:
+            self.server.send(f"HTTP/1.1 200 OK\r\nContent-Type: {utils.get_content_type(path)}\r\n\r\n")
+            with open(path, "rb") as f:  # Open file in binary mode
+                while chunk := f.read(512):  # Read in chunks (512 bytes)
+                    result.append(self.server.send_bytes(chunk))  # Send each chunk
+            if self.testMode:
+                return result
+        except OSError as e:
+            return self.server._route_not_found(path) #send a 404
 
-    def serve_json(self,data):      
-        utils.send_response(self.server,ujson.dumps(data),content_type="application/json")
+
+    def serve_json(self,data):
+        return utils.send_response(self.server,ujson.dumps(data),content_type="application/json") # returning for tests
 
     # Shift Lights
     def post_shiftLight(self,request):
@@ -186,4 +187,4 @@ class RCU_server:
             
         
     
-RCU_server()
+# RCU_server(None,False)

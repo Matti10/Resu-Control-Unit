@@ -10,9 +10,9 @@ class ShiftLight:
         self.lightCount = len(self.config["ShiftLights"]["ShiftLights"])
         self.rpmStep = (self.config["ShiftLights"]["endRPM"] - self.config["ShiftLights"]["startRPM"])/self.lightCount
         if len(self.config["ShiftLights"]["pinIDs"]) > 0:
-            self.outputPin = self.config["Pins"]["Pins"][self.config["ShiftLights"]["pinIDs"][0]]
+            self.outputPinID = self.config["ShiftLights"]["pinIDs"][0]
         else:
-            self.outputPin = None
+            self.outputPinID = None
         # super().__init__(config["pinIDs"], "ShiftLights", config)
 
         # self.np = neopixel.NeoPixel(self.pins[0],self.lightCount)
@@ -115,10 +115,13 @@ class ShiftLight:
         # Set new pin
         self.config["ShiftLights"]["pinIDs"] = [pinID]
         self.config["Pins"]["Pins"][pinID]["function"] = PIN_FUNCNAME_SHIFTLIGHTS
-        self.outputPin = self.config["Pins"]["Pins"][pinID]
+        self.outputPinID = pinID
         print(f"Set pin to {pinID}")
         
     def unassign_pin(self):
-        if self.outputPin != None:
+        if self.outputPinID != None:
             self.config["ShiftLights"]["pinIDs"] = []
-            self.config["Pins"]["Pins"][self.outputPin]["function"] = ""
+            print(self.outputPinID)
+            print(type(self.outputPinID))
+            self.config["Pins"]["Pins"][self.outputPinID]["function"] = ""
+            self.outputPinID = None

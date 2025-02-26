@@ -28,14 +28,16 @@ This is the parent `<div>` that contains the menu and the content area.
     left: 0;
     padding-left: 0;
 }
-    #layout.active #menu {
-        left: 150px;
-        width: 150px;
-    }
 
-    #layout.active .menu-link {
-        left: 150px;
-    }
+#layout.active #menu {
+    left: 150px;
+    width: 150px;
+}
+
+#layout.active .menu-link {
+    left: 150px;
+}
+
 /*
 The content `<div>` is where all your content goes.
 */
@@ -48,23 +50,25 @@ The content `<div>` is where all your content goes.
 }
 
 .header {
-     margin: 0;
-     color: #333;
-     text-align: center;
-     padding: 2.5em 2em 0;
-     border-bottom: 1px solid #eee;
- }
-    .header h1 {
-        margin: 0.2em 0;
-        font-size: 3em;
-        font-weight: 300;
-    }
-     .header h2 {
-        font-weight: 300;
-        color: #ccc;
-        padding: 0;
-        margin-top: 0;
-    }
+    margin: 0;
+    color: #333;
+    text-align: center;
+    padding: 2.5em 2em 0;
+    border-bottom: 1px solid #eee;
+}
+
+.header h1 {
+    margin: 0.2em 0;
+    font-size: 3em;
+    font-weight: 300;
+}
+
+.header h2 {
+    font-weight: 300;
+    color: #ccc;
+    padding: 0;
+    margin-top: 0;
+}
 
 .content-subhead {
     margin: 50px 0 20px 0;
@@ -80,71 +84,76 @@ appears on the left side of the page.
 */
 
 #menu {
-    margin-left: -150px; /* "#menu" width */
+    margin-left: -150px;
+    /* "#menu" width */
     width: 150px;
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
-    z-index: 1000; /* so the menu or its navicon stays above all content */
+    z-index: 1000;
+    /* so the menu or its navicon stays above all content */
     background: #191818;
     overflow-y: auto;
 }
-    /*
+
+/*
     All anchors inside the menu should be styled like this.
     */
-    #menu a {
-        color: #999;
-        border: none;
-        padding: 0.6em 0 0.6em 0.6em;
-    }
+#menu a {
+    color: #999;
+    border: none;
+    padding: 0.6em 0 0.6em 0.6em;
+}
 
-    /*
+/*
     Remove all background/borders, since we are applying them to #menu.
     */
-     #menu .pure-menu,
-     #menu .pure-menu ul {
-        border: none;
-        background: transparent;
-    }
+#menu .pure-menu,
+#menu .pure-menu ul {
+    border: none;
+    background: transparent;
+}
 
-    /*
+/*
     Add that light border to separate items into groups.
     */
-    #menu .pure-menu ul,
-    #menu .pure-menu .menu-item-divided {
-        border-top: 1px solid #333;
-    }
-        /*
+#menu .pure-menu ul,
+#menu .pure-menu .menu-item-divided {
+    border-top: 1px solid #333;
+}
+
+/*
         Change color of the anchor links on hover/focus.
         */
-        #menu .pure-menu li a:hover,
-        #menu .pure-menu li a:focus {
-            background: #333;
-        }
+#menu .pure-menu li a:hover,
+#menu .pure-menu li a:focus {
+    background: #333;
+}
 
-    /*
+/*
     This styles the selected menu item `<li>`.
     */
-    #menu .pure-menu-selected,
-    #menu .pure-menu-heading {
-        background: #ff0700;
-    }
-        /*
+#menu .pure-menu-selected,
+#menu .pure-menu-heading {
+    background: #ff0700;
+}
+
+/*
         This styles a link within a selected menu item `<li>`.
         */
-        #menu .pure-menu-selected a {
-            color: #fff;
-        }
+#menu .pure-menu-selected a {
+    color: #fff;
+}
 
-    /*
+/*
     This styles the menu heading.
     */
-    #menu .pure-menu-heading {
-        font-size: 110%;
-        color: #fff;
-        margin: 0;
-    }
+#menu .pure-menu-heading {
+    font-size: 110%;
+    color: #fff;
+    margin: 0;
+}
 
 /* -- Dynamic Button For Responsive Menu -------------------------------------*/
 
@@ -159,47 +168,50 @@ small screens.
 */
 .menu-link {
     position: fixed;
-    display: block; /* show this only on small screens */
+    display: block;
+    /* show this only on small screens */
     top: 0;
-    left: 0; /* "#menu width" */
+    left: 0;
+    /* "#menu width" */
     background: #000;
-    background: rgba(0,0,0,0.7);
-    font-size: 10px; /* change this value to increase/decrease button size */
+    background: rgba(0, 0, 0, 0.7);
+    font-size: 10px;
+    /* change this value to increase/decrease button size */
     z-index: 10;
     width: 2em;
     height: auto;
     padding: 2.1em 1.6em;
 }
 
-    .menu-link:hover,
-    .menu-link:focus {
-        background: #000;
-    }
+.menu-link:hover,
+.menu-link:focus {
+    background: #000;
+}
 
-    .menu-link span {
-        position: relative;
-        display: block;
-    }
+.menu-link span {
+    position: relative;
+    display: block;
+}
 
-    .menu-link span,
-    .menu-link span:before,
-    .menu-link span:after {
-        background-color: #fff;
-        pointer-events: none;
-        width: 100%;
-        height: 0.2em;
-    }
+.menu-link span,
+.menu-link span:before,
+.menu-link span:after {
+    background-color: #fff;
+    pointer-events: none;
+    width: 100%;
+    height: 0.2em;
+}
 
-        .menu-link span:before,
-        .menu-link span:after {
-            position: absolute;
-            margin-top: -0.6em;
-            content: " ";
-        }
+.menu-link span:before,
+.menu-link span:after {
+    position: absolute;
+    margin-top: -0.6em;
+    content: " ";
+}
 
-        .menu-link span:after {
-            margin-top: 0.6em;
-        }
+.menu-link span:after {
+    margin-top: 0.6em;
+}
 
 
 /* -- Responsive Styles (Media Queries) ------------------------------------- */
@@ -216,9 +228,11 @@ Hides the menu at `48em`, but modify this based on your app's needs.
     }
 
     #layout {
-        padding-left: 150px; /* left col width "#menu" */
+        padding-left: 150px;
+        /* left col width "#menu" */
         left: 0;
     }
+
     #menu {
         left: 150px;
     }
@@ -235,6 +249,7 @@ Hides the menu at `48em`, but modify this based on your app's needs.
 }
 
 @media (max-width: 48em) {
+
     /* Only apply this when the window is small. Otherwise, the following
     case results in extra padding on the left:
         * Make the window small.
@@ -279,7 +294,7 @@ select:focus {
 
 select:active {
     box-shadow: 0 0 0 1px rgba(0, 0, 0, .15) inset, 0 0 6px rgba(0, 0, 0, .2) inset;
-    border-color: #000;
+    border-color: #3d3d3d;
     background-color: #ff0700;
 }
 
@@ -296,4 +311,172 @@ select[disabled] {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 10px;
+    background-color: white;
+    border: 1px solid #666666;
+}
+
+th,
+td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #666666;
+    /* Updated border color */
+}
+
+th {
+    background-color: #ccc;
+    color: black;
+    font-weight: bold;
+    width: 200px;
+    white-space: nowrap;
+    border-right: none;
+    /* Removes the vertical border */
+}
+
+td {
+    width: auto;
+    background-color: #fff;
+    border-left: none;
+    /* Removes the vertical border */
+    text-align: center;
+    /* Centers content horizontally */
+    vertical-align: middle;
+    /* Centers content vertically */
+
+}
+
+/* Global heading row */
+.table-global-heading {
+    background-color: red;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    text-align: center;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border: 1px solid #666666;
+}
+
+/* Preserve rounded corners */
+tr:first-child th:first-child {
+    border-top-left-radius: 10px;
+}
+
+tr:first-child td:last-child {
+    border-top-right-radius: 10px;
+}
+
+tr:last-child th:first-child {
+    border-bottom-left-radius: 10px;
+}
+
+tr:last-child td:last-child {
+    border-bottom-right-radius: 10px;
+}
+
+.shiftLight-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 5px;
+    width: 100%;
+    /* Container takes full width */
+}
+
+.circle {
+    flex-grow: 1;
+    /* Makes each circle grow to fit the available space */
+    aspect-ratio: 1 / 1;
+    /* Ensures the height matches the width */
+    max-width: 40px;
+    /* Prevents circles from becoming too large */
+    border-radius: 50%;
+    /* Makes the circle round */
+    background-color: red;
+    cursor: pointer;
+}
+
+/* Ensure the body or layout has relative positioning for absolute elements */
+body {
+    position: relative;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    margin-left: auto;
+    overflow: visible;
+    /* Ensure tooltips can show while not affecting layout */
+    z-index: 10;
+    /* Ensure tooltips stay on top */
+}
+
+.tooltip img {
+    position: relative;
+    /* Prevent the image from breaking the border-radius */
+    z-index: 1;
+    /* Keeps it properly layered */
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: auto;
+    min-width: 300px;
+    max-width: 500px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    white-space: normal;
+    border-radius: 10px;
+    position: absolute;
+    /* Ensures it's not confined by table structure */
+    z-index: 9999;
+    /* Keeps tooltip above everything */
+
+    left: 50%;
+    transform: translateX(-50%);
+
+    bottom: 125%;
+    /* Positions tooltip above the icon */
+
+    opacity: 0;
+    transition: opacity 0.3s;
+
+    /* Prevents clipping */
+    overflow: visible;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+.heading-with-tooltip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Ensures spacing */
+    width: 100%;
+    /* Makes sure it takes full width */
 }

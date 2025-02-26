@@ -36,7 +36,7 @@ import io
 
 class MicroPyServer(object):
 
-    def __init__(self, host="0.0.0.0", port=80):
+    def __init__(self, host="0.0.0.0", port=80, testMode=False):
         """ Constructor """
         self._host = host
         self._port = port
@@ -46,6 +46,7 @@ class MicroPyServer(object):
         self._on_not_found_handler = None
         self._on_error_handler = None
         self._sock = None
+        self._testMode = testMode
 
     def start(self):
         """ Start server """
@@ -93,12 +94,14 @@ class MicroPyServer(object):
 
     def send(self, data):
         """ Send data to client """
-        if self._connect is None:
-            raise Exception("Can't send response, no connection instance")
-        self._connect.write(data.encode())
+        return self.send_bytes(data.encode())
+
         
     def send_bytes(self, data):
         """ Send data to client """
+        if (self._testMode):
+            return data
+
         if self._connect is None:
             raise Exception("Can't send response, no connection instance")
         self._connect.write(data)
@@ -137,6 +140,8 @@ class MicroPyServer(object):
 
     def _route_not_found(self, request):
         """ Route not found handler """
+        if self._testMode:
+            return "404"
         if self._on_not_found_handler:
             self._on_not_found_handler(request)
         else:

@@ -99,7 +99,7 @@ def send_response(server, response, http_code=200, content_type="text/html", ext
         for header in extend_headers:
             server.send(header + "\r\n")
     server.send("\r\n")
-    server.send(response)
+    return server.send(response)
 
 
 def get_request_method(request):
