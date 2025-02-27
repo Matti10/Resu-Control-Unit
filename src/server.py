@@ -186,5 +186,5 @@ class RCU_server:
             self.server_internalError(f"Error uploading file: {e}")
             
         
-    
-# RCU_server(None,False)
+if __name__ == "__main__":
+    RCU_server(None,False)

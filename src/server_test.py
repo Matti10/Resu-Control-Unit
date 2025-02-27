@@ -9,7 +9,7 @@ REPO_ROOT = "/workspaces/Resu-Control-Unit"
 
 class unitTestServer(unittest.TestCase):
     def setUp(self):
-        self.server = server.RCU_server(testMode=False)
+        self.server = server.RCU_server(testMode=True)
 
 
     def test_frontend_routes_exist(self):
