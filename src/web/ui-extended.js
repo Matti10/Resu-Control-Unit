@@ -76,19 +76,14 @@ function pickColor(circle) {
     colorPicker.click();
 }
 
-// Helper function to convert RGB color to HEX
-function rgbToHex(rgb) {
-    const result = rgb.match(/\d+/g).map(Number);
-    return `#${((1 << 24) + (result[0] << 16) + (result[1] << 8) + result[2]).toString(16).slice(1).toUpperCase()}`;
-}
 function changeColor(event) {
     // Change the circle's background color
-    const newColor = event.target.value;
+    let newColor = event.target.value;
     selectedCircle.style.backgroundColor = newColor;
 
     // Prepare the request payload
     const requestBody = {
-        color: newColor
+        color:  applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server
     };
 
     // Send a POST request to your API
@@ -115,11 +110,8 @@ function addCirle(container, color, id) {
     circle.id = `${id}`;
     circle.onclick = function () { pickColor(this); };
 
-    // Convert color values to CSS format (assuming they are 0-255)
-    const red = color.red;
-    const green = color.green;
-    const blue = color.blue;
-    circle.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
+    // Convert color values to CSS format
+    circle.style.backgroundColor = `rgb(${color.red}, ${color.green}, ${color.blue})`;
 
     container.appendChild(circle);  // Append to shiftLight-container
 }
@@ -128,11 +120,13 @@ document.addEventListener("DOMContentLoaded", () => {
     fetch('/shiftLights')
         .then(response => response.json())
         .then(data => {
+            setColorGlobals(data); // set color modification parameters
+
             const circleContainer = document.querySelector('.shiftLight-container');
 
             // shift light circles
             data.ShiftLights.forEach(light => {
-                addCirle(circleContainer, light.color, light.id);
+                addCirle(circleContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
             });
 
             // limiter circle

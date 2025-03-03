@@ -25,7 +25,7 @@ import server
 import RCU
 import shiftLights
 from machine import Timer
-# from machine import Pin
+from machine import Pin
 import time
 
 
@@ -37,11 +37,16 @@ white = {'green': 255, 'blue': 255, 'red': 255}
 shift = shiftLights.ShiftLight(config)
 rpm = 0
 rpmTestTimer = Timer(0)
+i = 0
 
 def enable_test_rpm():
     rpmTestTimer.init(period=50, mode=Timer.PERIODIC, callback=lambda t: shift.set_color_fromRPM(rpm))
     
-def disable_test_rpm():
+def enable_test_limiter():
+    rpmTestTimer.init(period=150, mode=Timer.PERIODIC, callback=lambda t: shift.increment_limiter(config["ShiftLights"]["LimiterPattern"]["selected"],i))
+
+    
+def disable_test():
     rpmTestTimer.deinit()
 
 def test_rpm():
@@ -53,11 +58,20 @@ def test_rpm():
         time.sleep_ms(100)
         
     rpm = 0
+    shift.clear_all()
+    shift.update()
+    disable_test()
+
+def test_limiters():
+    enable_test_limiter()
     
-
-
+    for pattern in config["ShiftLights"]["LimiterPattern"]["Patterns"]:
+        shift.set_limiter_pattern(pattern)
+        time.sleep_ms(150*17)
+        shift.clear_all()
+            
+    shift.update()
+    disable_test()
+    
 # testIRQ = Pin(8, Pin.IN, Pin.PULL_UP)
 # testIRQ.irq(trigger=Pin.IRQ_FALLING, handler=lambda t: print("IRQ")) 
-
-
-

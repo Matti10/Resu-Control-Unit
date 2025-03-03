@@ -49,16 +49,6 @@ class RCU_server:
         except Exception as e:
             self.server_internalError(f"Error saving config with request:\n{request}\n Error:{e}")
     
-    def hex_to_rgb(self,hex_color):
-        # Remove '#' if present
-        hex_color = hex_color.lstrip('#')
-        
-        # Convert hex to RGB
-        if len(hex_color) == 6:  # Standard format (e.g., "FF5733")
-            r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
-            return r, g, b
-        else:
-            raise ValueError("Invalid hex color format. Use #RRGGBB.")
 
     def file_exists(self,path):
         try:
@@ -112,17 +102,20 @@ class RCU_server:
         if re.match(r"/shiftLights/\d+", path):  
             id = int(re.search(r"\d+", path).group(0))  # Extracts the ID
             message = f"Set light color @ index {id}"
-            self.shiftLights.set_configed_color(id,self.hex_to_rgb(data.get("color")),True)
+            self.shiftLights.set_configed_color(id,data.get("color"),True)
+            
         elif re.match(r"/shiftLights/LimiterColor", path):
             message = "setting limiter color"
-            self.shiftLights.set_configed_limiter_color(self.hex_to_rgb(data.get("color")))
+            self.shiftLights.set_configed_limiter_color(data.get("color"))
 
         elif re.match(r"/shiftLights/limitPattern", path):
             message = "setting limiter pattern"
             self.shiftLights.set_limiter_pattern(data.get("pattern"))
+            
         elif re.match(r"/shiftLights/pin", path):
             message = f"setting shift light pin to {data.get("selectedPin")}"
             self.shiftLights.set_pin(data.get("selectedPin"))
+            
         else:
             #return 404
             self.server._route_not_found(request)
@@ -142,7 +135,7 @@ class RCU_server:
         self.server.send("Error uploading file")
 
     def get_shiftLights(self,_):
-        self.serve_json(self.shiftLights.get_shiftLights())
+        self.serve_json(self.shiftLights.get_shiftLightConfig())
 
     # Pins 
     def get_pins(self, _):
@@ -186,6 +179,5 @@ class RCU_server:
         except Exception as e:
             self.server_internalError(f"Error uploading file: {e}")
             
-        
 if __name__ == "__main__":
     RCU_server(None,False)
