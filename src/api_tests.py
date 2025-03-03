@@ -7,7 +7,7 @@ import os
 import RCU
 
 MICROPYTHON_EXEC = "/micropython/ports/unix/build-standard/micropython"
-SERVER_PATH = "/workspaces/Resu-Control-Unit/src/server.py"
+SERVER_PATH = "/server.py"
 RUN_SERVER_CMD = f"{MICROPYTHON_EXEC} {SERVER_PATH}"
 
 SERVER_ADDRESS = f"http://127.0.0.1:{server.PORT}"

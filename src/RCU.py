@@ -2,7 +2,7 @@
 import array
 import ujson
 
-CONFIG_PATH = "/workspaces/Resu-Control-Unit/src/data/config.json"
+CONFIG_PATH = "/data/config.json"
 
 def import_config(configPath = CONFIG_PATH):
     with open(configPath, "r") as file:

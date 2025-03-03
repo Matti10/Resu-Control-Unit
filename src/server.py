@@ -7,7 +7,7 @@ import utils
 from shiftLights import ShiftLight
 
 WEB_FILES_ROUTE = "/webFiles"
-WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
+WEB_FILES_PATH = "/web"
 INDEX_PATH = f"{WEB_FILES_PATH}/index.html"
 FAVICON_ROUTE = "/favicon.ico"
 FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
@@ -23,6 +23,7 @@ class RCU_server:
             self.config = config
 
         self.testMode = testMode
+        
         
         self.shiftLights = ShiftLight(self.config)
 
@@ -111,7 +112,7 @@ class RCU_server:
         if re.match(r"/shiftLights/\d+", path):  
             id = int(re.search(r"\d+", path).group(0))  # Extracts the ID
             message = f"Set light color @ index {id}"
-            self.shiftLights.set_configed_color(id,self.hex_to_rgb(data.get("color")))
+            self.shiftLights.set_configed_color(id,self.hex_to_rgb(data.get("color")),True)
         elif re.match(r"/shiftLights/LimiterColor", path):
             message = "setting limiter color"
             self.shiftLights.set_configed_limiter_color(self.hex_to_rgb(data.get("color")))
