@@ -7,12 +7,17 @@ import utils
 from shiftLights import ShiftLight
 
 WEB_FILES_ROUTE = "/webFiles"
-WEB_FILES_PATH = "/web"
+WEB_FILES_PATH = "/src/web"
 INDEX_PATH = f"{WEB_FILES_PATH}/index.html"
 FAVICON_ROUTE = "/favicon.ico"
 FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
 PORT = 8000
 
+class RouteNotFound(Exception):
+    def __init__(self, message):
+        # Initialize the exception with a message
+        super().__init__(message)
+        self.message = message
 
 class RCU_server:
     
@@ -25,7 +30,7 @@ class RCU_server:
         self.testMode = testMode
         
         
-        self.shiftLights = ShiftLight(self.config)
+        self.shiftLights = ShiftLight(self.config,testMode=True)
 
         self.server = micropyserver.MicroPyServer(port=PORT,testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
@@ -94,36 +99,43 @@ class RCU_server:
     def post_shiftLight(self,request):
         _,path,body = utils.parse_request(request)
         message = f"endpoint not found for {path}" # this will get overwritten
-        
-        if "" != body:
-            data = ujson.loads(body)
-            print(f"data:{data}")
-            
-        if re.match(r"/shiftLights/\d+", path):  
-            id = int(re.search(r"\d+", path).group(0))  # Extracts the ID
-            message = f"Set light color @ index {id}"
-            self.shiftLights.set_configed_color(id,data.get("color"),True)
-            
-        elif re.match(r"/shiftLights/LimiterColor", path):
-            message = "setting limiter color"
-            self.shiftLights.set_configed_limiter_color(data.get("color"))
 
-        elif re.match(r"/shiftLights/limitPattern", path):
-            message = "setting limiter pattern"
-            self.shiftLights.set_limiter_pattern(data.get("pattern"))
-            
-        elif re.match(r"/shiftLights/pin", path):
-            message = f"setting shift light pin to {data.get("selectedPin")}"
-            self.shiftLights.set_pin(data.get("selectedPin"))
-            
-        else:
+        try:
+            if "" != body:
+                data = ujson.loads(body)
+                print(f"data:{data}")
+
+            # Check if the path matches the main color setting route
+            colorRouteMatch = re.match(r"/shiftLights/(shiftLights|LimiterColor)/(\d+)", path)
+
+            if colorRouteMatch:
+                settingArea = colorRouteMatch.group(1)  # Extracts 'shiftLights' or 'LimiterColor'
+                id = int(colorRouteMatch.group(2))  # Extracts the ID as an integer
+
+                message = f"Set light color for {settingArea} @ index {id}"
+                self.shiftLights.set_configed_color(id, data.get("color"), subKey=settingArea, update=True)
+
+            # Check if the path matches the second pattern (limit pattern)
+            elif re.match(r"/shiftLights/limitPattern", path):
+                message = "setting limiter pattern"
+                self.shiftLights.set_limiter_pattern(data.get("pattern"))
+
+            # Check if the path matches the third pattern (shift light pin)
+            elif re.match(r"/shiftLights/pin", path):
+                message = f"setting shift light pin to {data.get('selectedPin')}"
+                self.shiftLights.set_pin(data.get("selectedPin"))
+
+            # If no match found, raise RouteNotFound
+            else:
+                raise RouteNotFound(path)
+
+            utils.send_response(self.server, message, http_code=201)
+        except RouteNotFound as e:
             #return 404
-            self.server._route_not_found(request)
-            return
+            self.server._route_not_found(e)
+        finally:
+            print(message)
 
-        print(message)
-        utils.send_response(self.server, message, http_code=201)
-        
         # save changes
         RCU.export_config(self.config)
 

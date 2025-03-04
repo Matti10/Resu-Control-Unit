@@ -21,14 +21,128 @@
         "pinIDs": [
             "13"
         ],
-        "LimiterColor": {
-            "id": "LimiterColor",
-            "color": {
-                "green": 20,
-                "red": 200,
-                "blue": 0
+        "LimiterColor": [
+            {
+                "id": "0",
+                "color": {
+                    "red": 0,
+                    "green": 26,
+                    "blue": 2
+                }
+            },
+            {
+                "id": "1",
+                "color": {
+                    "red": 0,
+                    "green": 39,
+                    "blue": 1
+                }
+            },
+            {
+                "id": "2",
+                "color": {
+                    "red": 9,
+                    "green": 30,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "3",
+                "color": {
+                    "red": 12,
+                    "green": 45,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "4",
+                "color": {
+                    "red": 1,
+                    "green": 45,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "5",
+                "color": {
+                    "red": 7,
+                    "green": 45,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "6",
+                "color": {
+                    "red": 53,
+                    "green": 45,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "7",
+                "color": {
+                    "red": 53,
+                    "green": 45,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "8",
+                "color": {
+                    "red": 53,
+                    "green": 45,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "9",
+                "color": {
+                    "red": 56,
+                    "green": 33,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "10",
+                "color": {
+                    "red": 33,
+                    "green": 0,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "11",
+                "color": {
+                    "red": 33,
+                    "green": 0,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "12",
+                "color": {
+                    "red": 33,
+                    "green": 0,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "13",
+                "color": {
+                    "red": 33,
+                    "green": 0,
+                    "blue": 0
+                }
+            },
+            {
+                "id": "14",
+                "color": {
+                    "red": 33,
+                    "green": 0,
+                    "blue": 1
+                }
             }
-        },
+        ],
         "ShiftLights": [
             {
                 "id": "0",

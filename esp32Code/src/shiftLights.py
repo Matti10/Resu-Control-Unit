@@ -1,14 +1,22 @@
-import neopixel
-from machine import Pin
+
 
 PIN_FUNCNAME_SHIFTLIGHTS = "ShiftLights"
 PIN_UNASSIGN_NAME = "Unassigned"
 
 class ShiftLight:
-    def __init__(self,config):
+    def __init__(self,config,testMode=False):
         self.config = config
         self.lightCount = len(self.config["ShiftLights"]["ShiftLights"])
         self.rpmStep = (self.config["ShiftLights"]["endRPM"] - self.config["ShiftLights"]["startRPM"])/self.lightCount
+        self.testMode = testMode
+
+        if not self.testMode:
+            import neopixel
+            self.neopixel = neopixel
+
+            from machine import Pin
+            self.Pin = Pin
+
         if len(self.config["ShiftLights"]["pinIDs"]) > 0:
             self.outputPinID = self.config["ShiftLights"]["pinIDs"][0]
             self.init_np()
@@ -17,7 +25,10 @@ class ShiftLight:
             self.np = None
 
     def init_np(self):
-        self.np = neopixel.NeoPixel(Pin(self.config["Pins"]["Pins"][self.outputPinID]["FirmwareID"], Pin.OUT),self.lightCount)
+        if self.testMode:
+            self.np = [0 for i in range(self.lightCount)]
+        else:
+            self.np = self.neopixel.NeoPixel(self.Pin(self.config["Pins"]["Pins"][self.outputPinID]["FirmwareID"], Pin.OUT),self.lightCount)
         
     def setAll_color(self,color):
         for i in range(self.lightCount):
@@ -81,12 +92,12 @@ class ShiftLight:
                     #set light to be off
                     self.np[i] = (0,0,0)
     
-    def setAll_color_fromConfig(self):
+    def setAll_color_fromConfig(self,subKey = "ShiftLights"):
         for id in range(self.lightCount):
-            self.set_color_fromConfig(id)
+            self.set_color_fromConfig(id,subKey=subKey)
 
-    def set_color_fromConfig(self,id):
-        self.set_color(id,self.config["ShiftLights"]["ShiftLights"][id]["color"])
+    def set_color_fromConfig(self,id,subKey = "ShiftLights"):
+        self.set_color(id,self.config["ShiftLights"][subKey][id]["color"])
 
     def set_limiter_pattern(self,pattern):
         self.config["ShiftLights"]["LimiterPattern"]["Selected"] = pattern
@@ -97,17 +108,17 @@ class ShiftLight:
         lightsConfig["color"]["green"] = color["green"]
         lightsConfig["color"]["blue"] = color["blue"]
     
-    def set_configed_color(self, id, color,update=False):
-        self.set_light_config_color(self.config["ShiftLights"]["ShiftLights"][id],color)
-        print(self.config["ShiftLights"]["ShiftLights"][id])
+    def set_configed_color(self, id, color,subKey = "ShiftLights",update=False):
+        self.set_light_config_color(self.config["ShiftLights"][subKey][id],color)
+        print(self.config["ShiftLights"][subKey][id])
         
         if update:
-            self.setAll_color_fromConfig()
+            self.setAll_color_fromConfig(subKey)
             self.update()
         
-    def set_configed_limiter_color(self,color):
-        self.set_light_config_color(self.config["ShiftLights"]["LimiterColor"],color)
-        print(self.config["ShiftLights"]["LimiterColor"])
+    def set_configed_limiter_color(self,id,color):
+        self.set_light_config_color(self.config["ShiftLights"]["LimiterColor"][id],color)
+        print(self.config["ShiftLights"]["LimiterColor"][id])
         
     def get_shiftLightConfig(self):
         return self.config["ShiftLights"]

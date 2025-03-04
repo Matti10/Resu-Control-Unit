@@ -1,3 +1,8 @@
+REPO_ROOT = "/workspaces/Resu-Control-Unit"
+
+import os
+os.chdir(f"{REPO_ROOT}/src")
+
 import json
 import unittest
 import testing_utils
@@ -5,7 +10,6 @@ import server
 
 # once in production this needs to be a serperate folder that files are copied into....
 
-REPO_ROOT = "/workspaces/Resu-Control-Unit"
 
 class unitTestServer(unittest.TestCase):
     def setUp(self):
@@ -25,15 +29,18 @@ class unitTestServer(unittest.TestCase):
             rootRoute = "/" + route.split("/")[1]
             self.assertIn(rootRoute,serverRoutes,f"{rootRoute} (from {route}) is not in server routes ({self.server.server._routes})")
 
-    def test_hex_to_rgb_valid(self):
-        self.assertEqual(self.server.hex_to_rgb("#FF5733"), (255, 87, 51))
-        self.assertEqual(self.server.hex_to_rgb("FF5733"), (255, 87, 51))
+    # def test_hex_to_rgb_valid(self):
+    #     raise Exception("This needs to be ported to a JS test")
+    #     self.assertEqual(self.server.hex_to_rgb("#FF5733"), (255, 87, 51))
+    #     self.assertEqual(self.server.hex_to_rgb("FF5733"), (255, 87, 51))
     
-    def test_hex_to_rgb_invalid(self):
-        with self.assertRaises(ValueError):
-            self.server.hex_to_rgb("#FFF")
-        with self.assertRaises(ValueError):
-            self.server.hex_to_rgb("XYZ123")
+    # def test_hex_to_rgb_invalid(self):
+    #     raise Exception("This needs to be ported to a JS test")
+
+    #     with self.assertRaises(ValueError):
+    #         self.server.hex_to_rgb("#FFF")
+    #     with self.assertRaises(ValueError):
+    #         self.server.hex_to_rgb("XYZ123")
 
     def test_file_exists(self):
         self.assertTrue(self.server.file_exists(__file__)) # test the file we're running exists

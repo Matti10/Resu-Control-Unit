@@ -80,6 +80,7 @@ function changeColor(event) {
     // Change the circle's background color
     let newColor = event.target.value;
     selectedCircle.style.backgroundColor = newColor;
+    let endpoint = selectedCircle.parentNode.getAttribute('data-endpoint')
 
     // Prepare the request payload
     const requestBody = {
@@ -87,7 +88,7 @@ function changeColor(event) {
     };
 
     // Send a POST request to your API
-    fetch(`/shiftLights/${selectedCircle.id}`, {
+    fetch(`/${endpoint}/${selectedCircle.id}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -122,11 +123,18 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(data => {
             setColorGlobals(data); // set color modification parameters
 
-            const circleContainer = document.querySelector('.shiftLight-container');
+            const shiftLightContainer = document.querySelector('.shiftLight-container');
 
             // shift light circles
             data.ShiftLights.forEach(light => {
-                addCirle(circleContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
+                addCirle(shiftLightContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
+            });
+
+            const limiterLightContainer = document.querySelector('.limiterColor-container');
+
+            // shift light circles
+            data.LimiterColor.forEach(light => {
+                addCirle(limiterLightContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
             });
 
             // limiter circle
