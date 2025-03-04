@@ -38,8 +38,8 @@ class unitTestAPI(unittest.TestCase):
         self.assertIn(response.text,self.configText)
 
 
-    # ("/shiftLights", self.get_shiftLights)
-    # ("/shiftLights", self.post_shiftLight,method="POST")
+    # ("/ShiftLights", self.get_ShiftLights)
+    # ("/ShiftLights", self.post_shiftLight,method="POST")
     # ("/pins", self.get_pins)
     # ("/downloadConfig", self.download_config)
     # ("/uploadConfig", self.upload_config, method="POST")
@@ -61,7 +61,7 @@ class unitTestAPI(unittest.TestCase):
             self.getWebFile_tester(f"{server.WEB_FILES_ROUTE}/{file}",f"{server.WEB_FILES_PATH}/{file}")
 
     def test_getShiftLightConfig(self):
-        self.getConfig_tester("/shiftLights","ShiftLights")
+        self.getConfig_tester("/ShiftLights","ShiftLights")
 
 
 if __name__ == "__main__":

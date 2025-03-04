@@ -7,7 +7,7 @@ import utils
 from shiftLights import ShiftLight
 
 WEB_FILES_ROUTE = "/webFiles"
-WEB_FILES_PATH = "/src/web"
+WEB_FILES_PATH = "/web"
 INDEX_PATH = f"{WEB_FILES_PATH}/index.html"
 FAVICON_ROUTE = "/favicon.ico"
 FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
@@ -19,8 +19,7 @@ class RouteNotFound(Exception):
         super().__init__(message)
         self.message = message
 
-class RCU_server:
-    
+class RCU_server:    
     def __init__(self,config=None,testMode=False):
         if None == config:
             self.config = RCU.import_config() # dont duplicate config
@@ -29,13 +28,12 @@ class RCU_server:
 
         self.testMode = testMode
         
-        
-        self.shiftLights = ShiftLight(self.config,testMode=True)
+        self.ShiftLights = ShiftLight(self.config,testMode=self.testMode)
 
         self.server = micropyserver.MicroPyServer(port=PORT,testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
-        self.server.add_route("/shiftLights", self.get_shiftLights)
-        self.server.add_route("/shiftLights", self.post_shiftLight,method="POST")
+        self.server.add_route("/ShiftLights", self.get_ShiftLights)
+        self.server.add_route("/ShiftLights", self.post_shiftLight,method="POST")
         self.server.add_route("/pins", self.get_pins)
         self.server.add_route(WEB_FILES_ROUTE, self.get_webFiles)
         self.server.add_route(FAVICON_ROUTE, self.get_favicon)
@@ -99,31 +97,31 @@ class RCU_server:
     def post_shiftLight(self,request):
         _,path,body = utils.parse_request(request)
         message = f"endpoint not found for {path}" # this will get overwritten
-
+        print(path,body)
         try:
             if "" != body:
                 data = ujson.loads(body)
                 print(f"data:{data}")
 
             # Check if the path matches the main color setting route
-            colorRouteMatch = re.match(r"/shiftLights/(shiftLights|LimiterColor)/(\d+)", path)
+            colorRouteMatch = re.match(r"/ShiftLights/(ShiftLights|LimiterColor)/(\d+)", path)
 
             if colorRouteMatch:
-                settingArea = colorRouteMatch.group(1)  # Extracts 'shiftLights' or 'LimiterColor'
+                settingArea = colorRouteMatch.group(1)  # Extracts 'ShiftLights' or 'LimiterColor'
                 id = int(colorRouteMatch.group(2))  # Extracts the ID as an integer
 
                 message = f"Set light color for {settingArea} @ index {id}"
-                self.shiftLights.set_configed_color(id, data.get("color"), subKey=settingArea, update=True)
+                self.ShiftLights.set_configed_color(id, data.get("color"), subKey=settingArea, update=True)
 
             # Check if the path matches the second pattern (limit pattern)
-            elif re.match(r"/shiftLights/limitPattern", path):
+            elif re.match(r"/ShiftLights/limitPattern", path):
                 message = "setting limiter pattern"
-                self.shiftLights.set_limiter_pattern(data.get("pattern"))
+                self.ShiftLights.set_configed_limiter_pattern(data.get("pattern"),update=True)
 
             # Check if the path matches the third pattern (shift light pin)
-            elif re.match(r"/shiftLights/pin", path):
+            elif re.match(r"/ShiftLights/pin", path):
                 message = f"setting shift light pin to {data.get('selectedPin')}"
-                self.shiftLights.set_pin(data.get("selectedPin"))
+                self.ShiftLights.set_pin(data.get("selectedPin"))
 
             # If no match found, raise RouteNotFound
             else:
@@ -146,8 +144,8 @@ class RCU_server:
         self.server.send("\r\n")
         self.server.send("Error uploading file")
 
-    def get_shiftLights(self,_):
-        self.serve_json(self.shiftLights.get_shiftLightConfig())
+    def get_ShiftLights(self,_):
+        self.serve_json(self.ShiftLights.get_shiftLightConfig())
 
     # Pins 
     def get_pins(self, _):

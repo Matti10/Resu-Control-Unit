@@ -1,7 +1,10 @@
+import time
 
 
 PIN_FUNCNAME_SHIFTLIGHTS = "ShiftLights"
 PIN_UNASSIGN_NAME = "Unassigned"
+
+
 
 class ShiftLight:
     def __init__(self,config,testMode=False):
@@ -9,6 +12,7 @@ class ShiftLight:
         self.lightCount = len(self.config["ShiftLights"]["ShiftLights"])
         self.rpmStep = (self.config["ShiftLights"]["endRPM"] - self.config["ShiftLights"]["startRPM"])/self.lightCount
         self.testMode = testMode
+        self.lightMidPoint =  self.lightCount // 2 + (self.lightCount % 2) - 1 # magic number 1 is to account for 0 index
 
         if not self.testMode:
             import neopixel
@@ -28,7 +32,7 @@ class ShiftLight:
         if self.testMode:
             self.np = [0 for i in range(self.lightCount)]
         else:
-            self.np = self.neopixel.NeoPixel(self.Pin(self.config["Pins"]["Pins"][self.outputPinID]["FirmwareID"], Pin.OUT),self.lightCount)
+            self.np = self.neopixel.NeoPixel(self.Pin(self.config["Pins"]["Pins"][self.outputPinID]["FirmwareID"], self.Pin.OUT),self.lightCount)
         
     def setAll_color(self,color):
         for i in range(self.lightCount):
@@ -41,33 +45,49 @@ class ShiftLight:
         # color adjustments now done on client side. 
         self.np[id] = (color["red"],color["green"],color["blue"])
     
-    
-    # def set_limiter(self):
-    #     self.setAll_color(self.config["ShiftLights"]["LimiterColor"]["color"])
-        
     def increment_limiter(self, limiterType = None, i=0):
-        if limiterType == "Wave Left": #left to right
-            self.set_color(i,self.config["ShiftLights"]["LimiterColor"]["color"])
-        elif limiterType == "Wave Right": #right to left
-            self.set_color(self.lightCount - i,self.config["ShiftLights"]["LimiterColor"]["color"])
-        elif limiterType == "Wave Center Out": #center out
-            mid = self.lightCount // 2 + (self.lightCount % 2)
-            
-            self.set_color(mid+i,self.config["ShiftLights"]["LimiterColor"]["color"])
-            self.set_color(mid-i,self.config["ShiftLights"]["LimiterColor"]["color"])
-        elif limiterType == "Wave Center In": #center in
-            self.set_color(i,self.config["ShiftLights"]["LimiterColor"]["color"])
-            self.set_color(self.lightCount-i,self.config["ShiftLights"]["LimiterColor"]["color"])
-            self.setAll_color(self.config["ShiftLights"]["LimiterColor"]["color"])
+        #TODO refactor so comparisons aren't permormed every time
+        if limiterType == None:
+            limiterType = self.config["ShiftLights"]["LimiterPattern"]["selected"]
+        print(limiterType)
+        if i == 0:
+            print("clearing all")
+            self.clear_all()
+        
+        if limiterType == "Left to Right": #left to right
+            print("waving left")
+            self.set_color(i,self.config["ShiftLights"]["LimiterColor"][i]["color"])
+        elif limiterType == "Right to Left": #right to left
+            self.set_color(self.lightCount-(i+1),self.config["ShiftLights"]["LimiterColor"][self.lightCount-(i+1)]["color"])
+        elif limiterType == "Center Out": #center out
+           
+            self.set_color(self.lightMidPoint+i,self.config["ShiftLights"]["LimiterColor"][self.lightMidPoint+i]["color"])
+            self.set_color(self.lightMidPoint-i,self.config["ShiftLights"]["LimiterColor"][self.lightMidPoint-i]["color"])
+            print(f"lightMidPoint-1:{self.lightMidPoint-1}")            
+            print(f"lightMidPoint+i:{self.lightMidPoint+i}")
+            print(f"lightMidPoint-i:{self.lightMidPoint-i}")
+            if i >= self.lightMidPoint:
+                i = 0
+        elif limiterType == "Center In": #center in
+            self.set_color(i,self.config["ShiftLights"]["LimiterColor"][i]["color"])
+            self.set_color(self.lightCount-(i+1),self.config["ShiftLights"]["LimiterColor"][self.lightCount-(i+1)]["color"])
+
+            if i >= self.lightMidPoint:
+                i = 0
+            # self.setAll_color(self.config["ShiftLights"]["LimiterColor"]["color"])
         elif limiterType == "Flash":
             if i % 2 == 0:
-                self.setAll_color(self.config["ShiftLights"]["LimiterColor"]["color"])
+                self.setAll_color_fromConfig(subKey="LimiterColor")
             else:
                 self.clear_all()
-        else:#  limiterType == "Solid"
-                self.setAll_color(self.config["ShiftLights"]["LimiterColor"]["color"])
-
-        i += 1
+        else:# default limiterType == "Solid"
+                self.setAll_color_fromConfig(subKey="LimiterColor")
+            
+        if i >= self.lightCount:
+            i = 0
+        else:
+            i += 1
+            
         return i
     
     def handle_limiter(self, limiterType = None):
@@ -78,7 +98,16 @@ class ShiftLight:
         
         i = self.increment_limiter
         
-    
+    def sample_limiter(self):
+        counter = 0
+        i = 0
+        while counter < self.lightCount: 
+            print(f"i:{i}")
+            i = self.increment_limiter(self.config["ShiftLights"]["LimiterPattern"]["selected"],i)
+            self.update()
+            time.sleep_ms(25) #TODO make this an interupt so it doesn't lockup the loop
+            counter+=1
+            
     def set_color_fromRPM(self,rpm):
         if rpm >= self.config["ShiftLights"]["endRPM"]:
             self.handle_limiter()
@@ -99,9 +128,12 @@ class ShiftLight:
     def set_color_fromConfig(self,id,subKey = "ShiftLights"):
         self.set_color(id,self.config["ShiftLights"][subKey][id]["color"])
 
-    def set_limiter_pattern(self,pattern):
-        self.config["ShiftLights"]["LimiterPattern"]["Selected"] = pattern
-        print(f"Set limiter pattern to: {self.config["ShiftLights"]["LimiterPattern"]["Selected"]}")
+    def set_configed_limiter_pattern(self,pattern,update=False):
+        self.config["ShiftLights"]["LimiterPattern"]["selected"] = pattern
+        print(f"Set limiter pattern to: {self.config["ShiftLights"]["LimiterPattern"]["selected"]}")
+        
+        if update:
+            self.sample_limiter()
         
     def set_light_config_color(self,lightsConfig,color):
         lightsConfig["color"]["red"] = color["red"]
@@ -131,16 +163,13 @@ class ShiftLight:
         # Clear old Pin
         if self.config["ShiftLights"]["pinIDs"] != []:
             self.config["Pins"]["Pins"][self.config["ShiftLights"]["pinIDs"][0]]["function"] = ""
-        
 
-        
         # Set new pin
         self.config["ShiftLights"]["pinIDs"] = [pinID]
         self.config["Pins"]["Pins"][pinID]["function"] = PIN_FUNCNAME_SHIFTLIGHTS
         self.outputPinID = pinID
 
         self.init_np() # reinit np so its set to use the new pin
-
 
         print(f"Set pin to {self.config["Pins"]["Pins"][pinID]}")
         
@@ -150,7 +179,9 @@ class ShiftLight:
             self.config["Pins"]["Pins"][self.outputPinID]["function"] = ""
             self.outputPinID = None
             self.np = None
-            
-            
+
     def update(self):
+        print("writting to LEDs")
+        print([self.np[j] for j in range(len(self.np))])
+        
         self.np.write()

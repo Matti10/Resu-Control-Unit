@@ -4,7 +4,6 @@ function downloadConfig() {
     window.location.href = '/downloadConfig';
 }
 
-
 function uploadConfig(event) {
     const file = event.target.files[0];
     if (!file) {
@@ -39,17 +38,13 @@ function pickLimiterPattern(buttonId) {
     document.getElementById(buttonId).className = "pure-button pure-button-active";
 
     // Send API request with the selected button's ID
-    fetch("/shiftLights/limitPattern", {
+    fetch("/ShiftLights/limitPattern", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({ pattern: buttonId })
     }).catch(error => console.error("Error sending API request:", error));
-}
-
-function pickPin(id) {
-
 }
 
 function pickColor(circle) {
@@ -88,7 +83,7 @@ function changeColor(event) {
     };
 
     // Send a POST request to your API
-    fetch(`/${endpoint}/${selectedCircle.id}`, {
+    fetch(`${endpoint}/${selectedCircle.id}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -118,7 +113,7 @@ function addCirle(container, color, id) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    fetch('/shiftLights')
+    fetch('/ShiftLights')
         .then(response => response.json())
         .then(data => {
             setColorGlobals(data); // set color modification parameters
@@ -132,13 +127,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const limiterLightContainer = document.querySelector('.limiterColor-container');
 
-            // shift light circles
+            // limiter circles
             data.LimiterColor.forEach(light => {
                 addCirle(limiterLightContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
             });
-
-            // limiter circle
-            addCirle(document.querySelector('.limiterColor-container'), data.LimiterColor.color, data.LimiterColor.id);
 
             const limiterContainer = document.querySelector('.limiterPattern-containter');
             // limiter pattern buttons
@@ -157,7 +149,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 limiterContainer.appendChild(button);
             });
         })
-        .catch(error => console.error('Error fetching shiftLights:', error));
+        .catch(error => console.error('Error fetching ShiftLights:', error));
 
     // pin Selection
     fetch('/pins')

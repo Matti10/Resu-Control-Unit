@@ -387,7 +387,8 @@ tr:last-child td:last-child {
     border-bottom-right-radius: 10px;
 }
 
-.shiftLight-container, .limiterColor-container {
+.shiftLight-container,
+.limiterColor-container {
     display: flex;
     justify-content: space-between;
     align-items: center;

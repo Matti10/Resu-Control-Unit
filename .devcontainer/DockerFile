@@ -1,22 +1,21 @@
 FROM micropython/build-micropython-unix
 
-RUN apt update 
-RUN apt install -y python3-pip
-RUN apt install -y python3-venv
-RUN pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org --upgrade micropy-cli 
-
+RUN apt update && \
+    apt install -y python3-pip python3-venv && \
+    pip install --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host=files.pythonhosted.org --upgrade micropy-cli && \
+    ln -s /workspaces/Resu-Control-Unit/esp32Code/src /src
+    # ^ symbolic link to the source code directory - emulates the directory structure of the ESP32 deployment
 WORKDIR /
 
 # Clone MicroPython
-RUN git config --global http.sslVerify false
-RUN git config --global user.email mattias.winsen@outlook.com.au
-RUN git config --global user.name Mattias Winsen
-RUN git clone --recursive https://github.com/micropython/micropython.git
+RUN git config --global http.sslVerify false && \
+    git config --global user.email mattias.winsen@outlook.com.au && \
+    git config --global user.name Mattias Winsen && \
+    git clone --recursive https://github.com/micropython/micropython.git
 
-#Build MicroPython
+# Build MicroPython
 WORKDIR /micropython
 RUN make -C mpy-cross && make -C ports/unix submodules all -j4
-
 
 # Set the default shell to bash
 SHELL ["/bin/bash", "-c"]

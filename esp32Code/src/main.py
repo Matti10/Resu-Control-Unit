@@ -31,10 +31,9 @@ import time
 
 config = RCU.import_config()
 
-# serve = server.RCU_server(config)
 
 white = {'green': 255, 'blue': 255, 'red': 255}
-shift = shiftLights.ShiftLight(config)
+# shift = shiftLights.ShiftLight(config)
 rpm = 0
 rpmTestTimer = Timer(0)
 i = 0
@@ -72,6 +71,9 @@ def test_limiters():
             
     shift.update()
     disable_test()
-    
+
+
+serve = server.RCU_server(config)
+
 # testIRQ = Pin(8, Pin.IN, Pin.PULL_UP)
 # testIRQ.irq(trigger=Pin.IRQ_FALLING, handler=lambda t: print("IRQ")) 

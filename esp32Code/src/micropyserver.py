@@ -34,7 +34,6 @@ except:
 import sys
 import io
 
-
 class MicroPyServer(object):
 
     def __init__(self, host="0.0.0.0", port=80, testMode=False):
