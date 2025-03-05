@@ -38,7 +38,7 @@ function pickLimiterPattern(buttonId) {
     document.getElementById(buttonId).className = "pure-button pure-button-active";
 
     // Send API request with the selected button's ID
-    fetch("/ShiftLights/limitPattern", {
+    fetch("/ShiftLights/Limiter/pattern", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -112,47 +112,86 @@ function addCirle(container, color, id) {
     container.appendChild(circle);  // Append to shiftLight-container
 }
 
+function populateButtonGroup(container,buttonData) {
+    let selected = buttonData.selected
+    buttonData.patterns.forEach(pattern => {
+        const button = document.createElement('button');
+        button.id = pattern;
+        button.innerText = pattern;
+        button.onclick = function () { pickLimiterPattern(pattern); };
+    
+        if (pattern === selected) {
+            button.className = "pure-button pure-button-active";
+        } else {
+            button.className = "pure-button";
+        }
+        container.appendChild(button);
+    });
+}
+
+function buildBrightnessSlider(data) {
+    const brightnessSlider = document.getElementById("brightnessSlider");
+    const brightnessInputBox = document.getElementById("brightnessValue");
+    
+    brightnessSlider.value = data.brightness * 100 //times 100 as value is stored as float between 1 and 0 but displayed as int between 0 and 100
+    brightnessInputBox.value = data.brightness * 100 
+
+    // Sync input box with brightnessSlider
+    brightnessSlider.oninput = function() {
+        brightnessInputBox.value = this.value;
+        setBrightness(this.value)
+    };
+
+    // Sync brightnessSlider with input box (with min/max validation)
+    brightnessInputBox.oninput = function() {
+        if (this.value < brightnessSlider.min) this.value = brightnessSlider.min;
+        if (this.value > brightnessSlider.max) this.value = brightnessSlider.max;
+        brightnessSlider.value = this.value;
+        setBrightness(this.value)
+    };
+}
+
+function setBrightness(brightness) {
+    // Send API request with the selected button's ID
+    fetch("config/ShiftLights/brightness", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ brightness: brightness/100 }) // divide by 100 as brightness is stored as a float between 0 and 1 on server
+    }).catch(error => console.error("Error sending API request:", error));
+}
+
+function buildWhiteBalanceInputs()
+
 document.addEventListener("DOMContentLoaded", () => {
-    fetch('/ShiftLights')
+    fetch('/config/ShiftLights')
         .then(response => response.json())
         .then(data => {
             setColorGlobals(data); // set color modification parameters
 
-            const shiftLightContainer = document.querySelector('.shiftLight-container');
-
             // shift light circles
             data.ShiftLights.forEach(light => {
-                addCirle(shiftLightContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
+                addCirle(document.querySelector('.shiftLight-container'), reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
             });
-
-            const limiterLightContainer = document.querySelector('.limiterColor-container');
 
             // limiter circles
             data.LimiterColor.forEach(light => {
-                addCirle(limiterLightContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
+                addCirle(document.querySelector('.limiterColor-container'), reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
             });
 
-            const limiterContainer = document.querySelector('.limiterPattern-containter');
-            // limiter pattern buttons
-            selected = data.LimiterPattern.selected;
-            data.LimiterPattern.patterns.forEach(pattern => {
-                const button = document.createElement('button');
-                button.id = pattern;
-                button.innerText = pattern;
-                button.onclick = function () { pickLimiterPattern(pattern); };
+            // button groups
+            populateButtonGroup( document.querySelector('.limiterPattern-containter'),data.Limiter.pattern);// limiter pattern buttons
+            populateButtonGroup( document.querySelector('.revPattern-containter'),data.ShiftLights.pattern);// rev pattern buttons
+            
+            // brightness slider
+            buildBrightnessSlider(data);
 
-                if (pattern === selected) {
-                    button.className = "pure-button pure-button-active";
-                } else {
-                    button.className = "pure-button";
-                }
-                limiterContainer.appendChild(button);
-            });
         })
         .catch(error => console.error('Error fetching ShiftLights:', error));
 
     // pin Selection
-    fetch('/pins')
+    fetch('/config/Pins')
         .then(response => response.json())
         .then(data => {
             const pinSelectors = document.querySelectorAll('.pinSelector-dropdown');

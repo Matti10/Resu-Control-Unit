@@ -68,7 +68,7 @@
                                 </div>
                             </th>
                             <td>
-                                <select class="pinSelector-dropdown" data-endpoint="/ShiftLights/pin"
+                                <select class="pinSelector-dropdown" data-endpoint="config/Pins/Pins"
                                     function-Name="ShiftLights" ,
                                     allowed-class="O"><!--This is dynamically set by JS --></select>
                             </td>
@@ -89,10 +89,26 @@
                                 </div>
                             </th>
                             <td>
-                                <div class="shiftLight-container" data-endpoint="/ShiftLights/ShiftLights"><!--This is dynamically set by JS --></div>
+                                <div class="shiftLight-container" data-endpoint="config/ShiftLights/colors"><!--This is dynamically set by JS --></div>
                                 <input type="color" id="colorPicker"
                                     style="opacity: 0; position: absolute; pointer-events: none;"
                                     onchange="changeColor(event)">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Rev Pattern
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info" style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Select the pattern used through the rev range</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div class="revPattern-containter" class="pure-button-group" role="group"
+                                    aria-label="...">
+                                </div>
                             </td>
                         </tr>
                         <tr>
@@ -108,7 +124,7 @@
                                 </div>
                             </th>
                             <td>
-                                <div class="limiterColor-container" data-endpoint="/ShiftLights/LimiterColor"><!--This is dynamically set by JS --></div>
+                                <div class="limiterColor-container" data-endpoint="config/ShiftLights/Limiter/colors"><!--This is dynamically set by JS --></div>
                             </td>
                         </tr>
                         <tr>
@@ -125,6 +141,23 @@
                             <td>
                                 <div class="limiterPattern-containter" class="pure-button-group" role="group"
                                     aria-label="...">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Brightness
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info" style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Controls the Overall Brightness of the shift lights</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div class="brightness-slider">
+                                    <input type="range" id="brightnessSlider" min="0" max="100" value="50">
+                                    <input type="number" id="brightnessValue" min="0" max="100" value="50">
                                 </div>
                             </td>
                         </tr>
@@ -157,8 +190,6 @@
                                 </div>
                             </td>
                         </tr>
-
-
                     </table>
                 </div>
             </div>
