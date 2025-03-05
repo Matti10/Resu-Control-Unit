@@ -17,35 +17,17 @@ function uploadConfig(event) {
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
-    .then(data => {
-        console.log('Success:', data);
-        alert('File uploaded successfully');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('File upload failed');
-    });
+        .then(response => response.json())
+        .then(data => {
+            console.log('Success:', data);
+            alert('File uploaded successfully');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('File upload failed');
+        });
 }
 
-function pickLimiterPattern(buttonId) {
-    const buttons = document.querySelectorAll(".limiterPattern-containter button");
-
-    // Remove active class from all buttons
-    buttons.forEach(btn => btn.className = "pure-button");
-
-    // Add active class to the clicked button
-    document.getElementById(buttonId).className = "pure-button pure-button-active";
-
-    // Send API request with the selected button's ID
-    fetch("/ShiftLights/Limiter/pattern", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ pattern: buttonId })
-    }).catch(error => console.error("Error sending API request:", error));
-}
 
 function pickColor(circle) {
     selectedCircle = circle;  // Store the clicked circle
@@ -79,11 +61,11 @@ function changeColor(event) {
 
     // Prepare the request payload
     const requestBody = {
-        color:  applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server
+        color: applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server. '[' and ']' are added to delimite that its an index
     };
 
     // Send a POST request to your API
-    fetch(`${endpoint}/${selectedCircle.id}`, {
+    fetch(`${endpoint}/[${selectedCircle.id}]/color`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -112,14 +94,14 @@ function addCirle(container, color, id) {
     container.appendChild(circle);  // Append to shiftLight-container
 }
 
-function populateButtonGroup(container,buttonData) {
+function populateButtonGroup(container, buttonData) {
     let selected = buttonData.selected
     buttonData.patterns.forEach(pattern => {
         const button = document.createElement('button');
-        button.id = pattern;
+        button.id = `${pattern}-${container.id}`;
         button.innerText = pattern;
-        button.onclick = function () { pickLimiterPattern(pattern); };
-    
+        button.onclick = function () { handleButtonGroupClick(this); };
+
         if (pattern === selected) {
             button.className = "pure-button pure-button-active";
         } else {
@@ -129,21 +111,44 @@ function populateButtonGroup(container,buttonData) {
     });
 }
 
+function handleButtonGroupClick(button) {
+
+    let buttons = button.parentNode.querySelectorAll("button");
+    let endpoint = button.parentNode.getAttribute('data-endpoint')
+
+
+    // Remove active class from all buttons
+    buttons.forEach(btn => btn.className = "pure-button");
+
+    // Add active class to the clicked button  
+    button.className = "pure-button pure-button-active";
+
+    // Send API request with the selected button's ID
+    fetch(`${endpoint}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ pattern: button.innerText })
+    }).catch(error => console.error("Error sending API request:", error));
+}
+
+
 function buildBrightnessSlider(data) {
     const brightnessSlider = document.getElementById("brightnessSlider");
     const brightnessInputBox = document.getElementById("brightnessValue");
-    
+
     brightnessSlider.value = data.brightness * 100 //times 100 as value is stored as float between 1 and 0 but displayed as int between 0 and 100
-    brightnessInputBox.value = data.brightness * 100 
+    brightnessInputBox.value = data.brightness * 100
 
     // Sync input box with brightnessSlider
-    brightnessSlider.oninput = function() {
+    brightnessSlider.oninput = function () {
         brightnessInputBox.value = this.value;
         setBrightness(this.value)
     };
 
     // Sync brightnessSlider with input box (with min/max validation)
-    brightnessInputBox.oninput = function() {
+    brightnessInputBox.oninput = function () {
         if (this.value < brightnessSlider.min) this.value = brightnessSlider.min;
         if (this.value > brightnessSlider.max) this.value = brightnessSlider.max;
         brightnessSlider.value = this.value;
@@ -158,11 +163,11 @@ function setBrightness(brightness) {
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ brightness: brightness/100 }) // divide by 100 as brightness is stored as a float between 0 and 1 on server
+        body: JSON.stringify({ brightness: brightness / 100 }) // divide by 100 as brightness is stored as a float between 0 and 1 on server
     }).catch(error => console.error("Error sending API request:", error));
 }
 
-function buildWhiteBalanceInputs()
+// function buildWhiteBalanceInputs()
 
 document.addEventListener("DOMContentLoaded", () => {
     fetch('/config/ShiftLights')
@@ -171,19 +176,19 @@ document.addEventListener("DOMContentLoaded", () => {
             setColorGlobals(data); // set color modification parameters
 
             // shift light circles
-            data.ShiftLights.forEach(light => {
+            data.ShiftLights.colors.forEach(light => {
                 addCirle(document.querySelector('.shiftLight-container'), reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
             });
 
             // limiter circles
-            data.LimiterColor.forEach(light => {
+            data.Limiter.colors.forEach(light => {
                 addCirle(document.querySelector('.limiterColor-container'), reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
             });
 
             // button groups
-            populateButtonGroup( document.querySelector('.limiterPattern-containter'),data.Limiter.pattern);// limiter pattern buttons
-            populateButtonGroup( document.querySelector('.revPattern-containter'),data.ShiftLights.pattern);// rev pattern buttons
-            
+            populateButtonGroup(document.querySelector('.limiterPattern-containter'), data.Limiter.pattern);// limiter pattern buttons
+            populateButtonGroup(document.querySelector('.revPattern-containter'), data.ShiftLights.pattern);// rev pattern buttons
+
             // brightness slider
             buildBrightnessSlider(data);
 
@@ -208,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 option.innerText = `Unassigned`;  // Display pinNumber as text
                 pinSelector.appendChild(option);
 
-                
+
                 // default selection to unassigned
                 option.selected = true;
 

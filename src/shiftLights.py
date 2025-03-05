@@ -34,6 +34,7 @@ class ShiftLight(RCU_Function):
         if self.testMode:
             self.np = [0 for i in range(self.lightCount)]
         else:
+            print(self.assignedPins)
             self.np = self.neopixel.NeoPixel(
                 self.Pin(self.assignedPins[0]["FirmwareID"], self.Pin.OUT),
                 self.lightCount,

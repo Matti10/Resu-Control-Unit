@@ -40,7 +40,7 @@ class RCU_server:
 
         self.testMode = testMode
 
-        self.ShiftLights = ShiftLight(self.config, testMode=True)
+        self.ShiftLights = ShiftLight(self.config, testMode=testMode)
 
         self.server = micropyserver.MicroPyServer(port=PORT, testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
@@ -66,22 +66,16 @@ class RCU_server:
                 f"Error saving config with request:\n{request}\n Error:{e}"
             )
 
-    def get_config_keys(self, path):
-        # strip the leading / and then the "config". doing this in two steps allows for passing of paths that dont have the leading "/config"
-        keys = path.strip("/").strip(ROUTE_CONFIG[1:]).split("/")
-        keys = [key for key in keys if key != ""]  # remove blank strings
 
-        return keys
 
     def get_config(self, request, preParsedRequest=None):
         _, path, _ = utils.handle_preparsed_request(request, preParsedRequest)
 
-        self.serve_json(utils.get_nested_dict(self.config, self.get_config_keys(path)))
-        utils.send_response(self.server, "", http_code=201)
+        self.serve_json(utils.get_nested_dict(self.config, utils.get_config_keys(path)))
 
     def set_config(self, request, preParsedRequest=None):
         _, path, body = utils.handle_preparsed_request(request, preParsedRequest)
-
+        print(path)
         # process the data
         body = ujson.loads(body)
         key = next(iter(body))
@@ -90,7 +84,7 @@ class RCU_server:
 
         print(f"found data under '{key}' with value {data}")
 
-        keys = self.get_config_keys(path)
+        keys = utils.get_config_keys(path)
 
         if utils.get_nested_dict(
             self.config, keys
@@ -155,7 +149,7 @@ class RCU_server:
         try:
             # Check if the path matches the main color setting route
             colorRouteMatch = re.match(
-                r"/ShiftLights/(ShiftLights|LimiterColor)/(\d+)", path
+                r"/ShiftLights/(ShiftLights|Limiter)/(\d+)", path
             )
             if colorRouteMatch:
                 # Extracts 'ShiftLights' or 'LimiterColor'
@@ -173,8 +167,10 @@ class RCU_server:
                 self.ShiftLights.update()
 
             # Check if the path matches the second pattern (limit pattern)
-            elif re.match(r"/ShiftLights/limitPattern", path):
-                message = "setting limiter pattern"
+            elif re.match(r"/ShiftLights/(ShiftLights/Pattern|Limiter/Pattern)", path):
+                if "Limiter" in path:
+                    message = "setting limiter pattern"
+                    
 
                 # update config
                 self.set_config(request, preParsedRequest=(_, path, body))

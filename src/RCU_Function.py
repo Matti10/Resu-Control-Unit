@@ -44,7 +44,7 @@ class RCU_Function:
         # discover assigned pins
         for pin in self.config["Pins"]["Pins"]:
             if pin_funcName in self.config["Pins"]["Pins"][pin]["function"]:
-                self.assignedPins.append(self.config["Pins"]["Pins"][pin]["function"])
+                self.assignedPins.append(self.config["Pins"]["Pins"][pin])
 
         if self.assignedPins == []:
             raise PinsNotAssigned

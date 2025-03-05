@@ -8,14 +8,13 @@
         "startRPM": 0,
         "Limiter": {
             "pattern": {
-                "selected": "Solid",
-                "Selected": "Left to Right",
+                "selected": "Left to Right",
                 "patterns": [
                     "Flash",
-                    "Left to Right",
                     "Right to Left",
-                    "Center Out",
+                    "Left to Right",
                     "Center In",
+                    "Center Out",
                     "Solid"
                 ]
             },
@@ -144,7 +143,7 @@
         },
         "ShiftLights": {
             "pattern": {
-                "selected": "Solid",
+                "selected": "Center Out",
                 "Selected": "Left to Right",
                 "patterns": [
                     "Left to Right",
