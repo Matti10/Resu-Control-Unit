@@ -29,6 +29,11 @@ class RouteNotFound(Exception):
         self.message = message
         # return 404
         server._route_not_found(message)
+        
+class Breakout(Exception):
+    def __init__(self):
+        # Initialize the exception with a message
+        super().__init__()
 
 
 class RCU_server:
@@ -143,48 +148,43 @@ class RCU_server:
 
     # seperate endpoint for Shift Lights so config changes can be updated on physical lights
     def post_shiftLight(self, request):
+        def sample_color(settingArea="ShiftLights"):
+            # display changes on shiftlights
+            print(self.config["ShiftLights"]["ShiftLights"]["colors"])
+            self.ShiftLights.setAll_color_fromConfig(settingArea)
+            self.ShiftLights.update()
+        
         _, path, body = utils.parse_request(request)
-        message = f"endpoint not found for {path}"  # this will get overwritten
-        print(path, body)
-        try:
-            # Check if the path matches the main color setting route
-            colorRouteMatch = re.match(
-                r"/ShiftLights/(ShiftLights|Limiter)/(\d+)", path
-            )
-            if colorRouteMatch:
-                # Extracts 'ShiftLights' or 'LimiterColor'
-                settingArea = colorRouteMatch.group(1)
-                # Extracts the ID as an integer
-                id = int(colorRouteMatch.group(2))
 
-                message = f"Set light color for {settingArea} @ index {id}"
+        # Check if the path matches the main color setting route
+        colorRouteMatch = re.match(r"/ShiftLights/(ShiftLights|Limiter)/colors/\[(\d+)\]/color", path)
+        if colorRouteMatch:
+            # Extracts 'ShiftLights' or 'LimiterColor'
+            settingArea = colorRouteMatch.group(1)
+            # update config
+            self.set_config(request, preParsedRequest=(_, path, body))
+            sample_color(settingArea)    
+            return
 
-                # update config
-                self.set_config(request, preParsedRequest=(_, path, body))
+        patternRouteMatch = re.match(r"/ShiftLights/(ShiftLights|Limiter)/pattern/selected", path)
+        # Check if the path matches the second pattern (limit pattern)
+        if patternRouteMatch:
+            settingArea = patternRouteMatch.group(1)
+            # update config
+            self.set_config(request, preParsedRequest=(_, path, body))
+            self.ShiftLights.sample_pattern(settingArea) 
+            return    
 
-                # display changes on shiftlights
-                self.ShiftLights.setAll_color_fromConfig(settingArea)
-                self.ShiftLights.update()
-
-            # Check if the path matches the second pattern (limit pattern)
-            elif re.match(r"/ShiftLights/(ShiftLights/Pattern|Limiter/Pattern)", path):
-                if "Limiter" in path:
-                    message = "setting limiter pattern"
-                    
-
-                # update config
-                self.set_config(request, preParsedRequest=(_, path, body))
-                self.ShiftLights.sample_limiter()
-
-            # If no match found, raise RouteNotFound
-            else:
-                raise RouteNotFound(path, self.server)
-
-        except RouteNotFound:
-            pass  # breakout of above logic
-        finally:
-            print(message)
-
+        brightnessRouteMatch = re.match(r"/ShiftLights/brightness", path)
+        if brightnessRouteMatch:
+            # update config
+            self.set_config(request, preParsedRequest=(_, path, body))    
+            sample_color()
+            return
+        
+        # If no match found, raise RouteNotFound
+        raise RouteNotFound(path, self.server)
+    
     def server_internalError(self, message="Internal Server Error"):
         print(message)
         self.server.send("HTTP/1.1 500 Internal Server Error\r\n")

@@ -1,44 +1,62 @@
 import time
-
+import asyncio
 from RCU_Function import RCU_Function
 
-PIN_FUNCNAME_SHIFTLIGHTS = "ShiftLights"
+
+
+SHIFTLIGHT_KEY_LIMITER = "Limiter"
+SHIFTLIGHT_KEY_SHIFTLIGHT = "ShiftLights"
+SHIFTLIGHT_ASYNC_PAUSE_S = 0.01
+
+PIN_FUNCNAME_SHIFTLIGHTS = SHIFTLIGHT_KEY_SHIFTLIGHT
 PIN_COUNT_SHIFTLIGHTS = 1
 
+SHIFTLIGHT_PATTERN_FLASH = "Flash"
+SHIFTLIGHT_PATTERN_LR =  "Left to Right"
+SHIFTLIGHT_PATTERN_RL =  "Right to Left"
+SHIFTLIGHT_PATTERN_CI =  "Center In"
+SHIFTLIGHT_PATTERN_CO =  "Center Out"
+SHIFTLIGHT_PATTERN_SOLID = "Solid"
 
 class ShiftLight(RCU_Function):
     def __init__(self, config, testMode=False):
         super().__init__(config, testMode, [PIN_FUNCNAME_SHIFTLIGHTS])
+        
+        self.lightCount = len(self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][SHIFTLIGHT_KEY_SHIFTLIGHT]["colors"])
+        self.patternFuncs = {
+            SHIFTLIGHT_KEY_LIMITER : self.get_patternFunc_fromConfig(SHIFTLIGHT_KEY_LIMITER),
+            SHIFTLIGHT_KEY_SHIFTLIGHT : self.get_patternFunc_fromConfig(SHIFTLIGHT_KEY_SHIFTLIGHT),
+        }
 
-        self.lightCount = len(self.config["ShiftLights"]["ShiftLights"])
-        self.rpmStep = (
-            self.config["ShiftLights"]["endRPM"]
-            - self.config["ShiftLights"]["startRPM"]
-        ) / self.lightCount
+        
         self.lightMidPoint = (
             self.lightCount // 2 + (self.lightCount % 2) - 1
         )  # magic number 1 is to account for 0 index
+        
+        self.limiterI = 0
+        self.handle_testMode_imports()
+        
 
-        if not self.testMode:
-            import neopixel
-
-            self.neopixel = neopixel
-
-            from machine import Pin
-
-            self.Pin = Pin
-
-            self.init_np()
-
+    
     def init_np(self):
         if self.testMode:
-            self.np = [0 for i in range(self.lightCount)]
+            self.np = [(0,0,0) for i in range(self.lightCount)]
         else:
             print(self.assignedPins)
             self.np = self.neopixel.NeoPixel(
                 self.Pin(self.assignedPins[0]["FirmwareID"], self.Pin.OUT),
                 self.lightCount,
             )
+            
+    def handle_testMode_imports(self):
+        if not self.testMode:
+            import neopixel
+            self.neopixel = neopixel
+
+            from machine import Pin
+            self.Pin = Pin
+
+            self.init_np()
 
     def setAll_color(self, color):
         for i in range(self.lightCount):
@@ -51,116 +69,148 @@ class ShiftLight(RCU_Function):
         # color adjustments now done on client side.
         self.np[id] = (color["red"], color["green"], color["blue"])
 
-    def increment_limiter(self, limiterType=None, i=0):
-        # TODO refactor so comparisons aren't permormed every time
-        if limiterType == None:
-            limiterType = self.config["ShiftLights"]["LimiterPattern"]["selected"]
-        print(limiterType)
+    def increment_pattern(self, i, subKey):
         if i == 0:
-            print("clearing all")
             self.clear_all()
-
-        if limiterType == "Left to Right":  # left to right
-            print("waving left")
-            self.set_color(i, self.config["ShiftLights"]["LimiterColor"][i]["color"])
-        elif limiterType == "Right to Left":  # right to left
-            self.set_color(
-                self.lightCount - (i + 1),
-                self.config["ShiftLights"]["LimiterColor"][self.lightCount - (i + 1)][
-                    "color"
-                ],
-            )
-        elif limiterType == "Center Out":  # center out
-            self.set_color(
-                self.lightMidPoint + i,
-                self.config["ShiftLights"]["LimiterColor"][self.lightMidPoint + i][
-                    "color"
-                ],
-            )
-            self.set_color(
-                self.lightMidPoint - i,
-                self.config["ShiftLights"]["LimiterColor"][self.lightMidPoint - i][
-                    "color"
-                ],
-            )
-            print(f"lightMidPoint-1:{self.lightMidPoint-1}")
-            print(f"lightMidPoint+i:{self.lightMidPoint+i}")
-            print(f"lightMidPoint-i:{self.lightMidPoint-i}")
-            if i >= self.lightMidPoint:
-                i = 0
-        elif limiterType == "Center In":  # center in
-            self.set_color(i, self.config["ShiftLights"]["LimiterColor"][i]["color"])
-            self.set_color(
-                self.lightCount - (i + 1),
-                self.config["ShiftLights"]["LimiterColor"][self.lightCount - (i + 1)][
-                    "color"
-                ],
-            )
-
-            if i >= self.lightMidPoint:
-                i = 0
-            # self.setAll_color(self.config["ShiftLights"]["LimiterColor"]["color"])
-        elif limiterType == "Flash":
-            if i % 2 == 0:
-                self.setAll_color_fromConfig(subKey="LimiterColor")
-            else:
-                self.clear_all()
-        else:  # default limiterType == "Solid"
-            self.setAll_color_fromConfig(subKey="LimiterColor")
-
-        if i >= self.lightCount:
-            i = 0
-        else:
-            i += 1
-
+        i = self.patternFuncs[subKey](i)
+        
         return i
 
-    def handle_limiter(self, limiterType=None):
-        # start timer, timing depends on limiter pattern
-        if (
-            None == limiterType
-            or limiterType
-            not in self.config["ShiftLights"]["LimiterPattern"]["patterns"]
-        ):
-            limiterType = self.config["ShiftLights"]["LimiterPattern"]["selected"]
-            print(
-                f"Setting limiter to {limiterType} due to either no value being passed, or an invalid value being passed"
-            )
+    def manage_limiterI(self,i,resetValue):
+        if i >= resetValue:
+            i = 0
+        else:
+            i += 1            
+        return i
 
-        i = self.increment_limiter
+    def patternType_LeftRight(self,i):
+        print(f"patternType_LeftRight {i}")
+        # left to right
+        print("waving left")
+        self.set_color_fromConfig(i, SHIFTLIGHT_KEY_LIMITER)
+        return self.manage_limiterI(i,self.lightCount)
 
-    def sample_limiter(self):
+    def patternType_RightLeft(self,i):
+        print(f"patternType_RightLeft {i}")
+        # right to left
+        self.set_color_fromConfig(self.lightCount - (i + 1), SHIFTLIGHT_KEY_LIMITER)
+        return self.manage_limiterI(i,self.lightCount)
+        
+
+    def patternType_CenterOut(self,i):  # center out
+        print(f"centerOut {i}")
+        self.set_color_fromConfig(self.lightMidPoint + i, SHIFTLIGHT_KEY_LIMITER)
+        self.set_color_fromConfig(self.lightMidPoint - i, SHIFTLIGHT_KEY_LIMITER)
+        return self.manage_limiterI(i,self.lightMidPoint)
+
+    def patternType_CenterIn(self,i):
+        print(f"patternType_CenterIn {i}")
+        # center in
+        self.set_color_fromConfig(i, SHIFTLIGHT_KEY_LIMITER)
+        self.set_color_fromConfig(self.lightCount - (i + 1), SHIFTLIGHT_KEY_LIMITER)
+        return self.manage_limiterI(i,self.lightMidPoint)
+
+    def patternType_Flash(self,i):
+        print(f"patternType_Flash {i}")
+
+        if i % 2 == 0:
+            self.setAll_color_fromConfig(subKey=SHIFTLIGHT_KEY_LIMITER)
+        else:
+            self.clear_all()
+        return self.manage_limiterI(i,self.lightCount)
+
+    def patternType_Solid(self,i):
+        print(f"patternType_Solid {i}")
+
+        self.setAll_color_fromConfig(subKey=SHIFTLIGHT_KEY_LIMITER)
+        return self.manage_limiterI(i,self.lightCount)
+
+    def sample_pattern(self,subKey=SHIFTLIGHT_KEY_SHIFTLIGHT):
         counter = 0
         i = 0
         while counter < self.lightCount:
             print(f"i:{i}")
             i = self.increment_limiter(
-                self.config["ShiftLights"]["LimiterPattern"]["selected"], i
+                self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][subKey]["pattern"]["selected"], i
             )
             self.update()
             # TODO make this an interupt so it doesn't lockup the loop
             time.sleep_ms(25)
             counter += 1
+            
+    def sample_brightness(self,old_brightness,new_brightness=None):
+        if None == new_brightness:
+            new_brightness = self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["brightness"]
+        
+        brightness = 1/old_brightness * new_brightness
+        
+        print(brightness)
+        
+        for light in self.np:
+            for color in light:
+                color = color * brightness
+        self.update()
 
-    def set_color_fromRPM(self, rpm):
-        if rpm >= self.config["ShiftLights"]["endRPM"]:
-            self.handle_limiter()
-        else:
-            for i in range(self.lightCount):
-                # if the rpm is greater or equal the the RPM needed to turn on light
-                if rpm >= (self.config["ShiftLights"]["startRPM"] + i * self.rpmStep):
-                    # set light to color in config["ShiftLights"]
-                    self.set_color_fromConfig(i)
-                else:
-                    # set light to be off
-                    self.np[i] = (0, 0, 0)
 
-    def setAll_color_fromConfig(self, subKey="ShiftLights"):
+    def set_i_fromRPM(self, rpm):
+        for i in range(1,self.lightCount-1): # start the loop @ 1 - 0 * rpmStep is always < rpm
+            # if the rpm is greater or equal the the RPM needed to turn on light
+            print(f"i * self.rpmStep:{i * self.rpmStep} i: {i} rpm: {rpm}")
+            
+            if rpm < (self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["startRPM"] + i * self.rpmStep):
+                # set light to color in config[SHIFTLIGHT_KEY_SHIFTLIGHT]
+                print(f"returing {i-1}")
+                return i-1 #remove the offset 
+    
+        print("returning 0")
+        return 0 # this should be unreachable, but better safe than sorry :D
+
+    def get_patternFunc_fromConfig(self,subKey):
+        limiterCorr = {
+            SHIFTLIGHT_PATTERN_FLASH : self.patternType_Flash,
+            SHIFTLIGHT_PATTERN_LR : self.patternType_LeftRight,
+            SHIFTLIGHT_PATTERN_RL : self.patternType_RightLeft,
+            SHIFTLIGHT_PATTERN_CI : self.patternType_CenterIn,
+            SHIFTLIGHT_PATTERN_CO : self.patternType_CenterOut,
+            SHIFTLIGHT_PATTERN_SOLID : self.patternType_Solid
+        }
+        
+        return limiterCorr[self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][subKey]["pattern"]["selected"]]
+
+    def setAll_color_fromConfig(self, subKey=SHIFTLIGHT_KEY_SHIFTLIGHT):
         for id in range(self.lightCount):
             self.set_color_fromConfig(id, subKey=subKey)
 
-    def set_color_fromConfig(self, id, subKey="ShiftLights"):
-        self.set_color(id, self.config["ShiftLights"][subKey][id]["color"])
+    def set_color_fromConfig(self, id, subKey=SHIFTLIGHT_KEY_SHIFTLIGHT):
+        self.set_color(id, self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][subKey]["colors"][id]["color"])
 
     def update(self):
         self.np.write()
+        
+    def set_rpmStep(self, subKey):
+        rpmStep = SHIFTLIGHT_KEY_SHIFTLIGHT (
+            self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["endRPM"]
+            - self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["startRPM"]
+        ) / self.lightCount
+        self.rpmStep = {
+            SHIFTLIGHT_KEY_SHIFTLIGHT: rpmStep,
+            SHIFTLIGHT_KEY_LIMITER: rpmStep/2
+        }
+
+    # call within a loop to update the shift lights
+    # async def run(self, rpm_getter):
+    def run(self, rpm_getter):
+        # while True:
+        rpm = rpm_getter()
+        if (rpm > self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["endRPM"]):
+            print(f"limiter i (before) {self.limiterI}")
+            self.limiterI = self.increment_pattern(i=self.limiterI, subKey=SHIFTLIGHT_KEY_LIMITER)
+            # await asyncio.sleep(self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][SHIFTLIGHT_KEY_LIMITER]["period_s"])
+        elif (rpm > self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["startRPM"]):
+            for i in range(0,self.set_i_fromRPM(rpm)-1):
+                debugI = self.increment_pattern(i=i, subKey=SHIFTLIGHT_KEY_SHIFTLIGHT)
+                print(f"debug i (after) {debugI}")
+            # await asyncio.sleep(SHIFTLIGHT_ASYNC_PAUSE_S)
+        else:
+            self.clear_all()
+        self.update()

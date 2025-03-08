@@ -53,33 +53,36 @@ function pickColor(circle) {
     colorPicker.click();
 }
 
-function changeColor(event) {
-    // Change the circle's background color
-    let newColor = event.target.value;
-    selectedCircle.style.backgroundColor = newColor;
-    let endpoint = selectedCircle.parentNode.getAttribute('data-endpoint')
-
+function postColorChange(endpoint, id, newColor) {
     // Prepare the request payload
     const requestBody = {
-        color: applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server. '[' and ']' are added to delimite that its an index
+        color: applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server. 
     };
 
     // Send a POST request to your API
-    fetch(`${endpoint}/[${selectedCircle.id}]/color`, {
+    fetch(`${endpoint}/[${id}]/color`, { //'[' and ']' are added to delimite that its an index
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify(requestBody)
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Failed to update color: ${response.statusText}`);
-            }
-            return response;
-        })
-        .then(data => console.log("Color update successful:", data))
-        .catch(error => console.error("Error updating color:", error));
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Failed to update color: ${response.statusText}`);
+        }
+        return response;
+    })
+    .then(data => console.log("Color update successful:", data))
+    .catch(error => console.error("Error updating color:", error));
+}
+
+function changeColor(event) {
+    // Change the circle's background color
+    let newColor = event.target.value;
+    selectedCircle.style.backgroundColor = newColor;
+
+    postColorChange(selectedCircle.parentNode.getAttribute('data-endpoint'), selectedCircle.id, newColor)
 }
 
 function addCirle(container, color, id) {
@@ -91,7 +94,7 @@ function addCirle(container, color, id) {
     // Convert color values to CSS format
     circle.style.backgroundColor = `rgb(${color.red}, ${color.green}, ${color.blue})`;
 
-    container.appendChild(circle);  // Append to shiftLight-container
+    container.appendChild(circle);  // Append to shiftColor-container
 }
 
 function populateButtonGroup(container, buttonData) {
@@ -138,8 +141,8 @@ function buildBrightnessSlider(data) {
     const brightnessSlider = document.getElementById("brightnessSlider");
     const brightnessInputBox = document.getElementById("brightnessValue");
 
-    brightnessSlider.value = data.brightness * 100 //times 100 as value is stored as float between 1 and 0 but displayed as int between 0 and 100
-    brightnessInputBox.value = data.brightness * 100
+    brightnessSlider.value = data.brightness * brightnessScaler //times brightnessScaler as value is stored as float between 1 and 0 but displayed as int between 0 and brightnessScaler
+    brightnessInputBox.value = data.brightness * brightnessScaler
 
     // Sync input box with brightnessSlider
     brightnessSlider.oninput = function () {
@@ -156,14 +159,47 @@ function buildBrightnessSlider(data) {
     };
 }
 
-function setBrightness(brightness) {
-    // Send API request with the selected button's ID
-    fetch("config/ShiftLights/brightness", {
+async function setBrightness(brightness) {
+    global_brightness = brightness;
+
+    // Find all elements with class names that contain "Color-container"
+    const colorContainers = document.querySelectorAll('[class*="Color-container"]');
+    const brightenedColorsPromises = [];
+    // TODO ONLY DO MATH ON SHIFTLIGHTS THEN SEND BRIGHTNESS UPDATE //TODO
+    // Iterate over the found elements
+    colorContainers.forEach(container => {
+        const endpoint = container.getAttribute('data-endpoint');
+        const brightenedColors = Array.from(container.getElementsByClassName('circle')).map(circle => {
+            // Get the color of the circle
+            const color = circle.style.backgroundColor;
+            const id = circle.id;
+
+            return {
+                id: id,
+                color: applyColorAdjustments(rgbStringToObject(color), brightness / brightnessScaler) // divide by brightnessScaler as brightness is stored as a float between 0 and 1 on server
+            };
+        });
+
+        // Store the fetch promise
+        brightenedColorsPromises.push(fetch(`config/${endpoint}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ colors: brightenedColors })
+        }).catch(error => console.error("Error sending API request:", error)));
+    });
+
+    // Wait for all fetch requests to complete
+    await Promise.all(brightenedColorsPromises);
+
+    // Send a single fetch request for brightness
+    fetch("ShiftLights/brightness", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ brightness: brightness / 100 }) // divide by 100 as brightness is stored as a float between 0 and 1 on server
+        body: JSON.stringify({ brightness: brightness / brightnessScaler }) // divide by brightnessScaler as brightness is stored as a float between 0 and 1 on server
     }).catch(error => console.error("Error sending API request:", error));
 }
 
@@ -177,7 +213,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // shift light circles
             data.ShiftLights.colors.forEach(light => {
-                addCirle(document.querySelector('.shiftLight-container'), reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
+                addCirle(document.querySelector('.shiftColor-container'), reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
             });
 
             // limiter circles
@@ -191,7 +227,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // brightness slider
             buildBrightnessSlider(data);
-
         })
         .catch(error => console.error('Error fetching ShiftLights:', error));
 

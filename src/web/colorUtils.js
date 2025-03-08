@@ -6,6 +6,7 @@ let global_whiteBalanceFactors = {
     "blue": 0.6
 }
 let global_gamma = 2.2
+const brightnessScaler = 100;
 
 
 function setColorGlobals(shiftLightConfig) {
