@@ -23,16 +23,17 @@ class ShiftLight(RCU_Function):
         super().__init__(config, testMode, [PIN_FUNCNAME_SHIFTLIGHTS])
         
         self.lightCount = len(self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][SHIFTLIGHT_KEY_SHIFTLIGHT]["colors"])
-        self.patternFuncs = {
-            SHIFTLIGHT_KEY_LIMITER : self.get_patternFunc_fromConfig(SHIFTLIGHT_KEY_LIMITER),
-            SHIFTLIGHT_KEY_SHIFTLIGHT : self.get_patternFunc_fromConfig(SHIFTLIGHT_KEY_SHIFTLIGHT),
-        }
-
-        
         self.lightMidPoint = (
             self.lightCount // 2 + (self.lightCount % 2) - 1
         )  # magic number 1 is to account for 0 index
         
+        self.patternFuncs = {
+            SHIFTLIGHT_KEY_LIMITER : self.init_pattern_fromConfig(SHIFTLIGHT_KEY_LIMITER),
+            SHIFTLIGHT_KEY_SHIFTLIGHT : self.init_pattern_fromConfig(SHIFTLIGHT_KEY_SHIFTLIGHT),
+        }
+
+        
+
         self.limiterI = 0
         self.handle_testMode_imports()
         
@@ -165,17 +166,21 @@ class ShiftLight(RCU_Function):
         print("returning 0")
         return 0 # this should be unreachable, but better safe than sorry :D
 
-    def get_patternFunc_fromConfig(self,subKey):
+    def init_pattern_fromConfig(self,subKey):
         limiterCorr = {
-            SHIFTLIGHT_PATTERN_FLASH : self.patternType_Flash,
-            SHIFTLIGHT_PATTERN_LR : self.patternType_LeftRight,
-            SHIFTLIGHT_PATTERN_RL : self.patternType_RightLeft,
-            SHIFTLIGHT_PATTERN_CI : self.patternType_CenterIn,
-            SHIFTLIGHT_PATTERN_CO : self.patternType_CenterOut,
-            SHIFTLIGHT_PATTERN_SOLID : self.patternType_Solid
+            SHIFTLIGHT_PATTERN_FLASH : {"lightCount": self.lightCount, "func": self.patternType_Flash},
+            SHIFTLIGHT_PATTERN_LR : {"lightCount": self.lightCount, "func": self.patternType_LeftRight},
+            SHIFTLIGHT_PATTERN_RL : {"lightCount": self.lightCount, "func": self.patternType_RightLeft},
+            SHIFTLIGHT_PATTERN_CI : {"lightCount": self.lightMidPoint, "func": self.patternType_CenterIn},
+            SHIFTLIGHT_PATTERN_CO : {"lightCount": self.lightMidPoint, "func": self.patternType_CenterOut},
+            SHIFTLIGHT_PATTERN_SOLID : {"lightCount": self.lightCount, "func": self.patternType_Solid}
         }
-        
-        return limiterCorr[self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][subKey]["pattern"]["selected"]]
+
+        thisPattern = limiterCorr[self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][subKey]["pattern"]["selected"]]
+
+        if subKey == SHIFTLIGHT_KEY_SHIFTLIGHT:
+            self.set_rpmStep(thisPattern["lightCount"])
+        return thisPattern["func"]
 
     def setAll_color_fromConfig(self, subKey=SHIFTLIGHT_KEY_SHIFTLIGHT):
         for id in range(self.lightCount):
@@ -187,15 +192,11 @@ class ShiftLight(RCU_Function):
     def update(self):
         self.np.write()
         
-    def set_rpmStep(self, subKey):
-        rpmStep = SHIFTLIGHT_KEY_SHIFTLIGHT (
+    def set_rpmStep(self, lightCount):
+        self.rpmStep= (
             self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["endRPM"]
             - self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["startRPM"]
-        ) / self.lightCount
-        self.rpmStep = {
-            SHIFTLIGHT_KEY_SHIFTLIGHT: rpmStep,
-            SHIFTLIGHT_KEY_LIMITER: rpmStep/2
-        }
+        ) / lightCount
 
     # call within a loop to update the shift lights
     # async def run(self, rpm_getter):

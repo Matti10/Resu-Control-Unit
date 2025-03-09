@@ -198,7 +198,7 @@
         },
         "startRPM": 0,
         "Limiter": {
-            "period_s" : 0.05,
+            "period_s" : 0.25,
             "pattern": {
                 "selected": "Center Out",
                 "patterns": [
