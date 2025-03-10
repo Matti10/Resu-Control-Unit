@@ -45,19 +45,19 @@ tachoRead = rpmReader.RPMReader(config,Timer(1))
 tachoRead.start_tacho()
 
 # shiftTask = asyncio.create_task(shift.run(tachoRead.get_rpm))
-
-i = 0
-while True:
-    i += 1
-    if i > 5:
-        tachoGen.set_rpm(tachoGen.rpm + 101)
-        i = 0
-    elif tachoGen.rpm > 18000:
-        break
-    shift.run(tachoRead.get_rpm)
-    rpm = tachoRead.get_rpm()
-    print(f"main loop rpm {rpm}")
-    time.sleep(0.01)
+def test():
+    i = 0
+    while True:
+        i += 1
+        if i > 5:
+            tachoGen.set_rpm(tachoGen.rpm + 101)
+            i = 0
+        elif tachoGen.rpm > 18000:
+            break
+        shift.run(tachoRead.get_rpm)
+        rpm = tachoRead.get_rpm()
+        print(f"main loop rpm {rpm}")
+        time.sleep(0.01)
 
 
 # serve = server.RCU_server(config)
