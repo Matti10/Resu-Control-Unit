@@ -1,15 +1,14 @@
-
 PIN_UNASSIGN_NAME = "Unassigned"
 
+
 class RCU_Function:
-    def __init__(self, config,testMode, pinFuncNames):
+    def __init__(self, config, testMode, pinFuncNames):
         self.config = config
         self.testMode = testMode
         self.pinFuncNames = pinFuncNames
         self.assignedPins = []
         for pinFuncName in pinFuncNames:
             self.get_funcs_pins(pinFuncName)
-
 
     def set_pin(self, pinID, pinFuncName):
         if pinID == PIN_UNASSIGN_NAME:
@@ -18,28 +17,30 @@ class RCU_Function:
 
         # Clear old Pin
         if self.config["ShiftLights"]["pinIDs"] != []:
-            self.config["Pins"]["Pins"][self.config["ShiftLights"]["pinIDs"][0]]["function"] = ""
+            self.config["Pins"]["Pins"][self.config["ShiftLights"]["pinIDs"][0]][
+                "function"
+            ] = ""
 
         # Set new pin
         self.config["ShiftLights"]["pinIDs"] = [pinID]
         self.config["Pins"]["Pins"][pinID]["function"] = pinFuncName
 
-        print(f"Set pin to {self.config["Pins"]["Pins"][pinID]}")
+        print(f'Set pin to {self.config["Pins"]["Pins"][pinID]}')
 
-    def unassign_pin(self, pinID = None, pin_funcName = None):
+    def unassign_pin(self, pinID=None, pin_funcName=None):
         if None != pinID:
             self.config["Pins"]["Pins"][pinID]["function"] = ""
 
         if None != pin_funcName:
             try:
-                self.get_funcs_pins(pin_funcName,0)
+                self.get_funcs_pins(pin_funcName, 0)
             except PinsNotAssigned:
-                pass # its already unassigned!
-        
-    def get_funcs_pins(self, pin_funcName, maxPins = None):
+                pass  # its already unassigned!
+
+    def get_funcs_pins(self, pin_funcName, maxPins=None):
         if None == maxPins:
             maxPins = len(self.pinFuncNames)
-        
+
         # discover assigned pins
         for pin in self.config["Pins"]["Pins"]:
             if pin_funcName in self.config["Pins"]["Pins"][pin]["function"]:
@@ -55,6 +56,7 @@ class RCU_Function:
             for pin in self.assignedPins[maxPins:]:
                 print(f"Clearing {pin}")
                 pin["function"] = ""
+
 
 class PinsNotAssigned(Exception):
     def __init__(self):

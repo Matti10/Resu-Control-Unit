@@ -181,7 +181,7 @@ async function setBrightness(brightness) {
         });
 
         // Store the fetch promise
-        brightenedColorsPromises.push(fetch(`config/${endpoint}`, {
+        brightenedColorsPromises.push(fetch(`/config${endpoint}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -194,7 +194,7 @@ async function setBrightness(brightness) {
     await Promise.all(brightenedColorsPromises);
 
     // Send a single fetch request for brightness
-    fetch("ShiftLights/brightness", {
+    fetch("/ShiftLights/brightness", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

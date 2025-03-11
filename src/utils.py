@@ -25,6 +25,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+
 ROUTE_CONFIG = "/config"
 
 import re
@@ -90,6 +91,7 @@ HTTP_CODES = {
     510: "Not extended",
     511: "Network authentication required",
 }
+
 
 def send_response(
     server, response, http_code=200, content_type="text/html", extend_headers=None
@@ -250,12 +252,13 @@ def is_index(key):
     """Helper function to check if the key is a list index (e.g., '[5]')."""
     return re.match(r"^\[\d+\]$", key) is not None
 
+
 def get_config_keys(path):
     # strip the leading / and then the "config". doing this in two steps allows for passing of paths that dont have the leading "/config"
-    keys = path.strip("/").strip(ROUTE_CONFIG[1:]).split("/")
+    keys = path.replace(ROUTE_CONFIG, "").split("/")
     keys = [key for key in keys if key != ""]  # remove blank strings
-
     return keys
+
 
 def get_nested_dict(config, route):
     """Get a value from the config based on a list of route keys."""
@@ -268,10 +271,10 @@ def get_nested_dict(config, route):
             config = config[key]  # Access dictionary key
     return config
 
+
 def set_nested_dict(config, route, value):
     """Set a value in the config based on a list of route keys."""
     for i, key in enumerate(route):
-        print(key)
         if is_index(key):
             # Extract the index from the square brackets, e.g., '[5]' -> 5
             index = int(key[1:-1])

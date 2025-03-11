@@ -1,7 +1,14 @@
 import re
 
-import ujson
-import uos
+try:
+    import uos as os
+except:
+    import os
+
+try:
+    import ujson as json
+except:
+    import json
 
 import micropyserver
 import RCU
@@ -17,19 +24,19 @@ PORT = 8000
 
 ROUTE_CONFIG = "/config"
 
-key_STRING_JSON = "json"
-key_STRING_INT = "int"
-key_STRING_STRING = "string"
+KEY_STRING_JSON = "json"
+KEY_STRING_INT = "int"
+KEY_STRING_STRING = "string"
 
 
 class RouteNotFound(Exception):
     def __init__(self, message, server):
         # Initialize the exception with a message
         super().__init__(message)
-        self.message = message
         # return 404
         server._route_not_found(message)
-        
+
+
 class Breakout(Exception):
     def __init__(self):
         # Initialize the exception with a message
@@ -61,28 +68,19 @@ class RCU_server:
         if not testMode:
             self.server.start()
 
-    # Utils
-    def post_saveConfig(self, request):
-        try:
-            RCU.export_config(self.config)
-            utils.send_response(self.server, "Config Saved", http_code=201)
-        except Exception as e:
-            self.server_internalError(
-                f"Error saving config with request:\n{request}\n Error:{e}"
-            )
-
-
-
     def get_config(self, request, preParsedRequest=None):
         _, path, _ = utils.handle_preparsed_request(request, preParsedRequest)
+        print(f"path:{path}")
 
-        self.serve_json(utils.get_nested_dict(self.config, utils.get_config_keys(path)))
+        return self.serve_json(
+            utils.get_nested_dict(self.config, utils.get_config_keys(path))
+        )
 
     def set_config(self, request, preParsedRequest=None):
         _, path, body = utils.handle_preparsed_request(request, preParsedRequest)
         print(path)
         # process the data
-        body = ujson.loads(body)
+        body = json.loads(body)
         key = next(iter(body))
 
         data = body[key]
@@ -91,21 +89,21 @@ class RCU_server:
 
         keys = utils.get_config_keys(path)
 
-        if utils.get_nested_dict(
-            self.config, keys
-        ):  # TODO decide if this search is neccesary, alot of looping for no reeeeeal reason
+        try:
             utils.set_nested_dict(self.config, keys, data)
-        else:
+        except Exception as e:
+            print(e)
             raise RouteNotFound(path, self.server)
 
         # save changes
-        RCU.export_config(self.config)
+        if not self.testMode:
+            RCU.export_config(self.config)
 
         utils.send_response(self.server, "", http_code=201)
 
     def file_exists(self, path):
         try:
-            uos.stat(path)  # Check file stats
+            os.stat(path)  # Check file stats
             return True  # File exists
         except OSError:  # File not found or inaccessible
             return False
@@ -121,9 +119,9 @@ class RCU_server:
             path = INDEX_PATH
 
         if self.file_exists(path):
-            self.serve_file(path)
+            return self.serve_file(path)
         else:
-            self.server._route_not_found(request)
+            raise RouteNotFound(path, self.server)
 
     def serve_file(self, path):
         result = []  # used for tests becasue no mocking in micropy
@@ -139,11 +137,11 @@ class RCU_server:
             if self.testMode:
                 return result
         except OSError as e:
-            return self.server._route_not_found(path)  # send a 404
+            raise RouteNotFound(path, self.server)  # send a 404
 
     def serve_json(self, data):
         return utils.send_response(
-            self.server, ujson.dumps(data), content_type="application/json"
+            self.server, json.dumps(data), content_type="application/json"
         )  # returning for tests
 
     # seperate endpoint for Shift Lights so config changes can be updated on physical lights
@@ -153,38 +151,42 @@ class RCU_server:
             print(self.config["ShiftLights"]["ShiftLights"]["colors"])
             self.ShiftLights.setAll_color_fromConfig(settingArea)
             self.ShiftLights.update()
-        
+
         _, path, body = utils.parse_request(request)
 
         # Check if the path matches the main color setting route
-        colorRouteMatch = re.match(r"/ShiftLights/(ShiftLights|Limiter)/colors/\[(\d+)\]/color", path)
+        colorRouteMatch = re.match(
+            r"/ShiftLights/(ShiftLights|Limiter)/colors/\[(\d+)\]/color", path
+        )
         if colorRouteMatch:
             # Extracts 'ShiftLights' or 'LimiterColor'
             settingArea = colorRouteMatch.group(1)
             # update config
             self.set_config(request, preParsedRequest=(_, path, body))
-            sample_color(settingArea)    
+            sample_color(settingArea)
             return
 
-        patternRouteMatch = re.match(r"/ShiftLights/(ShiftLights|Limiter)/pattern/selected", path)
+        patternRouteMatch = re.match(
+            r"/ShiftLights/(ShiftLights|Limiter)/pattern/selected", path
+        )
         # Check if the path matches the second pattern (limit pattern)
         if patternRouteMatch:
             settingArea = patternRouteMatch.group(1)
             # update config
             self.set_config(request, preParsedRequest=(_, path, body))
-            self.ShiftLights.sample_pattern(settingArea) 
-            return    
+            self.ShiftLights.sample_pattern(settingArea)
+            return
 
         brightnessRouteMatch = re.match(r"/ShiftLights/brightness", path)
         if brightnessRouteMatch:
             # update config
-            self.set_config(request, preParsedRequest=(_, path, body))    
+            self.set_config(request, preParsedRequest=(_, path, body))
             sample_color()
             return
-        
+
         # If no match found, raise RouteNotFound
         raise RouteNotFound(path, self.server)
-    
+
     def server_internalError(self, message="Internal Server Error"):
         print(message)
         self.server.send("HTTP/1.1 500 Internal Server Error\r\n")
@@ -228,7 +230,7 @@ class RCU_server:
             self.server.send("HTTP/1.1 200 OK\r\n")
             self.server.send("Content-key: application/json\r\n")
             self.server.send("\r\n")
-            self.server.send(ujson.dumps({"message": "File uploaded successfully"}))
+            self.server.send(json.dumps({"message": "File uploaded successfully"}))
 
             self.config = RCU.import_config(RCU.CONFIG_PATH)
         except Exception as e:
