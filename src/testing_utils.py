@@ -88,3 +88,17 @@ class GenerateTachoSignal:
             mode=self.Timer.PERIODIC,
             callback=lambda t: self.toggle_pin(),
         )
+
+
+class MockedShiftLight:
+    def __init__(self):
+        self.runList = []
+
+    def setAll_color_fromConfig(self, settingArea):
+        self.runList.append(f"setAll_color_fromConfig({settingArea})")
+
+    def update(self):
+        self.runList.append(f"update()")
+
+    def sample_pattern(self, settingArea):
+        self.runList.append(f"sample_pattern({settingArea})")

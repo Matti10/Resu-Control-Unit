@@ -18,7 +18,9 @@ import testing_utils
 
 class unitTestServer(unittest.TestCase):
     def setUp(self):
-        self.server = server.RCU_server(testMode=True)
+        self.server = server.RCU_server(
+            testMode=True, shiftLights=testing_utils.MockedShiftLight()
+        )
 
     def test_frontend_routes_exist(self):
         usedRoutes = testing_utils.find_endpoints_inFrontend(
@@ -65,7 +67,10 @@ class unitTestServer(unittest.TestCase):
             with open(file, "rb") as file:
                 content = file.read()
 
-            self.assertEqual(content, result)
+            self.assertEqual(
+                content[0:1000], result[0:1000]
+            )  # only sample the first 1000 bytes due to RAM constraints
+            gc.collect()
 
         for file in invalidFiles:
             try:
@@ -162,28 +167,107 @@ class unitTestServer(unittest.TestCase):
         gc.collect()
 
     def test_get_webFiles(self):
-        otherRoutes = ["/"]
-        fileData = []
-        for file in os.listdir(server.WEB_FILES_PATH) + (otherRoutes):
-            request = testing_utils.build_fake_http_request(
-                f"{server.ROUTE_WEB_FILES}/{file}"
-            )
+        for file in os.listdir(server.WEB_FILES_PATH):
+            fileData = []
+            if "index" in file:
+                request = testing_utils.build_fake_http_request("/")
+            else:
+                request = testing_utils.build_fake_http_request(
+                    f"{server.ROUTE_WEB_FILES}/{file}"
+                )
+
             result = self.server.get_webFiles(request)
             with open(f"{server.WEB_FILES_PATH}/{file}", "rb") as f:
                 while chunk := f.read(512):  # Read in chunks (512 bytes)
                     # Send each chunk
                     fileData.append(chunk)
             self.assertEqual(fileData, result)
+            gc.collect()
 
-    # def test_post_shiftLight(self):
+    def test_post_shiftLight(self):
+        tests = [
+            {
+                "route": "/ShiftLights/ShiftLights/colors/[10]/color",
+                "shouldCall": ["setAll_color_fromConfig(ShiftLights)", "update()"],
+                "testData": {"test": 3000},
+            },
+            {
+                "route": "/ShiftLights/Limiter/colors/[10]/color",
+                "shouldCall": ["setAll_color_fromConfig(Limiter)", "update()"],
+                "testData": {"test": 3000},
+            },
+            {
+                "route": "/ShiftLights/ShiftLights/pattern/selected",
+                "shouldCall": ["sample_pattern(ShiftLights)"],
+                "testData": {"test": "Lorem Ipsum"},
+            },
+            {
+                "route": "/ShiftLights/Limiter/pattern/selected",
+                "shouldCall": ["sample_pattern(Limiter)"],
+                "testData": {"test": "Lorem Ipsum"},
+            },
+            {
+                "route": "/ShiftLights/brightness",
+                "shouldCall": ["setAll_color_fromConfig(ShiftLights)", "update()"],
+                "testData": {"test": 1.5},
+            },
+        ]
 
-    # def test_server_internalError(self):
+        for test in tests:
+            request = testing_utils.build_fake_http_request(
+                test["route"], body=json.dumps(test["testData"])
+            )
+            self.server.post_shiftLight(request)
 
-    # def test_download_config(self):
+            # test that the functions used to show changes on physical lights are called
+            # for expectedCall in test["shouldCall"]:
+            # remeber the MockedShiftLight is being used here
+            self.assertEqual(test["shouldCall"], self.server.ShiftLights.runList)
 
-    # def test_download_file(self):
+            self.assertEqual(
+                json.loads(self.server.get_config(request)),
+                test["testData"]["test"],
+            )
 
-    # def test_upload_config(self):
+            self.server.ShiftLights.runList = []  # clear it for the next round of tests
+
+        self.server.config = RCU.import_config()  # reset config as we just broke it
+        gc.collect()
+
+    def test_download_file(self, filePath=f"{server.WEB_FILES_PATH}/ui.js"):
+        with open(filePath, "r") as file:
+            data = file.read()
+
+        sent = self.server.download_file(data, "test.test")
+
+        self.assertEqual(sent, data)
+
+    def test_download_config(self):
+        self.test_download_file(RCU.CONFIG_PATH)
+
+    def test_upload_config(self):
+        # Simulate an HTTP multipart request
+        data = {"setting": "value"}
+        boundary = "----WebKitFormBoundary12345"
+        request = (
+            f"POST /upload HTTP/1.1\r\n"
+            f"Content-key: multipart/form-data; boundary={boundary}\r\n"
+            f"\r\n"
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="config.json"\r\n'
+            f"Content-Type: application/json\r\n"
+            f"\r\n"
+            f"{json.dumps(data)}\r\n"
+            f"--{boundary}--\r\n"
+        )
+
+        self.server.upload_config(request)
+
+        testConfig = RCU.import_config()
+
+        self.assertEqual(testConfig, data)
+
+        RCU.export_config(self.server.config)  # reset the local config
 
 
 if __name__ == "__main__":

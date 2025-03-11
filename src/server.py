@@ -37,6 +37,18 @@ class RouteNotFound(Exception):
         server._route_not_found(message)
 
 
+class InternalError(Exception):
+    def __init__(self, server, message="Internal Server Error"):
+        # Initialize the exception with a message
+        super().__init__(message)
+        # return 404
+        print(message)
+        server.send("HTTP/1.1 500 Internal Server Error\r\n")
+        server.send("Content-key: text/plain\r\n")
+        server.send("\r\n")
+        server.send("Error uploading file")
+
+
 class Breakout(Exception):
     def __init__(self):
         # Initialize the exception with a message
@@ -44,7 +56,7 @@ class Breakout(Exception):
 
 
 class RCU_server:
-    def __init__(self, config=None, testMode=False):
+    def __init__(self, config=None, testMode=False, shiftLights=None):
         if None == config:
             self.config = RCU.import_config()  # dont duplicate config
         else:
@@ -52,7 +64,10 @@ class RCU_server:
 
         self.testMode = testMode
 
-        self.ShiftLights = ShiftLight(self.config, testMode=testMode)
+        if None == shiftLights:
+            self.ShiftLights = ShiftLight(self.config, testMode=testMode)
+        else:
+            self.ShiftLights = shiftLights
 
         self.server = micropyserver.MicroPyServer(port=PORT, testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
@@ -69,7 +84,7 @@ class RCU_server:
             self.server.start()
 
     def get_config(self, request, preParsedRequest=None):
-        _, path, _ = utils.handle_preparsed_request(request, preParsedRequest)
+        _, path, _, _ = utils.handle_preparsed_request(request, preParsedRequest)
         print(f"path:{path}")
 
         return self.serve_json(
@@ -77,7 +92,7 @@ class RCU_server:
         )
 
     def set_config(self, request, preParsedRequest=None):
-        _, path, body = utils.handle_preparsed_request(request, preParsedRequest)
+        _, path, body, _ = utils.handle_preparsed_request(request, preParsedRequest)
         print(path)
         # process the data
         body = json.loads(body)
@@ -112,7 +127,7 @@ class RCU_server:
         self.serve_file(FAVICON_PATH)
 
     def get_webFiles(self, request):
-        _, path, _ = utils.parse_request(request)
+        _, path, _, _ = utils.parse_request(request)
         path = path.replace(ROUTE_WEB_FILES, WEB_FILES_PATH)
         print(f"path:{path}")
         if path == "/":
@@ -152,7 +167,7 @@ class RCU_server:
             self.ShiftLights.setAll_color_fromConfig(settingArea)
             self.ShiftLights.update()
 
-        _, path, body = utils.parse_request(request)
+        _, path, body, _ = utils.parse_request(request)
 
         # Check if the path matches the main color setting route
         colorRouteMatch = re.match(
@@ -162,7 +177,7 @@ class RCU_server:
             # Extracts 'ShiftLights' or 'LimiterColor'
             settingArea = colorRouteMatch.group(1)
             # update config
-            self.set_config(request, preParsedRequest=(_, path, body))
+            self.set_config(request, preParsedRequest=(_, path, body, _))
             sample_color(settingArea)
             return
 
@@ -173,49 +188,44 @@ class RCU_server:
         if patternRouteMatch:
             settingArea = patternRouteMatch.group(1)
             # update config
-            self.set_config(request, preParsedRequest=(_, path, body))
+            self.set_config(request, preParsedRequest=(_, path, body, _))
             self.ShiftLights.sample_pattern(settingArea)
             return
 
         brightnessRouteMatch = re.match(r"/ShiftLights/brightness", path)
         if brightnessRouteMatch:
             # update config
-            self.set_config(request, preParsedRequest=(_, path, body))
+            self.set_config(request, preParsedRequest=(_, path, body, _))
             sample_color()
             return
 
         # If no match found, raise RouteNotFound
         raise RouteNotFound(path, self.server)
 
-    def server_internalError(self, message="Internal Server Error"):
-        print(message)
-        self.server.send("HTTP/1.1 500 Internal Server Error\r\n")
-        self.server.send("Content-key: text/plain\r\n")
-        self.server.send("\r\n")
-        self.server.send("Error uploading file")
-
     def download_config(self, _):
-        self.download_file(RCU.get_rawConfig())
+        self.download_file(RCU.get_rawConfig(), "RCU-Config.json")
 
-    def download_file(self, file_content):
+    def download_file(self, file_content, downloadName):
         try:
             self.server.send("HTTP/1.1 200 OK\r\n")
             self.server.send("Content-key: application/json\r\n")
             self.server.send(
-                f'Content-Disposition: attachment; filename="config.json"\r\n'
+                f'Content-Disposition: attachment; filename="{downloadName}"\r\n'
             )
             self.server.send("Content-Length: {}\r\n".format(len(file_content)))
             self.server.send("\r\n")
-            self.server.send_bytes(file_content)
+            return self.server.send_bytes(file_content)
         except OSError as e:
-            self.server_internalError(f"Error serving file: {e}")
+            raise InternalError(server=self.server, message=str(e))
 
     def upload_config(self, request):
         try:
-            headers, _, body = utils.parse_request(request)
+            _, _, body, headers = utils.parse_request(request)
+            print(f"headers:{headers}")
             content_type_header = [
                 header for header in headers.split("\r\n") if "Content-key" in header
             ][0]
+
             boundary = content_type_header.split("=")[1]
             parts = body.split(f"--{boundary}")
 
@@ -231,10 +241,13 @@ class RCU_server:
             self.server.send("Content-key: application/json\r\n")
             self.server.send("\r\n")
             self.server.send(json.dumps({"message": "File uploaded successfully"}))
+            if not self.testMode:
+                self.config = RCU.import_config(RCU.CONFIG_PATH)
 
-            self.config = RCU.import_config(RCU.CONFIG_PATH)
         except Exception as e:
-            self.server_internalError(f"Error uploading file: {e}")
+            raise InternalError(
+                server=self.server, message=f"Error uploading file: {e}"
+            )
 
 
 if __name__ == "__main__":

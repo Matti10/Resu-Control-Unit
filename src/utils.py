@@ -240,10 +240,10 @@ def parse_request(request):
     # Split request into headers and body using "\r\n\r\n" (standard HTTP separator)
     parts = request.split("\r\n\r\n", 1)
     body = parts[1] if len(parts) > 1 else ""  # Extract body if it exists
-
+    headers = parts[0] if len(parts) >= 1 else ""
     if match:
         # Return method, path, and body
-        return match.group(1), match.group(2), body
+        return match.group(1), match.group(2), body, headers
     else:
         raise Exception(f"Invalid request: {request}")
 
