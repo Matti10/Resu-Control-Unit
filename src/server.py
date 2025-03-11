@@ -42,11 +42,7 @@ class InternalError(Exception):
         # Initialize the exception with a message
         super().__init__(message)
         # return 404
-        print(message)
-        server.send("HTTP/1.1 500 Internal Server Error\r\n")
-        server.send("Content-key: text/plain\r\n")
-        server.send("\r\n")
-        server.send("Error uploading file")
+        server._internal_error(message)
 
 
 class Breakout(Exception):
@@ -221,7 +217,6 @@ class RCU_server:
     def upload_config(self, request):
         try:
             _, _, body, headers = utils.parse_request(request)
-            print(f"headers:{headers}")
             content_type_header = [
                 header for header in headers.split("\r\n") if "Content-key" in header
             ][0]
