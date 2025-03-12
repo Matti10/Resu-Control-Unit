@@ -5,7 +5,7 @@ from RCU_Function import RCU_Function
 
 SHIFTLIGHT_KEY_LIMITER = "Limiter"
 SHIFTLIGHT_KEY_SHIFTLIGHT = "ShiftLights"
-SHIFTLIGHT_ASYNC_PAUSE_S = 0.1
+SHIFTLIGHT_ASYNC_PAUSE_S = 0.15
 
 PIN_FUNCNAME_SHIFTLIGHTS = SHIFTLIGHT_KEY_SHIFTLIGHT
 PIN_COUNT_SHIFTLIGHTS = 1
@@ -41,6 +41,8 @@ class ShiftLight(RCU_Function):
         }
 
         self.limiterI = 0
+        self.previousRPM = 0
+        self.shiftI = 0
 
     def handle_testMode_imports(self, neoPixel, pin):
         if None == neoPixel:
@@ -75,13 +77,13 @@ class ShiftLight(RCU_Function):
     def clear_all(self):
         self.setAll_color({"r": 0, "g": 0, "b": 0})
 
-    def increment_pattern(self, i, subKey):
+    def handle_pattern(self, i, subKey):
         if i == 0:
             self.clear_all()
-        i = self.patternFuncs[subKey](i)
-        return i
+        self.patternFuncs[subKey]["func"](i)
 
-    def manage_limiterI(self, i, resetValue):
+    def increment_limiterI(self, i, resetValue):
+        # print(f"i, resetValue {i}, {resetValue}" )
         if i >= resetValue:
             i = 0
         else:
@@ -89,52 +91,34 @@ class ShiftLight(RCU_Function):
         return i
 
     def patternType_LeftRight(self, i):
-        # print(f"patternType_LeftRight {i}")
-        # left to right
-        # print("waving left")
         self.set_color_fromConfig(i, SHIFTLIGHT_KEY_LIMITER)
-        return self.manage_limiterI(i, self.lightCount)
 
     def patternType_RightLeft(self, i):
-        # print(f"patternType_RightLeft {i}")
-        # right to left
         self.set_color_fromConfig(self.lightCount - (i + 1), SHIFTLIGHT_KEY_LIMITER)
-        return self.manage_limiterI(i, self.lightCount)
 
     def patternType_CenterOut(self, i):  # center out
-        # print(f"centerOut {i}")
         self.set_color_fromConfig(self.lightMidPoint + i, SHIFTLIGHT_KEY_LIMITER)
         self.set_color_fromConfig(self.lightMidPoint - i, SHIFTLIGHT_KEY_LIMITER)
-        return self.manage_limiterI(i, self.lightMidPoint)
 
     def patternType_CenterIn(self, i):
-        # print(f"patternType_CenterIn {i}")
-        # center in
         self.set_color_fromConfig(i, SHIFTLIGHT_KEY_LIMITER)
         self.set_color_fromConfig(self.lightCount - (i + 1), SHIFTLIGHT_KEY_LIMITER)
-        return self.manage_limiterI(i, self.lightMidPoint)
 
     def patternType_Flash(self, i):
-        # print(f"patternType_Flash {i}")
-
         if i % 2 == 0:
             self.setAll_color_fromConfig(subKey=SHIFTLIGHT_KEY_LIMITER)
         else:
             self.clear_all()
-        return self.manage_limiterI(i, self.lightCount)
 
     def patternType_Solid(self, i):
-        # print(f"patternType_Solid {i}")
-
         self.setAll_color_fromConfig(subKey=SHIFTLIGHT_KEY_LIMITER)
-        return self.manage_limiterI(i, self.lightCount)
 
     def sample_pattern(self, subKey=SHIFTLIGHT_KEY_SHIFTLIGHT):
         counter = 0
         i = 0
         while counter < self.lightCount:
             # print(f"i:{i}")
-            i = self.increment_pattern(
+            i = self.handle_pattern(
                 self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][subKey]["pattern"]["selected"], i
             )
             self.update()
@@ -155,22 +139,29 @@ class ShiftLight(RCU_Function):
                 color = color * brightness
         self.update()
 
-    def set_i_fromRPM(self, rpm):
-        for i in range(1, self.lightCount - 1):
-            # start the loop @ 1 - 0 * rpmStep is always < rpm
-            # if the rpm is greater or equal the the RPM needed to turn on light
-            # print(f"i * self.rpmStep:{i * self.rpmStep} i: {i} rpm: {rpm}")
+    def calc_rpmStep(self, i):
+        return i * self.rpmStep
 
-            if rpm < (
-                self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["startRPM"] + i * self.rpmStep
-            ):
-                # set light to color in config[SHIFTLIGHT_KEY_SHIFTLIGHT]
-                # print(f"returing {i-1}")
-                return i - 1  # remove the offset
 
-        # print("returning 0")
-        return 0  # this should be unreachable, but better safe than sorry :D
-
+    def increment_shiftI(self,rpm): #?? this should be less itterations. 
+        thisStep = self.calc_rpmStep(self.shiftI)
+        previousStep = thisStep - self.rpmStep
+        diff = rpm - self.previousRPM
+        direction = diff/abs(diff)  
+        self.calcCount+=1
+        
+        while (previousStep > rpm or thisStep <= rpm):
+            self.calcCount+=1
+            
+            self.shiftI += direction # +1 or -1 depending on direction of revs
+            thisStep = self.calc_rpmStep(self.shiftI)
+            previousStep = thisStep - self.rpmStep
+            diff = rpm - self.previousRPM
+            direction = diff/abs(diff)  
+        
+        return self.shiftI #no need for this if decide to use #TODO
+            
+    
     def init_pattern_fromConfig(self, subKey):
         limiterCorr = {
             SHIFTLIGHT_PATTERN_FLASH: {
@@ -186,11 +177,11 @@ class ShiftLight(RCU_Function):
                 "func": self.patternType_RightLeft,
             },
             SHIFTLIGHT_PATTERN_CI: {
-                "lightCount": self.lightMidPoint,
+                "lightCount": self.lightMidPoint + 1, #magic number. Think of centre in as two half sized lists, that share index 0 
                 "func": self.patternType_CenterIn,
             },
             SHIFTLIGHT_PATTERN_CO: {
-                "lightCount": self.lightMidPoint,
+                "lightCount": self.lightMidPoint + 1, #magic number. Think of centre in as two half sized lists, that share index 0 
                 "func": self.patternType_CenterOut,
             },
             SHIFTLIGHT_PATTERN_SOLID: {
@@ -205,7 +196,7 @@ class ShiftLight(RCU_Function):
 
         if subKey == SHIFTLIGHT_KEY_SHIFTLIGHT:
             self.set_rpmStep(thisPattern["lightCount"])
-        return thisPattern["func"]
+        return thisPattern
 
     def setAll_color_fromConfig(self, subKey=SHIFTLIGHT_KEY_SHIFTLIGHT):
         for id in range(self.lightCount):
@@ -220,32 +211,35 @@ class ShiftLight(RCU_Function):
         self.np.write()
 
     def set_rpmStep(self, lightCount):
-        self.rpmStep = (
+        self.rpmStep = int(
             self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["endRPM"]
             - self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["startRPM"]
         ) / lightCount
+        
+        # print(f"RPMStep:{self.rpmStep},start:{self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["startRPM"]},end:{self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["endRPM"]},light:{lightCount}")
 
     # call within a loop to update the shift lights
-    async def run(self, rpm_getter):
+    async def run(self, rpm_getter): #TODO ERROR HANDLING FOR TASK
         while True:
             rpm = rpm_getter()
-            if rpm > self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["endRPM"]:
-                print(f"limiter i (before) {self.limiterI}")
-                self.limiterI = self.increment_pattern(
-                    i=self.limiterI, subKey=SHIFTLIGHT_KEY_LIMITER
-                )
+            if rpm >= self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["endRPM"]:
+                # print(f"limiter i (before) {self.limiterI}")
+                self.handle_pattern(i=self.limiterI, subKey=SHIFTLIGHT_KEY_LIMITER)
+                self.limiterI = self.increment_limiterI(self.limiterI, self.patternFuncs[SHIFTLIGHT_KEY_LIMITER]["lightCount"]-1)
                 await asyncio.sleep(
                     self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][SHIFTLIGHT_KEY_LIMITER][
                         "period_s"
                     ]
                 )
             elif rpm > self.config[SHIFTLIGHT_KEY_SHIFTLIGHT]["startRPM"]:
-                for i in range(0, self.set_i_fromRPM(rpm) - 1):
-                    debugI = self.increment_pattern(
-                        i=i, subKey=SHIFTLIGHT_KEY_SHIFTLIGHT
-                    )
-                    print(f"debug i (after) {debugI}")
+                self.clear_all() #TODO remove this and the for loop below and do the same as increment_shiftI so we only set changed lights
+                rpmSteps = self.increment_shiftI(rpm)
+                for i in range(0, rpmSteps):
+                    self.handle_pattern(i=i, subKey=SHIFTLIGHT_KEY_SHIFTLIGHT)
+                self.limiterI = 0
                 await asyncio.sleep(SHIFTLIGHT_ASYNC_PAUSE_S)
             else:
-                self.clear_all()
+                self.shiftI = 0
+                await asyncio.sleep(SHIFTLIGHT_ASYNC_PAUSE_S)
             self.update()
+            self.previousRPM = rpm

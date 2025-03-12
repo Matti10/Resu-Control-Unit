@@ -18,7 +18,7 @@ class RPMReader(RCU_Function):
             self.pulseCount = 0
             self.tachoTimer = tachoTimer
             self.tachoRPMScaler = (60*(1000/RPM_TACHO_TIMER_PERIOD_MS)) / self.config["RPMReader"]["tachoMode"]["pulsesPerRevolution"]
-            print(f"tachoScaler:{self.tachoRPMScaler}")
+            #print(f"tachoScaler:{self.tachoRPMScaler}")
             super().__init__(config,testMode,PIN_FUNCNAME_RPM)
             self.init_tacho()
         else:
@@ -32,7 +32,7 @@ class RPMReader(RCU_Function):
     def init_tacho(self):
         self.tachoPin = self.Pin(self.assignedPins[0]["FirmwareID"],self.Pin.IN,self.Pin.PULL_DOWN)
         self.tachoTimer.init(period = RPM_TACHO_TIMER_PERIOD_MS,mode=Timer.PERIODIC,callback=self.tacho_calc_rpm_callback)
-        print("Tacho mode inited")
+        #print("Tacho mode inited")
 
     def start_tacho(self):
         self.tachoPin.irq(trigger=self.Pin.IRQ_RISING, handler=self.tacho_irq)  # Interrupt on rising edge

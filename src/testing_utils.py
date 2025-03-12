@@ -65,7 +65,7 @@ class GenerateTachoSignal:
         self.freq = int(
             (self.rpm * self.pulsePerRev * 2) / 60
         )  # 1000 ms in a sec. magic number 2 is bc we need two operations per rpm pulse, setting it high and setting it low
-        print(f"period is {self.freq}ms")
+        # print(f"period is {self.freq}ms")
 
     def toggle_pin(self):
         if self.pinState == 0:
