@@ -90,15 +90,44 @@ class GenerateTachoSignal:
         )
 
 
-class MockedShiftLight:
+class Mocked:
     def __init__(self):
         self.runList = []
 
+    def mock_run(self, fname, *args):
+        fargs = ""
+        for arg in args:
+            fargs += f"{arg},"
+
+        fargs = fargs[0:-1]  # remove trailing comma
+        self.runList.append(f"{fname}({fargs})")
+
+
+class MockedShiftLight(Mocked):
+    def __init__(self):
+        super().__init__()
+
     def setAll_color_fromConfig(self, settingArea):
-        self.runList.append(f"setAll_color_fromConfig({settingArea})")
+        self.mock_run("setAll_color_fromConfig", settingArea)
 
     def update(self):
-        self.runList.append(f"update()")
+        self.mock_run("update")
 
     def sample_pattern(self, settingArea):
-        self.runList.append(f"sample_pattern({settingArea})")
+        self.mock_run("sample_pattern", settingArea)
+
+
+class MockedNeoPixel(list):
+    def __init__(self, mockedPin, lightCount):
+        self.pin = mockedPin  # TODO correct attr name
+        super().__init__([(0, 0, 0) for i in range(lightCount)])
+        self.mock = Mocked()  # inconsistent but inheritting list is less work
+
+
+class MockedPin(Mocked):
+    OUT = "OUT"
+    IN = "IN"
+
+    def __init__(self, PinNum, pinMode):
+        self.PinNum = PinNum  # TODO correct attr name
+        self.pinMode = pinMode  # TODO correct attr name

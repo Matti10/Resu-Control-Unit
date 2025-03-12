@@ -1,9 +1,9 @@
 //init varibles with default values lets there are issues reading them from config
 let global_brightness = 0.5
 let global_whiteBalanceFactors = {
-    "red": 1.0,
-    "green": 0.8,
-    "blue": 0.6
+    "r": 1.0,
+    "g": 0.8,
+    "b": 0.6
 }
 let global_gamma = 2.2
 const brightnessScaler = 100;
@@ -26,7 +26,7 @@ function hexToRgb(hex) {
     let r = parseInt(hex.substring(0, 2), 16);
     let g = parseInt(hex.substring(2, 4), 16);
     let b = parseInt(hex.substring(4, 6), 16);
-    return { "red": r, "green": g, "blue": b };
+    return { "r": r, "g": g, "b": b };
 }
 
 function rgbToHsv(r, g, b) {

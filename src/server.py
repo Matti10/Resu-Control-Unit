@@ -45,12 +45,6 @@ class InternalError(Exception):
         server._internal_error(message)
 
 
-class Breakout(Exception):
-    def __init__(self):
-        # Initialize the exception with a message
-        super().__init__()
-
-
 class RCU_server:
     def __init__(self, config=None, testMode=False, shiftLights=None):
         if None == config:

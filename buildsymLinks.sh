@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the source directory
-source_dir="/workspaces/Resu-Control-Unit/src"  # Change this to the directory containing files/folders
+source_dir="/workspaces/Resu-Control-Unit/src"  
 
 # Ensure the source directory exists
 if [ ! -d "$source_dir" ]; then
