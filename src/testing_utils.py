@@ -102,6 +102,9 @@ class Mocked:
         fargs = fargs[0:-1]  # remove trailing comma
         self.runList.append(f"{fname}({fargs})")
 
+    def mock_reset(self):
+        self.runList = []
+
 
 class MockedShiftLight(Mocked):
     def __init__(self):
@@ -122,6 +125,9 @@ class MockedNeoPixel(list):
         self.pin = mockedPin  # TODO correct attr name
         super().__init__([(0, 0, 0) for i in range(lightCount)])
         self.mock = Mocked()  # inconsistent but inheritting list is less work
+
+    def write(self):
+        self.mock.mock_run("write")
 
 
 class MockedPin(Mocked):
