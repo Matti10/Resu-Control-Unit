@@ -2,7 +2,7 @@
     "ShiftLights": {
         "ShiftLights": {
             "pattern": {
-                "selected": "Center Out",
+                "selected": "Right to Left",
                 "patterns": [
                     "Right to Left",
                     "Left to Right",

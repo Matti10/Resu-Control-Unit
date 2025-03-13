@@ -49,13 +49,14 @@ async def test():
         tachoGen.set_rpm(tachoGen.rpm + rpmToAdd)
         rpm = tachoRead.get_rpm()
         print(f"main loop rpm {rpm}")
-        if (rpm + rpmToAdd <= 0):
+        if ((rpm + rpmToAdd) <= 100):
             break
         await asyncio.sleep(0.3)
 
 async def main():
     shiftTask = asyncio.create_task(shift.run(tachoRead.get_rpm))
     await test()
+    await shiftTask
 
 
 asyncio.run(main())
