@@ -2,9 +2,8 @@ PIN_UNASSIGN_NAME = "Unassigned"
 
 
 class RCU_Function:
-    def __init__(self, config, testMode, pinFuncNames):
+    def __init__(self, config, pinFuncNames):
         self.config = config
-        self.testMode = testMode
         self.pinFuncNames = pinFuncNames
         self.assignedPins = []
         for pinFuncName in pinFuncNames:

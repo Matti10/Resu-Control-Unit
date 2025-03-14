@@ -19,9 +19,10 @@ SHIFTLIGHT_PATTERN_SOLID = "Solid"
 
 
 class ShiftLight(RCU_Function):
-    def __init__(self, config, testMode=False, neoPixel=None, pin=None):
-        super().__init__(config, testMode, [PIN_FUNCNAME_SHIFTLIGHTS])
-
+    def __init__(self, config, neoPixel, pin):
+        super().__init__(config, [PIN_FUNCNAME_SHIFTLIGHTS])
+        self.neopixel = neoPixel
+        self.Pin = pin
         self.lightCount = len(
             self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][SHIFTLIGHT_KEY_SHIFTLIGHT]["colors"]
         )
@@ -29,7 +30,6 @@ class ShiftLight(RCU_Function):
             self.lightCount // 2 + (self.lightCount % 2) - 1
         )  # magic number 1 is to account for 0 index
 
-        self.handle_testMode_imports(neoPixel, pin)
         self.init_np()
         self.patternFuncs = {
             SHIFTLIGHT_KEY_LIMITER: self.init_pattern_fromConfig(
@@ -45,21 +45,6 @@ class ShiftLight(RCU_Function):
         self.shiftI = 0
 
     # -------------- Setup  -------------- #
-    def handle_testMode_imports(self, neoPixel, pin):
-        if None == neoPixel:
-            import neopixel
-
-            self.neopixel = neopixel.NeoPixel
-        else:
-            self.neopixel = neoPixel
-
-        if None == pin:
-            from machine import Pin
-
-            self.Pin = Pin
-        else:
-            self.Pin = pin
-
     def init_np(self):
         # print(self.assignedPins)
         self.np = self.neopixel(
@@ -194,7 +179,7 @@ class ShiftLight(RCU_Function):
         else:
             self.clear_all()
 
-    def patternType_Solid(self, i, subKey):
+    def patternType_Solid(self, _, subKey):
         self.setAll_color_fromConfig(subKey)
 
     # -------------- Manage Itteration over Patterns  -------------- #
@@ -202,17 +187,19 @@ class ShiftLight(RCU_Function):
         thisStep = i * self.rpmStep
         previousStep = thisStep - self.rpmStep
         diff = rpm - self.previousRPM
-        if diff == 0:
-            direction = diff
+        if diff > 0:
+            direction = 1
+        elif diff < 0:
+            direction = -1
         else:
-            direction = diff / abs(diff)
-        
-        return direction, previousStep, thisStep
+            direction = 0
+        #     direction = direction / abs(direction)
+        return int(direction), previousStep, thisStep
 
     def increment_shiftI(self, rpm):
         direction, previousStep, thisStep = self.calc_shiftIDirection(self.shiftI,rpm)
-        while previousStep > rpm or thisStep <= rpm:
-            self.shiftI += direction  # +`1 or -1 depending on direction of revs
+        while not (previousStep < rpm and thisStep >= rpm):
+            self.shiftI += direction  # +1 or -1 depending on direction of revs
             direction, previousStep, thisStep = self.calc_shiftIDirection(self.shiftI,rpm)
 
     def increment_limiterI(self, i, resetValue):

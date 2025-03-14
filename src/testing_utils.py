@@ -101,12 +101,23 @@ class Mocked:
 
         fargs = fargs[0:-1]  # remove trailing comma
         self.runList.append(f"{fname}({fargs})")
+        
+    def assert_mocked_run(self, expectedCall, unittest):
+        unittest.assertIn(expectedCall,self.runList)
 
     def mock_reset(self):
         self.runList = []
 
+class MockedTimer(Mocked):
+    PERIODIC = "PERIODIC"
+    def __init__(self):
+        super().__init__()
+
+    def init(self,**kwargs):
+        self.mock_run("init",kwargs)
 
 class MockedShiftLight(Mocked):
+    PERIODIC = "PERIODIC"
     def __init__(self):
         super().__init__()
 
@@ -133,7 +144,19 @@ class MockedNeoPixel(list):
 class MockedPin(Mocked):
     OUT = "OUT"
     IN = "IN"
+    PULL_DOWN = "PULL_DOWN"
+    PinNum = None
+    pinMode = None
+    pinPull = None
 
-    def __init__(self, PinNum, pinMode):
+    def __init__(self, PinNum, pinMode, pinPull = None):
+
         self.PinNum = PinNum  # TODO correct attr name
         self.pinMode = pinMode  # TODO correct attr name
+        self.pinPull = pinPull
+        super().__init__()
+        
+    def irq(self, trigger, handler):
+        self.mock_run("irq",trigger,handler)
+
+        handler() #actually run the handler to test its a function
