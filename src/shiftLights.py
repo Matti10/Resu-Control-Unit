@@ -1,7 +1,7 @@
 import asyncio
 import time
 
-from RCU_Function import RCU_Function
+from RcuFunction import RcuFunction
 
 SHIFTLIGHT_KEY_LIMITER = "Limiter"
 SHIFTLIGHT_KEY_SHIFTLIGHT = "ShiftLights"
@@ -18,7 +18,7 @@ SHIFTLIGHT_PATTERN_CO = "Center Out"
 SHIFTLIGHT_PATTERN_SOLID = "Solid"
 
 
-class ShiftLight(RCU_Function):
+class ShiftLight(RcuFunction):
     def __init__(self, config, neoPixel, pin):
         super().__init__(config, [PIN_FUNCNAME_SHIFTLIGHTS])
         self.neopixel = neoPixel
