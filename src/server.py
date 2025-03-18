@@ -54,10 +54,8 @@ class RCU_server:
 
         self.testMode = testMode
 
-        if None == shiftLights:
-            self.ShiftLights = ShiftLight(self.config, testMode=testMode)
-        else:
-            self.ShiftLights = shiftLights
+
+        self.ShiftLights = shiftLights
 
         self.server = micropyserver.MicroPyServer(port=PORT, testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
@@ -240,4 +238,7 @@ class RCU_server:
 
 
 if __name__ == "__main__":
+    import testing_utils
+    config = RCU.import_config()
+    shift = ShiftLight(config=config,neoPixel=testing_utils.MockedNeoPixel,pin=testing_utils.MockedPin)
     RCU_server(None, False)

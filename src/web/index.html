@@ -76,6 +76,23 @@
                         <tr>
                             <th>
                                 <div class="heading-with-tooltip">
+                                    Shift Light Pin
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Select the pin you've connected the Tacho input too. This can be left unassigned if using the shiftlights in CAN mode</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <select class="pinSelector-dropdown" data-endpoint="/config/Pins/Pins"
+                                    function-Name="RPMReader" ,
+                                    allowed-class="I"><!--This is dynamically set by JS --></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
                                     Light Color
                                     <div class="tooltip">
                                         <img src="/webFiles/info-icon.png" alt="Info"
