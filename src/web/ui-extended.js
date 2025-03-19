@@ -227,6 +227,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // brightness slider
             buildBrightnessSlider(data);
+
+            //initialise position of toggle switch
+            document.getElementById("shiftLights-table").getElementById("toggleSwitch").checked = data.activated
         })
         .catch(error => console.error('Error fetching ShiftLights:', error));
 
@@ -318,4 +321,26 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         })
         .catch(error => console.error('Error fetching pins:', error));
+});
+
+// Toggle switches for enabling/disabling functionality
+document.getElementById("toggleSwitch").addEventListener("change", function() {
+    
+    // show/hide content
+    table = this.closest("table")
+    const rows = table.querySelectorAll("tr:not(:first-child)");
+    rows.forEach(row => {
+        row.style.display = this.checked ? "" : "none";
+    });
+
+    fetch(`${this.data-endpoint}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ data: this.checked })
+    }).catch(error => console.error("Error sending API request:", error));
+
+    // activate/deactivate function in backend
+
 });
