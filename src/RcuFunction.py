@@ -1,7 +1,7 @@
 PIN_UNASSIGN_NAME = "Unassigned"
 
 
-class RCU_Function:
+class RcuFunction:
     def __init__(self, config, pinFuncNames):
         self.config = config
         self.pinFuncNames = pinFuncNames
@@ -24,7 +24,6 @@ class RCU_Function:
         self.config["ShiftLights"]["pinIDs"] = [pinID]
         self.config["Pins"]["Pins"][pinID]["function"] = pinFuncName
 
-        print(f'Set pin to {self.config["Pins"]["Pins"][pinID]}')
 
     def unassign_pin(self, pinID=None, pin_funcName=None):
         if None != pinID:
@@ -42,7 +41,7 @@ class RCU_Function:
 
         # discover assigned pins
         for pin in self.config["Pins"]["Pins"]:
-            if pin_funcName in self.config["Pins"]["Pins"][pin]["function"]:
+            if pin_funcName == self.config["Pins"]["Pins"][pin]["function"]:
                 self.assignedPins.append(self.config["Pins"]["Pins"][pin])
 
         if self.assignedPins == []:

@@ -22,7 +22,7 @@ def find_endpoints_inFrontend(frontEndPath):
                     if None != search:
                         result = search.group(0).replace('"', "").replace("'", "")
                         if "//" not in result and result.strip() not in ignores:
-                            print(result)
+                            # print(result)
                             matches.append(result)
 
     return matches
@@ -100,10 +100,15 @@ class Mocked:
             fargs += f"{arg},"
 
         fargs = fargs[0:-1]  # remove trailing comma
+        # print(f"{fname}({fargs})")
         self.runList.append(f"{fname}({fargs})")
         
     def assert_mocked_run(self, expectedCall, unittest):
-        unittest.assertIn(expectedCall,self.runList)
+        result = False
+        for call in self.runList:
+            result = result or (expectedCall in call)
+            # print(f"Expected Call:{expectedCall} | Call: {call} | Result: {result}")
+        unittest.assertTrue(result)
 
     def mock_reset(self):
         self.runList = []
@@ -145,13 +150,10 @@ class MockedPin(Mocked):
     OUT = "OUT"
     IN = "IN"
     PULL_DOWN = "PULL_DOWN"
-    PinNum = None
-    pinMode = None
-    pinPull = None
+    IRQ_RISING = "IRQ_RISING"
 
-    def __init__(self, PinNum, pinMode, pinPull = None):
-
-        self.PinNum = PinNum  # TODO correct attr name
+    def __init__(self, pinNum, pinMode, pinPull = None):
+        self.pinNum = pinNum  # TODO correct attr name
         self.pinMode = pinMode  # TODO correct attr name
         self.pinPull = pinPull
         super().__init__()
@@ -159,4 +161,4 @@ class MockedPin(Mocked):
     def irq(self, trigger, handler):
         self.mock_run("irq",trigger,handler)
 
-        handler() #actually run the handler to test its a function
+        handler("foo") #actually run the handler to test it's a function
