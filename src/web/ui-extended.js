@@ -99,7 +99,7 @@ function addCirle(container, color, id) {
 
 function populateButtonGroup(container, buttonData) {
     let selected = buttonData.selected
-    buttonData.patterns.forEach(pattern => {
+    buttonData.options.forEach(pattern => {
         const button = document.createElement('button');
         button.id = `${pattern}-${container.id}`;
         button.innerText = pattern;
@@ -137,25 +137,25 @@ function handleButtonGroupClick(button) {
 }
 
 
-function buildBrightnessSlider(data) {
-    const brightnessSlider = document.getElementById("brightnessSlider");
-    const brightnessInputBox = document.getElementById("brightnessValue");
+function buildSlider(value, callback) {
+    const slider = document.getElementById("slider");
+    const inputBox = document.getElementById("brightnessValue");
 
-    brightnessSlider.value = data.brightness * brightnessScaler //times brightnessScaler as value is stored as float between 1 and 0 but displayed as int between 0 and brightnessScaler
-    brightnessInputBox.value = data.brightness * brightnessScaler
+    slider.value = value //data.brightness * brightnessScaler //times brightnessScaler as value is stored as float between 1 and 0 but displayed as int between 0 and brightnessScaler
+    inputBox.value = value //data.brightness * brightnessScaler
 
-    // Sync input box with brightnessSlider
-    brightnessSlider.oninput = function () {
-        brightnessInputBox.value = this.value;
-        setBrightness(this.value)
+    // Sync input box with slider
+    slider.oninput = function () {
+        inputBox.value = this.value;
+        callback(this.value)
     };
 
-    // Sync brightnessSlider with input box (with min/max validation)
-    brightnessInputBox.oninput = function () {
-        if (this.value < brightnessSlider.min) this.value = brightnessSlider.min;
-        if (this.value > brightnessSlider.max) this.value = brightnessSlider.max;
-        brightnessSlider.value = this.value;
-        setBrightness(this.value)
+    // Sync slider with input box (with min/max validation)
+    inputBox.oninput = function () {
+        if (this.value < slider.min) this.value = slider.min;
+        if (this.value > slider.max) this.value = slider.max;
+        slider.value = this.value;
+        callback(this.value)
     };
 }
 
@@ -206,6 +206,12 @@ async function setBrightness(brightness) {
 // function buildWhiteBalanceInputs()
 
 document.addEventListener("DOMContentLoaded", () => {
+    fetch('/config/RPMReader')
+        .then(response => response.json())
+        .then(data => {
+            populateButtonGroup(document.querySelector('.rpmInput-containter'), data.readerModes);// rev pattern buttons
+        });
+    
     fetch('/config/ShiftLights')
         .then(response => response.json())
         .then(data => {
@@ -226,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
             populateButtonGroup(document.querySelector('.revPattern-containter'), data.ShiftLights.pattern);// rev pattern buttons
 
             // brightness slider
-            buildBrightnessSlider(data);
+            buildSlider(data);
 
             //initialise position of toggle switch
             document.getElementById("shiftLights-table").getElementById("toggleSwitch").checked = data.activated
@@ -321,6 +327,9 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         })
         .catch(error => console.error('Error fetching pins:', error));
+
+    setInterval(updateRPM, 100); // Poll every 500ms
+
 });
 
 // Toggle switches for enabling/disabling functionality
@@ -344,3 +353,9 @@ document.getElementById("toggleSwitch").addEventListener("change", function() {
     // activate/deactivate function in backend
 
 });
+
+function updateRPM() {
+    fetch('/rpm')
+        .then(response => response.text())
+        .then(data => document.getElementById('currentRpm').innerText = data);
+}

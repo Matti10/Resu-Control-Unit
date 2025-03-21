@@ -183,6 +183,24 @@
                         <tr>
                             <th>
                                 <div class="heading-with-tooltip">
+                                    Limiter Increment Period
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">This sets the rate that limiter pattern increments!</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div class="limiter-slider">
+                                    <input type="range" id="limiterPeriodSlider" min="0" max="100" value="50">
+                                    <input type="number" id="limiterPeriodValue" min="0" max="100" value="50">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
                                     Brightness
                                     <div class="tooltip">
                                         <img src="/webFiles/info-icon.png" alt="Info"
@@ -230,7 +248,7 @@
                             </th>
                             <td>
                                 <div class="rpmInput-containter" class="pure-button-group" role="group"
-                                data-endpoint="config/RPMReader/modes" aria-label="...">
+                                data-endpoint="config/readerModes/selected" aria-label="...">
                                 </div>
                             </td>
                         </tr>
@@ -266,6 +284,21 @@
                             <td>
                                 <label for="name"></label>
                                 <input type="text" id="name" name="name">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Current RPM
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">The RPM value currently being read by the RCU. If this is wrong try adjusting the input method, or pulses per revolution (tacho mode only)</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <p id="currentRPM">Not Set</p>
                             </td>
                         </tr>
                     </table>
