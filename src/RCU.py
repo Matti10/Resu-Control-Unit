@@ -3,7 +3,7 @@ try:
 except:
     import json
 
-CONFIG_PATH = "/data/config.json"
+CONFIG_PATH = "/workspaces/Resu-Control-Unit/src/data/config.json"
 
 
 def import_config(configPath=CONFIG_PATH):
