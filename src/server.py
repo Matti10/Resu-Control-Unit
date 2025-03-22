@@ -16,7 +16,7 @@ import utils
 from shiftLights import ShiftLight
 
 ROUTE_WEB_FILES = "/webFiles"
-WEB_FILES_PATH = "/web"
+WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
 INDEX_PATH = f"{WEB_FILES_PATH}/index.html"
 ROUTE_FAVICON = "/favicon.ico"
 FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
@@ -245,7 +245,7 @@ class RCU_server:
             rpm = str(self.rpmReader.get_rpm())
         except Exception:
             rpm = "No RPM"
-        utils.send_response(self.server, rpm, http_code=201)
+        self.serve_json({"rpm": rpm})
         
 
 

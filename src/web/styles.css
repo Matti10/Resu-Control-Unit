@@ -515,7 +515,7 @@ input[type="range"]::-moz-range-thumb {
     cursor: pointer;
 }
 
-.brightness-slider {
+.slider-container {
     display: flex;
     align-items: center;
     /* Align items vertically */

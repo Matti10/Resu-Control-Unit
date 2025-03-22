@@ -104,7 +104,14 @@ class MicroPyServer(object):
 
         if self._connect is None:
             raise Exception("Can't send response, no connection instance")
-        self._connect.write(data)
+        
+        try:
+            self._connect.write(data)
+        except OSError as e:
+            print(f"Error sending data: {e}")
+            self._connect.close()
+            self._sock.close()
+            self._sock = None
 
     def find_route(self, request):
         """ Find route """

@@ -1,5 +1,69 @@
 let selectedCircle = null;
 
+const limiterScaler = 0.001
+let config = getAllConfig()
+
+async function getAllConfig() {
+    const config = await getConfigEndpoint("/config");
+    return config;
+}
+
+
+async function getConfigEndpoint(endpoint) {
+    try {
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error fetching config:', error);
+        return null;
+    }
+}
+
+function getLocalConfigFromEndpoint(endpoint) {
+    endpoint = endpoint.replace("/config","")
+    const keys = endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
+    let value = config;
+
+    for (const key of keys) {
+        if (value[key] !== undefined) {
+            value = value[key];
+        } else {
+            return undefined; // Return undefined if the key does not exist
+        }
+    }
+
+    return value
+}
+
+async function setConfigEndpoint(endpoint,data) {
+        
+        await fetch(`endpoint`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Failed to update ${endpoint} with data: ${data} Error: ${response.statusText}`);
+            }
+            return response;
+        })
+        .then(data => console.log(`Updated ${endpoint} with data: ${data}`))
+        .catch(error => console.error(error));
+}
+
+function setInnerTextFromEndpoint(element) {
+    element.innerText = getConfigEndpoint(element.endpoint)
+}
+
+function setConfigFromEndpoint(element, data) {
+    setConfigEndpoint(element.endpoint,data)
+}
+
+
 function downloadConfig() {
     window.location.href = '/downloadConfig';
 }
@@ -59,22 +123,7 @@ function postColorChange(endpoint, id, newColor) {
         color: applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server. 
     };
 
-    // Send a POST request to your API
-    fetch(`${endpoint}/[${id}]/color`, { //'[' and ']' are added to delimite that its an index
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(requestBody)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Failed to update color: ${response.statusText}`);
-        }
-        return response;
-    })
-    .then(data => console.log("Color update successful:", data))
-    .catch(error => console.error("Error updating color:", error));
+    setConfigEndpoint(`${endpoint}/[${id}]/color`, requestBody)
 }
 
 function changeColor(event) {
@@ -82,13 +131,14 @@ function changeColor(event) {
     let newColor = event.target.value;
     selectedCircle.style.backgroundColor = newColor;
 
-    postColorChange(selectedCircle.parentNode.getAttribute('data-endpoint'), selectedCircle.id, newColor)
+    postColorChange(selectedCircle.endpoint, selectedCircle.id, newColor)
 }
 
 function addCirle(container, color, id) {
     const circle = document.createElement('div');
     circle.className = 'circle';
     circle.id = `${id}`;
+    circle.endpoint = `/ShiftLights/ShiftLights/colors/[${id}`
     circle.onclick = function () { pickColor(this); };
 
     // Convert color values to CSS format
@@ -117,7 +167,7 @@ function populateButtonGroup(container, buttonData) {
 function handleButtonGroupClick(button) {
 
     let buttons = button.parentNode.querySelectorAll("button");
-    let endpoint = button.parentNode.getAttribute('data-endpoint')
+    let endpoint = button.parentNode.getAttribute('endpoint')
 
 
     // Remove active class from all buttons
@@ -137,17 +187,17 @@ function handleButtonGroupClick(button) {
 }
 
 
-function buildSlider(value, callback) {
-    const slider = document.getElementById("slider");
-    const inputBox = document.getElementById("brightnessValue");
+function buildSlider(container,value,callback) {
+    const slider = container.getElementsByClassName("sliderBar")[0];
+    const inputBox = container.getElementsByClassName("value")[0];
 
-    slider.value = value //data.brightness * brightnessScaler //times brightnessScaler as value is stored as float between 1 and 0 but displayed as int between 0 and brightnessScaler
-    inputBox.value = value //data.brightness * brightnessScaler
+    slider.value = value 
+    inputBox.value = value 
 
     // Sync input box with slider
     slider.oninput = function () {
-        inputBox.value = this.value;
         callback(this.value)
+        inputBox.value = this.value;
     };
 
     // Sync slider with input box (with min/max validation)
@@ -159,6 +209,14 @@ function buildSlider(value, callback) {
     };
 }
 
+function buildButtonGroupFromEndpoint() {
+    document.getElementsByClassName("")
+}
+
+function setLimiterPerid() {
+
+}
+
 async function setBrightness(brightness) {
     global_brightness = brightness;
 
@@ -168,7 +226,7 @@ async function setBrightness(brightness) {
     // TODO ONLY DO MATH ON SHIFTLIGHTS THEN SEND BRIGHTNESS UPDATE //TODO
     // Iterate over the found elements
     colorContainers.forEach(container => {
-        const endpoint = container.getAttribute('data-endpoint');
+        const endpoint = container.getAttribute('endpoint');
         const brightenedColors = Array.from(container.getElementsByClassName('circle')).map(circle => {
             // Get the color of the circle
             const color = circle.style.backgroundColor;
@@ -210,6 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(response => response.json())
         .then(data => {
             populateButtonGroup(document.querySelector('.rpmInput-containter'), data.readerModes);// rev pattern buttons
+            
         });
     
     fetch('/config/ShiftLights')
@@ -232,10 +291,11 @@ document.addEventListener("DOMContentLoaded", () => {
             populateButtonGroup(document.querySelector('.revPattern-containter'), data.ShiftLights.pattern);// rev pattern buttons
 
             // brightness slider
-            buildSlider(data);
+            buildSlider(document.getElementById("brightnessSlider"),data.brightness*brightnessScaler,setBrightness);
+            buildSlider(document.getElementById("limiterPeriodSlider"),data.Limiter.period_s/limiterScaler,setLimiterPerid);
 
             //initialise position of toggle switch
-            document.getElementById("shiftLights-table").getElementById("toggleSwitch").checked = data.activated
+            document.getElementById("shiftLights-table").getElementsByClassName("toggleSwitch").checked = data.activated
         })
         .catch(error => console.error('Error fetching ShiftLights:', error));
 
@@ -303,7 +363,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     pinSelector.style.backgroundColor = selectedOption.style.backgroundColor;
 
                     // Get the endpoint from the data attribute of the <select> element
-                    const endpoint = pinSelector.getAttribute('data-endpoint');
+                    const endpoint = pinSelector.getAttribute('endpoint');
                     const payload = {
                         selectedPin: selectedOption.value
                     };
@@ -333,29 +393,30 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Toggle switches for enabling/disabling functionality
-document.getElementById("toggleSwitch").addEventListener("change", function() {
+Array.from(document.getElementsByClassName("toggleSwitch")).forEach(toggleSwitch =>(
+    toggleSwitch.addEventListener("change", function() {
     
-    // show/hide content
-    table = this.closest("table")
-    const rows = table.querySelectorAll("tr:not(:first-child)");
-    rows.forEach(row => {
-        row.style.display = this.checked ? "" : "none";
-    });
+        // show/hide content
+        table = this.closest("table")
+        const rows = table.querySelectorAll("tr:not(:first-child)");
+        rows.forEach(row => {
+            row.style.display = this.checked ? "" : "none";
+        });
 
-    fetch(`${this.data-endpoint}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ data: this.checked })
-    }).catch(error => console.error("Error sending API request:", error));
+        fetch(`${this.'endpoint'}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ data: this.checked })
+        }).catch(error => console.error("Error sending API request:", error));
 
-    // activate/deactivate function in backend
+        // activate/deactivate function in backend
 
-});
+})));
 
 function updateRPM() {
     fetch('/rpm')
-        .then(response => response.text())
-        .then(data => document.getElementById('currentRpm').innerText = data);
+        .then(response => response.json())
+        .then(data => document.getElementById('currentRPM').innerText = data.rpm);
 }
