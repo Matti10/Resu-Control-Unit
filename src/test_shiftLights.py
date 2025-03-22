@@ -272,7 +272,7 @@ class unitTestShiftLights(unittest.TestCase):
         ]:
             for pattern in self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][
                 key
-            ]["pattern"]["patterns"]:
+            ]["pattern"]["options"]:
                 self.assertIn(pattern, patternCorr.keys())
                 self.assert_patternData(patternCorr[pattern])
 
@@ -283,7 +283,7 @@ class unitTestShiftLights(unittest.TestCase):
         ]:
             for pattern in self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][
                 key
-            ]["pattern"]["patterns"]:
+            ]["pattern"]["options"]:
                 self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][key][
                     "selected"
                 ] = pattern
@@ -305,7 +305,7 @@ class unitTestShiftLights(unittest.TestCase):
             shiftLights.SHIFTLIGHT_KEY_LIMITER,
             shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT,
         ]:
-            for pattern in self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][key]["pattern"]["patterns"]:
+            for pattern in self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][key]["pattern"]["options"]:
                 # print(pattern)
                 for i in range(0,patternCorr[pattern]["lightCount"]):
                     if pattern != shiftLights.SHIFTLIGHT_PATTERN_SOLID:

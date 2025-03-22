@@ -23,6 +23,7 @@ FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
 PORT = 8000
 
 ROUTE_CONFIG = "/config"
+ROUTE_RPM = "/rpm"
 
 KEY_STRING_JSON = "json"
 KEY_STRING_INT = "int"
@@ -46,7 +47,7 @@ class InternalError(Exception):
 
 
 class RCU_server:
-    def __init__(self, config=None, testMode=False, shiftLights=None):
+    def __init__(self, config=None, testMode=False, shiftLights=None, rpmReader=None):
         if None == config:
             self.config = RCU.import_config()  # dont duplicate config
         else:
@@ -56,6 +57,7 @@ class RCU_server:
 
 
         self.ShiftLights = shiftLights
+        self.rpmReader = rpmReader
 
         self.server = micropyserver.MicroPyServer(port=PORT, testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
@@ -66,7 +68,9 @@ class RCU_server:
         self.server.add_route("/uploadConfig", self.upload_config, method="POST")
         self.server.add_route(ROUTE_CONFIG, self.set_config, method="POST")
         self.server.add_route(ROUTE_CONFIG, self.get_config)
+        self.server.add_route(ROUTE_RPM, self.get_rpm)
         self.server._print_routes()
+
 
         if not testMode:
             self.server.start()
@@ -235,6 +239,15 @@ class RCU_server:
             raise InternalError(
                 server=self.server, message=f"Error uploading file: {e}"
             )
+        
+    def get_rpm(self,_):
+        try:
+            rpm = str(self.rpmReader.get_rpm())
+        except Exception:
+            rpm = "No RPM"
+        utils.send_response(self.server, rpm, http_code=201)
+        
+
 
 
 if __name__ == "__main__":
