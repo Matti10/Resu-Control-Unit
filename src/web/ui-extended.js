@@ -1,15 +1,21 @@
 let selectedCircle = null;
 
 const limiterScaler = 0.001
+const colorContainers = document.querySelectorAll('[class="color-container"]');
+const toggleSwitches = document.querySelectorAll('[class="toggleSwitch"]');
+const pinSelectors = document.querySelectorAll('.pinSelector-dropdown');
+
 let config = getAllConfig()
 
 async function getAllConfig() {
-    const config = await getConfigEndpoint("/config");
-    return config;
+    getEndpoint("/config")
+    .then(config => {
+        return config;
+    })
 }
 
 
-async function getConfigEndpoint(endpoint) {
+async function getEndpoint(endpoint) {
     try {
         const response = await fetch(endpoint);
         const data = await response.json();
@@ -21,7 +27,7 @@ async function getConfigEndpoint(endpoint) {
 }
 
 function getLocalConfigFromEndpoint(endpoint) {
-    endpoint = endpoint.replace("/config","")
+    endpoint = endpoint.replace("/config", "")
     const keys = endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
     let value = config;
 
@@ -36,15 +42,15 @@ function getLocalConfigFromEndpoint(endpoint) {
     return value
 }
 
-async function setConfigEndpoint(endpoint,data) {
-        
-        await fetch(`endpoint`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        })
+async function setEndpoint(endpoint, data) {
+
+    await fetch(`endpoint`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ "data": data })
+    })
         .then(response => {
             if (!response.ok) {
                 throw new Error(`Failed to update ${endpoint} with data: ${data} Error: ${response.statusText}`);
@@ -56,12 +62,9 @@ async function setConfigEndpoint(endpoint,data) {
 }
 
 function setInnerTextFromEndpoint(element) {
-    element.innerText = getConfigEndpoint(element.endpoint)
+    element.innerText = getLocalEndpoint(element.endpoint)
 }
 
-function setConfigFromEndpoint(element, data) {
-    setConfigEndpoint(element.endpoint,data)
-}
 
 
 function downloadConfig() {
@@ -123,7 +126,7 @@ function postColorChange(endpoint, id, newColor) {
         color: applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server. 
     };
 
-    setConfigEndpoint(`${endpoint}/[${id}]/color`, requestBody)
+    setEndpoint(`${endpoint}/[${id}]/color`, requestBody)
 }
 
 function changeColor(event) {
@@ -169,7 +172,6 @@ function handleButtonGroupClick(button) {
     let buttons = button.parentNode.querySelectorAll("button");
     let endpoint = button.parentNode.getAttribute('endpoint')
 
-
     // Remove active class from all buttons
     buttons.forEach(btn => btn.className = "pure-button");
 
@@ -177,26 +179,21 @@ function handleButtonGroupClick(button) {
     button.className = "pure-button pure-button-active";
 
     // Send API request with the selected button's ID
-    fetch(`${endpoint}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ pattern: button.innerText })
-    }).catch(error => console.error("Error sending API request:", error));
+    setEndpoint(endpoint, button.innerText)
+
 }
 
 
-function buildSlider(container,value,callback) {
+function buildSlider(container, value, callback = setEndpoint) {
     const slider = container.getElementsByClassName("sliderBar")[0];
     const inputBox = container.getElementsByClassName("value")[0];
 
-    slider.value = value 
-    inputBox.value = value 
+    slider.value = value
+    inputBox.value = value
 
     // Sync input box with slider
     slider.oninput = function () {
-        callback(this.value)
+        callback(this.endpoint, this.value)
         inputBox.value = this.value;
     };
 
@@ -205,29 +202,48 @@ function buildSlider(container,value,callback) {
         if (this.value < slider.min) this.value = slider.min;
         if (this.value > slider.max) this.value = slider.max;
         slider.value = this.value;
-        callback(this.value)
+        callback(this.endpoint, this.value)
     };
 }
 
-function buildButtonGroupFromEndpoint() {
-    document.getElementsByClassName("")
+function buildButtonGroupsFromEndpoint() {
+    let buttonGroup = document.getElementsByClassName("pure-button-group")
+
+    let buttonInfo = getLocalConfigFromEndpoint(buttonGroup.endpoint)
+
+    populateButtonGroup(buttonGroup, buttonInfo)
 }
 
-function setLimiterPerid() {
-
+function buildColorCirclesFromEndpoint() {
+    for (let i = 0; i < colorContainers.length; i++) {
+        getLocalConfigFromEndpoint(colorContainers[i].endpoint).forEach(light => {
+            addCirle(colorContainers[i], reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
+        });
+    }
 }
 
-async function setBrightness(brightness) {
+function buildToggleSwitchesFromEndpoint() {
+    for (let i = 0; i < toggleSwitches.length; i++) {
+        toggleSwitches[i].checked = getLocalConfigFromEndpoint();
+        toggleSwitches[i].addEventListener("change", function () {
+
+            // show/hide content
+            table = this.closest("table")
+            const rows = table.querySelectorAll("tr:not(:first-child)");
+            rows.forEach(row => {
+                row.style.display = this.checked ? "" : "none";
+            });
+
+            setEndpoint(this.endpoint, this.checked);
+        })
+    }
+}
+
+async function setBrightness(endpoint, brightness) {
     global_brightness = brightness;
-
-    // Find all elements with class names that contain "Color-container"
-    const colorContainers = document.querySelectorAll('[class*="Color-container"]');
-    const brightenedColorsPromises = [];
-    // TODO ONLY DO MATH ON SHIFTLIGHTS THEN SEND BRIGHTNESS UPDATE //TODO
     // Iterate over the found elements
-    colorContainers.forEach(container => {
-        const endpoint = container.getAttribute('endpoint');
-        const brightenedColors = Array.from(container.getElementsByClassName('circle')).map(circle => {
+    for (let i = 0; i < colorContainers.length; i++) {
+        const brightenedColors = Array.from(colorContainers[i].getElementsByClassName('circle')).map(circle => {
             // Get the color of the circle
             const color = circle.style.backgroundColor;
             const id = circle.id;
@@ -239,181 +255,91 @@ async function setBrightness(brightness) {
         });
 
         // Store the fetch promise
-        brightenedColorsPromises.push(fetch(`/config${endpoint}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ colors: brightenedColors })
-        }).catch(error => console.error("Error sending API request:", error)));
-    });
-
-    // Wait for all fetch requests to complete
-    await Promise.all(brightenedColorsPromises);
-
-    // Send a single fetch request for brightness
-    fetch("/ShiftLights/brightness", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ brightness: brightness / brightnessScaler }) // divide by brightnessScaler as brightness is stored as a float between 0 and 1 on server
-    }).catch(error => console.error("Error sending API request:", error));
+        await setEndpoint(colorContainers[i].endpoint, brightenedColors)
+        if (i < 1) {
+            setEndpoint(endpoint, brightness / brightnessScaler) // divide by brightnessScaler as brightness is stored as a float between 0 and 1 on server
+        }
+    }
 }
 
-// function buildWhiteBalanceInputs()
+async function setLimiterPeriod(endpoint, value) {
+    await setEndpoint(endpoint, value * limiterScaler);
+}
+
+function buildPinSelectorsFromEndpoint() {
+    pinSelectors.forEach(pinSelector => {
+        // Clear existing options (if any)
+        pinSelector.innerHTML = '';
+        const pinFunction = pinSelector.getAttribute('function-Name');
+        const allowedClass = pinSelector.getAttribute('allowed-class');
+
+        // Create "unassigned" option
+        const unassignedOption = document.createElement('option');
+        unassignedOption.style.backgroundColor = 'grey';
+        unassignedOption.innerText = `Unassigned`;
+        pinSelector.appendChild(option);
+
+
+        // default selection to unassigned
+        unassignedOption.selected = true;
+
+        Object.entries(data.Pins).forEach(([pinNumber, pinData]) => {
+            // Only add options that are "allowed"
+            if (pinData.class.includes(allowedClass)) {
+                const option = document.createElement('option');
+                option.value = pinNumber;  // Use pinNumber as the value
+
+                if (pinData.function !== "" && pinData.function !== pinFunction) {
+                    option.disabled = true;
+                    option.style.backgroundColor = 'black';
+                    option.innerText = `Pin ${pinNumber} (in use)`;  // Display pinNumber as text
+
+                } else {
+                    option.innerText = `Pin ${pinNumber} (${pinData.class})`;  // Display pinNumber as text
+
+                    // Set the background color based on the class of the pin
+                    switch (pinData.class) {
+                        case 'IO':
+                            option.style.backgroundColor = 'blue';
+                            break;
+                        case 'I':
+                            option.style.backgroundColor = 'green';
+                            break;
+                    }
+
+                }
+
+                // overwrite the default selection if the pin is already assigned
+                if (pinFunction === pinData.function) {
+                    option.selected = true;
+                    pinSelector.style.backgroundColor = option.style.backgroundColor;
+                }
+
+                pinSelector.appendChild(option);
+            }
+        });
+
+        // Add event listener to change the background color of the selection box and make API call
+        pinSelector.addEventListener('change', function () {
+            const selectedOption = pinSelector.options[pinSelector.selectedIndex];
+            pinSelector.style.backgroundColor = selectedOption.style.backgroundColor;
+            setEndpoint(pinSelector.endpoint,selectedOption)
+        });
+    });
+}
 
 document.addEventListener("DOMContentLoaded", () => {
-    fetch('/config/RPMReader')
-        .then(response => response.json())
-        .then(data => {
-            populateButtonGroup(document.querySelector('.rpmInput-containter'), data.readerModes);// rev pattern buttons
-            
-        });
-    
-    fetch('/config/ShiftLights')
-        .then(response => response.json())
-        .then(data => {
-            setColorGlobals(data); // set color modification parameters
+    getAllConfig();
+    setColorGlobals(config.ShiftLights); // set color modification parameters
+    buildButtonGroupsFromEndpoint();
+    buildColorCirclesFromEndpoint();
 
-            // shift light circles
-            data.ShiftLights.colors.forEach(light => {
-                addCirle(document.querySelector('.shiftColor-container'), reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
-            });
-
-            // limiter circles
-            data.Limiter.colors.forEach(light => {
-                addCirle(document.querySelector('.limiterColor-container'), reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
-            });
-
-            // button groups
-            populateButtonGroup(document.querySelector('.limiterPattern-containter'), data.Limiter.pattern);// limiter pattern buttons
-            populateButtonGroup(document.querySelector('.revPattern-containter'), data.ShiftLights.pattern);// rev pattern buttons
-
-            // brightness slider
-            buildSlider(document.getElementById("brightnessSlider"),data.brightness*brightnessScaler,setBrightness);
-            buildSlider(document.getElementById("limiterPeriodSlider"),data.Limiter.period_s/limiterScaler,setLimiterPerid);
-
-            //initialise position of toggle switch
-            document.getElementById("shiftLights-table").getElementsByClassName("toggleSwitch").checked = data.activated
-        })
-        .catch(error => console.error('Error fetching ShiftLights:', error));
-
-    // pin Selection
-    fetch('/config/Pins')
-        .then(response => response.json())
-        .then(data => {
-            const pinSelectors = document.querySelectorAll('.pinSelector-dropdown');
-
-            pinSelectors.forEach(pinSelector => {
-                // Clear existing options (if any)
-                pinSelector.innerHTML = '';
-                const pinFunction = pinSelector.getAttribute('function-Name');
-                const allowedClass = pinSelector.getAttribute('allowed-class');
-
-                // Create "unassigned" option
-                const option = document.createElement('option');
-                option.style.backgroundColor = 'grey';
-                option.innerText = `Unassigned`;  // Display pinNumber as text
-                pinSelector.appendChild(option);
-
-
-                // default selection to unassigned
-                option.selected = true;
-
-                Object.entries(data.Pins).forEach(([pinNumber, pinData]) => {
-                    // Only add options that are "allowed"
-                    if (pinData.class.includes(allowedClass)) {
-                        const option = document.createElement('option');
-                        option.value = pinNumber;  // Use pinNumber as the value
-
-                        if (pinData.function !== "" && pinData.function !== pinFunction) {
-                            option.disabled = true;
-                            option.style.backgroundColor = 'black';
-                            option.innerText = `Pin ${pinNumber} (in use)`;  // Display pinNumber as text
-
-                        } else {
-                            option.innerText = `Pin ${pinNumber} (${pinData.class})`;  // Display pinNumber as text
-
-                            // Set the background color based on the class of the pin
-                            switch (pinData.class) {
-                                case 'IO':
-                                    option.style.backgroundColor = 'blue';
-                                    break;
-                                case 'I':
-                                    option.style.backgroundColor = 'green';
-                                    break;
-                            }
-
-                        }
-
-                        // overwrite the default selection if the pin is already assigned
-                        if (pinFunction === pinData.function) {
-                            option.selected = true;
-                            pinSelector.style.backgroundColor = option.style.backgroundColor;
-                        }
-
-                        pinSelector.appendChild(option);
-                    }
-                });
-
-                // Add event listener to change the background color of the selection box and make API call
-                pinSelector.addEventListener('change', function () {
-                    const selectedOption = pinSelector.options[pinSelector.selectedIndex];
-                    pinSelector.style.backgroundColor = selectedOption.style.backgroundColor;
-
-                    // Get the endpoint from the data attribute of the <select> element
-                    const endpoint = pinSelector.getAttribute('endpoint');
-                    const payload = {
-                        selectedPin: selectedOption.value
-                    };
-
-                    fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error(`Failed to update pin: ${response.statusText}`);
-                            }
-                            return response.json();
-                        })
-                        .then(data => console.log('Pin update successful:', data))
-                        .catch(error => console.error('Error updating pin:', error));
-                });
-            });
-        })
-        .catch(error => console.error('Error fetching pins:', error));
-
-    setInterval(updateRPM, 100); // Poll every 500ms
-
+    buildSlider(document.getElementById("brightnessSlider"), config.ShiftLights.brightness * brightnessScaler, setBrightness);
+    buildSlider(document.getElementById("limiterPeriodSlider"), config.ShiftLights.Limiter.period_s / limiterScaler, setLimiterPeriod);
+    //initialise position of toggle switch
+    document.getElementById("shiftLights-table").getElementsByClassName("toggleSwitch") = config.ShiftLights.activated;
 });
 
-// Toggle switches for enabling/disabling functionality
-Array.from(document.getElementsByClassName("toggleSwitch")).forEach(toggleSwitch =>(
-    toggleSwitch.addEventListener("change", function() {
-    
-        // show/hide content
-        table = this.closest("table")
-        const rows = table.querySelectorAll("tr:not(:first-child)");
-        rows.forEach(row => {
-            row.style.display = this.checked ? "" : "none";
-        });
-
-        fetch(`${this.'endpoint'}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ data: this.checked })
-        }).catch(error => console.error("Error sending API request:", error));
-
-        // activate/deactivate function in backend
-
-})));
 
 function updateRPM() {
     fetch('/rpm')
