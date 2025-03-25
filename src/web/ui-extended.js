@@ -272,23 +272,28 @@ async function setLimiterPeriod(endpoint, value) {
 }
 
 function buildPinSelectorsFromEndpoint(config) {
+
+    // Create "unassigned" option
+    const unassignedOption = document.createElement('option');
+    unassignedOption.style.backgroundColor = 'grey';
+    unassignedOption.innerText = `Unassigned`;
+
     pinSelectors.forEach(pinSelector => {
         // Clear existing options (if any)
         pinSelector.innerHTML = '';
-        const pinFunction = pinSelector.getAttribute('function-Name');
-        const allowedClass = pinSelector.getAttribute('allowed-class');
-
-        // Create "unassigned" option
-        const unassignedOption = document.createElement('option');
-        unassignedOption.style.backgroundColor = 'grey';
-        unassignedOption.innerText = `Unassigned`;
-        pinSelector.appendChild(option);
+        
+        //add unassigned option
+        pinSelector.appendChild(unassignedOption);
 
 
         // default selection to  
         unassignedOption.selected = true;
 
-        Object.entries(config.Pins).forEach(([pinNumber, pinData]) => {
+        // get assignment data
+        const pinFunction = pinSelector.getAttribute('function-Name');
+        const allowedClass = pinSelector.getAttribute('allowed-class');
+
+        Object.entries(config.Pins.Pins).forEach(([pinNumber, pinData]) => {
             // Only add options that are "allowed"
             if (pinData.class.includes(allowedClass)) {
                 const option = document.createElement('option');
@@ -305,10 +310,10 @@ function buildPinSelectorsFromEndpoint(config) {
                     // Set the background color based on the class of the pin
                     switch (pinData.class) {
                         case 'IO':
-                            option.style.backgroundColor = 'b';
+                            option.style.backgroundColor = 'blue';
                             break;
                         case 'I':
-                            option.style.backgroundColor = 'g';
+                            option.style.backgroundColor = 'green';
                             break;
                     }
 
@@ -328,7 +333,7 @@ function buildPinSelectorsFromEndpoint(config) {
         pinSelector.addEventListener('change', function () {
             const selectedOption = pinSelector.options[pinSelector.selectedIndex];
             pinSelector.style.backgroundColor = selectedOption.style.backgroundColor;
-            setEndpoint(pinSelector.getAttribute("endpoint"),selectedOption)
+            setEndpoint(pinSelector.getAttribute("endpoint"),selectedOption);
         });
     });
 }
@@ -338,11 +343,11 @@ document.addEventListener("DOMContentLoaded", () => {
         setColorGlobals(config.ShiftLights); // set color modification parameters
         buildButtonGroupsFromEndpoint(config);
         buildColorCirclesFromEndpoint(config);
-    
+        buildPinSelectorsFromEndpoint(config);
         buildSlider(document.getElementById("brightnessSlider"), config.ShiftLights.brightness * brightnessScaler, setBrightness);
         buildSlider(document.getElementById("limiterPeriodSlider"), config.ShiftLights.Limiter.period_s / limiterScaler, setLimiterPeriod);
 
-        buildToggleSwitchesFromEndpoint(config)
+        buildToggleSwitchesFromEndpoint(config);
     });
 });
 
