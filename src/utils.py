@@ -26,7 +26,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-ROUTE_CONFIG = "/config"
 
 import re
 
@@ -253,40 +252,41 @@ def is_index(key):
     return re.match(r"^\[\d+\]$", key) is not None
 
 
-def get_config_keys(path):
-    # strip the leading / and then the "config". doing this in two steps allows for passing of paths that dont have the leading "/config"
-    keys = path.replace(ROUTE_CONFIG, "").split("/")
+def get_config_keys(path,remove):
+    # strip the leading / and then the "dict". doing this in two steps allows for passing of paths that dont have the leading "/dict"
+    keys = path.replace(remove, "").split("/")
     keys = [key for key in keys if key != ""]  # remove blank strings
     return keys
 
 
-def get_nested_dict(config, route):
-    """Get a value from the config based on a list of route keys."""
+def get_nested_dict(dict, route):
+    """Get a value from the dict based on a list of route keys."""
     for key in route:
+        print("key")
         if is_index(key):
             # Extract the index from the square brackets, e.g., '[5]' -> 5
             index = int(key[1:-1])
-            config = config[index]  # Access list by index
+            dict = dict[index]  # Access list by index
         else:
-            config = config[key]  # Access dictionary key
-    return config
+            dict = dict[key]  # Access dictionary key
+    return dict
 
 
-def set_nested_dict(config, route, value):
-    """Set a value in the config based on a list of route keys."""
+def set_nested_dict(dict, route, value):
+    """Set a value in the dict based on a list of route keys."""
     for i, key in enumerate(route):
         if is_index(key):
             # Extract the index from the square brackets, e.g., '[5]' -> 5
             index = int(key[1:-1])
             if i == len(route) - 1:
-                config[index] = value  # Set the value at the index
+                dict[index] = value  # Set the value at the index
             else:
-                config = config[index]  # Access list element
+                dict = dict[index]  # Access list element
         else:
             if i == len(route) - 1:
-                config[key] = value  # Set the value at the key
+                dict[key] = value  # Set the value at the key
             else:
-                config = config[key]  # Access dictionary key
+                dict = dict[key]  # Access dictionary key
 
 
 def handle_preparsed_request(request, preParsedRequest):

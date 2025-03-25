@@ -5,28 +5,26 @@ const colorContainers = document.querySelectorAll('[class="color-container"]');
 const toggleSwitches = document.querySelectorAll('[class="toggleSwitch"]');
 const pinSelectors = document.querySelectorAll('.pinSelector-dropdown');
 
-let config = getAllConfig()
 
 async function getAllConfig() {
-    getEndpoint("/config")
-    .then(config => {
-        return config;
-    })
+    return await getEndpoint("/config/")
 }
-
 
 async function getEndpoint(endpoint) {
     try {
         const response = await fetch(endpoint);
-        const data = await response.json();
-        return data;
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        return response.json();
     } catch (error) {
         console.error('Error fetching config:', error);
         return null;
     }
 }
-
-function getLocalConfigFromEndpoint(endpoint) {
+function getLocalConfigFromEndpoint(endpoint,config) {
     endpoint = endpoint.replace("/config", "")
     const keys = endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
     let value = config;
@@ -35,7 +33,7 @@ function getLocalConfigFromEndpoint(endpoint) {
         if (value[key] !== undefined) {
             value = value[key];
         } else {
-            return undefined; // Return undefined if the key does not exist
+            throw new Error(`${key} does not exist, likely due to endpoint ${endpoint} being incorrect`)
         }
     }
 
@@ -44,7 +42,7 @@ function getLocalConfigFromEndpoint(endpoint) {
 
 async function setEndpoint(endpoint, data) {
 
-    await fetch(`endpoint`, {
+    await fetch(`${endpoint}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -62,7 +60,7 @@ async function setEndpoint(endpoint, data) {
 }
 
 function setInnerTextFromEndpoint(element) {
-    element.innerText = getLocalEndpoint(element.endpoint)
+    element.innerText = getLocalEndpoint(element.getAttribute("endpoint"))
 }
 
 
@@ -134,18 +132,18 @@ function changeColor(event) {
     let newColor = event.target.value;
     selectedCircle.style.backgroundColor = newColor;
 
-    postColorChange(selectedCircle.endpoint, selectedCircle.id, newColor)
+    postColorChange(selectedCircle.getAttribute("endpoint"), selectedCircle.id, newColor)
 }
 
 function addCirle(container, color, id) {
     const circle = document.createElement('div');
     circle.className = 'circle';
     circle.id = `${id}`;
-    circle.endpoint = `/ShiftLights/ShiftLights/colors/[${id}`
+    circle.setAttribute("endpoint", `/ShiftLights/ShiftLights/colors`)
     circle.onclick = function () { pickColor(this); };
 
     // Convert color values to CSS format
-    circle.style.backgroundColor = `rgb(${color.red}, ${color.green}, ${color.blue})`;
+    circle.style.backgroundColor = `rgb(${color.r}, ${color.g}, ${color.b})`;
 
     container.appendChild(circle);  // Append to shiftColor-container
 }
@@ -156,6 +154,7 @@ function populateButtonGroup(container, buttonData) {
         const button = document.createElement('button');
         button.id = `${pattern}-${container.id}`;
         button.innerText = pattern;
+        button.setAttribute("endpoint", `${container.getAttribute('endpoint')}/selected}`)
         button.onclick = function () { handleButtonGroupClick(this); };
 
         if (pattern === selected) {
@@ -170,7 +169,7 @@ function populateButtonGroup(container, buttonData) {
 function handleButtonGroupClick(button) {
 
     let buttons = button.parentNode.querySelectorAll("button");
-    let endpoint = button.parentNode.getAttribute('endpoint')
+    let endpoint = button.getAttribute('endpoint')
 
     // Remove active class from all buttons
     buttons.forEach(btn => btn.className = "pure-button");
@@ -193,7 +192,7 @@ function buildSlider(container, value, callback = setEndpoint) {
 
     // Sync input box with slider
     slider.oninput = function () {
-        callback(this.endpoint, this.value)
+        callback(this.getAttribute("endpoint"), this.value)
         inputBox.value = this.value;
     };
 
@@ -202,40 +201,46 @@ function buildSlider(container, value, callback = setEndpoint) {
         if (this.value < slider.min) this.value = slider.min;
         if (this.value > slider.max) this.value = slider.max;
         slider.value = this.value;
-        callback(this.endpoint, this.value)
+        callback(this.getAttribute("endpoint"), this.value)
     };
 }
 
-function buildButtonGroupsFromEndpoint() {
-    let buttonGroup = document.getElementsByClassName("pure-button-group")
-
-    let buttonInfo = getLocalConfigFromEndpoint(buttonGroup.endpoint)
-
-    populateButtonGroup(buttonGroup, buttonInfo)
+function buildButtonGroupsFromEndpoint(config) {
+    const buttonGroups = document.getElementsByClassName("pure-button-group")
+    
+    for (const buttonGroup of buttonGroups) {
+        const buttonInfo = getLocalConfigFromEndpoint(buttonGroup.getAttribute("endpoint"),config)
+        populateButtonGroup(buttonGroup, buttonInfo)
+    }    
 }
 
-function buildColorCirclesFromEndpoint() {
-    for (let i = 0; i < colorContainers.length; i++) {
-        getLocalConfigFromEndpoint(colorContainers[i].endpoint).forEach(light => {
-            addCirle(colorContainers[i], reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
+function buildColorCirclesFromEndpoint(config) {
+    for (const colorContainer of colorContainers) {
+        getLocalConfigFromEndpoint(colorContainer.getAttribute("endpoint"),config).forEach(light => {
+            addCirle(colorContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
         });
     }
 }
 
-function buildToggleSwitchesFromEndpoint() {
-    for (let i = 0; i < toggleSwitches.length; i++) {
-        toggleSwitches[i].checked = getLocalConfigFromEndpoint();
-        toggleSwitches[i].addEventListener("change", function () {
+function toggleTableRows(element, post=true) {
+    // show/hide content
+    table = element.closest("table")
+    const rows = table.querySelectorAll("tr:not(:first-child)");
+    rows.forEach(row => {
+        row.style.display = element.checked ? "" : "none";
+    });
+    if (post) {
+        setEndpoint(element.getAttribute("endpoint"), element.checked);
+    }
+}
 
-            // show/hide content
-            table = this.closest("table")
-            const rows = table.querySelectorAll("tr:not(:first-child)");
-            rows.forEach(row => {
-                row.style.display = this.checked ? "" : "none";
-            });
-
-            setEndpoint(this.endpoint, this.checked);
-        })
+function buildToggleSwitchesFromEndpoint(config) {
+    for (const toggleSwitch of toggleSwitches) {
+        toggleSwitch.checked = getLocalConfigFromEndpoint(toggleSwitch.getAttribute("endpoint"),config);
+        toggleSwitch.addEventListener("change", function() {
+            toggleTableRows(this); // `this` refers to `toggleSwitch`
+        });
+        toggleTableRows(toggleSwitch,post=false)
     }
 }
 
@@ -250,14 +255,14 @@ async function setBrightness(endpoint, brightness) {
 
             return {
                 id: id,
-                color: applyColorAdjustments(rgbStringToObject(color), brightness / brightnessScaler) // divide by brightnessScaler as brightness is stored as a float between 0 and 1 on server
+                color: applyColorAdjustments(rgbStringToObject(color), brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
             };
         });
 
         // Store the fetch promise
-        await setEndpoint(colorContainers[i].endpoint, brightenedColors)
+        await setEndpoint(colorContainers[i].getAttribute("endpoint"), brightenedColors)
         if (i < 1) {
-            setEndpoint(endpoint, brightness / brightnessScaler) // divide by brightnessScaler as brightness is stored as a float between 0 and 1 on server
+            setEndpoint(endpoint, brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
         }
     }
 }
@@ -266,7 +271,7 @@ async function setLimiterPeriod(endpoint, value) {
     await setEndpoint(endpoint, value * limiterScaler);
 }
 
-function buildPinSelectorsFromEndpoint() {
+function buildPinSelectorsFromEndpoint(config) {
     pinSelectors.forEach(pinSelector => {
         // Clear existing options (if any)
         pinSelector.innerHTML = '';
@@ -280,10 +285,10 @@ function buildPinSelectorsFromEndpoint() {
         pinSelector.appendChild(option);
 
 
-        // default selection to unassigned
+        // default selection to  
         unassignedOption.selected = true;
 
-        Object.entries(data.Pins).forEach(([pinNumber, pinData]) => {
+        Object.entries(config.Pins).forEach(([pinNumber, pinData]) => {
             // Only add options that are "allowed"
             if (pinData.class.includes(allowedClass)) {
                 const option = document.createElement('option');
@@ -300,10 +305,10 @@ function buildPinSelectorsFromEndpoint() {
                     // Set the background color based on the class of the pin
                     switch (pinData.class) {
                         case 'IO':
-                            option.style.backgroundColor = 'blue';
+                            option.style.backgroundColor = 'b';
                             break;
                         case 'I':
-                            option.style.backgroundColor = 'green';
+                            option.style.backgroundColor = 'g';
                             break;
                     }
 
@@ -323,21 +328,22 @@ function buildPinSelectorsFromEndpoint() {
         pinSelector.addEventListener('change', function () {
             const selectedOption = pinSelector.options[pinSelector.selectedIndex];
             pinSelector.style.backgroundColor = selectedOption.style.backgroundColor;
-            setEndpoint(pinSelector.endpoint,selectedOption)
+            setEndpoint(pinSelector.getAttribute("endpoint"),selectedOption)
         });
     });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    getAllConfig();
-    setColorGlobals(config.ShiftLights); // set color modification parameters
-    buildButtonGroupsFromEndpoint();
-    buildColorCirclesFromEndpoint();
+    getAllConfig().then(config => {
+        setColorGlobals(config.ShiftLights); // set color modification parameters
+        buildButtonGroupsFromEndpoint(config);
+        buildColorCirclesFromEndpoint(config);
+    
+        buildSlider(document.getElementById("brightnessSlider"), config.ShiftLights.brightness * brightnessScaler, setBrightness);
+        buildSlider(document.getElementById("limiterPeriodSlider"), config.ShiftLights.Limiter.period_s / limiterScaler, setLimiterPeriod);
 
-    buildSlider(document.getElementById("brightnessSlider"), config.ShiftLights.brightness * brightnessScaler, setBrightness);
-    buildSlider(document.getElementById("limiterPeriodSlider"), config.ShiftLights.Limiter.period_s / limiterScaler, setLimiterPeriod);
-    //initialise position of toggle switch
-    document.getElementById("shiftLights-table").getElementsByClassName("toggleSwitch") = config.ShiftLights.activated;
+        buildToggleSwitchesFromEndpoint(config)
+    });
 });
 
 
