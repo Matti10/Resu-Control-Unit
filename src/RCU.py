@@ -30,19 +30,25 @@ class RCU:
 
     def __init__(self):
         self.config = self.import_config()
+        
+        self.find_activated_functions()
+        
+    def add_function()
+
+    def instaciate_active_functions(self):
+        for activeFunc in self.activeFunctions:
+            self.INSTANCE_REGISTER[activeFunc] = self.CLASS_REGISTER[activeFunc](self.config)
 
     def init_active_functions(self):
-        for activeFunc in self.find_activated_functions():
-            self.INSTANCE_REGISTER[activeFunc] = self.CLASS_REGISTER[activeFunc]()
+
 
     def find_activated_functions(self):
-        active = []
+        self.activeFunctions = []
         for funcID in self.config.keys():
             if FUNC_ACTIVE_KEY in funcID.keys():
                 if funcID[FUNC_ACTIVE_KEY]: # if its active
-                    active.append(funcID)
+                    self.activeFunctions.append(funcID)
         
-        return active
 
     @staticmethod
     def import_config(configPath=CONFIG_PATH):

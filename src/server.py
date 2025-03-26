@@ -13,7 +13,7 @@ except:
 import micropyserver
 import RCU
 import utils
-from shiftLights import ShiftLight
+from lib_shiftLights import ShiftLight
 
 ROUTE_WEB_FILES = "/webFiles"
 WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
@@ -47,17 +47,10 @@ class InternalError(Exception):
 
 
 class RCU_server:
-    def __init__(self, config=None, testMode=False, shiftLights=None, rpmReader=None):
-        if None == config:
-            self.config = RCU.import_config()  # dont duplicate config
-        else:
-            self.config = config
-
+    def __init__(self, config=None, testMode=False, lib_shiftLights, lib_rpmReader):
         self.testMode = testMode
-
-
-        self.ShiftLights = shiftLights
-        self.rpmReader = rpmReader
+        self.lib_shiftLights = lib_shiftLights
+        self.lib_rpmReader = lib_rpmReader
 
         self.server = micropyserver.MicroPyServer(port=PORT, testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
@@ -74,6 +67,8 @@ class RCU_server:
 
         if not testMode:
             self.server.start()
+            
+            
 
     def get_config(self, request, preParsedRequest=None):
         _, path, _, _ = utils.handle_preparsed_request(request, preParsedRequest)
@@ -153,20 +148,20 @@ class RCU_server:
 
     # seperate endpoint for Shift Lights so config changes can be updated on physical lights
     def post_shiftLight(self, request):
-        def sample_color(settingArea="ShiftLights"):
-            # display changes on shiftlights
-            print(self.config["ShiftLights"]["ShiftLights"]["colors"])
-            self.ShiftLights.setAll_color_fromConfig(settingArea)
-            self.ShiftLights.update()
+        def sample_color(settingArea="lib_shiftLights"):
+            # display changes on lib_shiftlights
+            print(self.config["lib_shiftLights"]["lib_shiftLights"]["colors"])
+            self.lib_shiftLights.setAll_color_fromConfig(settingArea)
+            self.lib_shiftLights.update()
 
         _, path, body, _ = utils.parse_request(request)
 
         # Check if the path matches the main color setting route
         colorRouteMatch = re.match(
-            r"/ShiftLights/(ShiftLights|Limiter)/colors/\[(\d+)\]/color", path
+            r"/lib_shiftLights/(lib_shiftLights|Limiter)/colors/\[(\d+)\]/color", path
         )
         if colorRouteMatch:
-            # Extracts 'ShiftLights' or 'LimiterColor'
+            # Extracts 'lib_shiftLights' or 'LimiterColor'
             settingArea = colorRouteMatch.group(1)
             # update config
             self.set_config(request, preParsedRequest=(_, path, body, _))
@@ -174,17 +169,17 @@ class RCU_server:
             return
 
         patternRouteMatch = re.match(
-            r"/ShiftLights/(ShiftLights|Limiter)/pattern/selected", path
+            r"/lib_shiftLights/(lib_shiftLights|Limiter)/pattern/selected", path
         )
         # Check if the path matches the second pattern (limit pattern)
         if patternRouteMatch:
             settingArea = patternRouteMatch.group(1)
             # update config
             self.set_config(request, preParsedRequest=(_, path, body, _))
-            self.ShiftLights.sample_pattern(settingArea)
+            self.lib_shiftLights.sample_pattern(settingArea)
             return
 
-        brightnessRouteMatch = re.match(r"/ShiftLights/brightness", path)
+        brightnessRouteMatch = re.match(r"/lib_shiftLights/brightness", path)
         if brightnessRouteMatch:
             # update config
             self.set_config(request, preParsedRequest=(_, path, body, _))
@@ -242,7 +237,7 @@ class RCU_server:
         
     def get_rpm(self,_):
         try:
-            rpm = str(self.rpmReader.get_rpm())
+            rpm = str(self.lib_rpmReader.get_rpm())
         except Exception:
             rpm = "No RPM"
         self.serve_json({"rpm": rpm})

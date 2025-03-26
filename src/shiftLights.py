@@ -19,10 +19,11 @@ SHIFTLIGHT_PATTERN_SOLID = "Solid"
 
 
 class ShiftLight(RcuFunction):
-    def __init__(self, config, neoPixel, pin):
+    def __init__(self, config, lib_neoPixel = None, lib_pin = None):
+        self.handle_mocked_imports()
         super().__init__(config, [PIN_FUNCNAME_SHIFTLIGHTS])
-        self.neopixel = neoPixel
-        self.Pin = pin
+        self.lib_neopixel = lib_neoPixel
+        self.lib_Pin = lib_pin
         self.lightCount = len(
             self.config[SHIFTLIGHT_KEY_SHIFTLIGHT][SHIFTLIGHT_KEY_SHIFTLIGHT]["colors"]
         )
@@ -45,10 +46,18 @@ class ShiftLight(RcuFunction):
         self.shiftI = 0
 
     # -------------- Setup  -------------- #
+    def handle_mocked_imports(self):
+        if self.lib_neopixel == None:
+            from neopixlel import NeoPixel
+            self.lib_neopixel = NeoPixel
+        if self.lib_pin == None:
+            from machine import Pin
+            self.lib_pin = Pin
+            
     def init_np(self):
         # print(self.assignedPins)
-        self.np = self.neopixel(
-            self.Pin(self.assignedPins[0]["FirmwareID"], self.Pin.OUT),
+        self.np = self.lib_neopixel(
+            self.lib_Pin(self.assignedPins[0]["FirmwareID"], self.lib_Pin.OUT),
             self.lightCount,
         )
 
