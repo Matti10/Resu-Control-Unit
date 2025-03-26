@@ -13,7 +13,7 @@ async function getAllConfig() {
 async function getEndpoint(endpoint) {
     try {
         const response = await fetch(endpoint);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
         }
@@ -24,7 +24,7 @@ async function getEndpoint(endpoint) {
         return null;
     }
 }
-function getLocalConfigFromEndpoint(endpoint,config) {
+function getLocalConfigFromEndpoint(endpoint, config) {
     endpoint = endpoint.replace("/config", "")
     const keys = endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
     let value = config;
@@ -183,6 +183,7 @@ function handleButtonGroupClick(button) {
 }
 
 
+
 function buildSlider(container, value, callback = setEndpoint) {
     const slider = container.getElementsByClassName("sliderBar")[0];
     const inputBox = container.getElementsByClassName("value")[0];
@@ -207,22 +208,22 @@ function buildSlider(container, value, callback = setEndpoint) {
 
 function buildButtonGroupsFromEndpoint(config) {
     const buttonGroups = document.getElementsByClassName("pure-button-group")
-    
+
     for (const buttonGroup of buttonGroups) {
-        const buttonInfo = getLocalConfigFromEndpoint(buttonGroup.getAttribute("endpoint"),config)
+        const buttonInfo = getLocalConfigFromEndpoint(buttonGroup.getAttribute("endpoint"), config)
         populateButtonGroup(buttonGroup, buttonInfo)
-    }    
+    }
 }
 
 function buildColorCirclesFromEndpoint(config) {
     for (const colorContainer of colorContainers) {
-        getLocalConfigFromEndpoint(colorContainer.getAttribute("endpoint"),config).forEach(light => {
+        getLocalConfigFromEndpoint(colorContainer.getAttribute("endpoint"), config).forEach(light => {
             addCirle(colorContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
         });
     }
 }
 
-function toggleTableRows(element, post=true) {
+function toggleTableRows(element, post = true) {
     // show/hide content
     table = element.closest("table")
     const rows = table.querySelectorAll("tr:not(:first-child)");
@@ -236,11 +237,11 @@ function toggleTableRows(element, post=true) {
 
 function buildToggleSwitchesFromEndpoint(config) {
     for (const toggleSwitch of toggleSwitches) {
-        toggleSwitch.checked = getLocalConfigFromEndpoint(toggleSwitch.getAttribute("endpoint"),config);
-        toggleSwitch.addEventListener("change", function() {
+        toggleSwitch.checked = getLocalConfigFromEndpoint(toggleSwitch.getAttribute("endpoint"), config);
+        toggleSwitch.addEventListener("change", function () {
             toggleTableRows(this); // `this` refers to `toggleSwitch`
         });
-        toggleTableRows(toggleSwitch,post=false)
+        toggleTableRows(toggleSwitch, post = false)
     }
 }
 
@@ -271,8 +272,18 @@ async function setLimiterPeriod(endpoint, value) {
     await setEndpoint(endpoint, value * limiterScaler);
 }
 
-function buildPinSelectorsFromEndpoint(config) {
+function handlePinSelectionClick(option) {
+    const selectedOption = option.options[option.selectedIndex]; // get the data from the selection
+    option.style.backgroundColor = selectedOption.style.backgroundColor; // update the color of the selector to match
+    setEndpoint(selectedOption.endpoint, option.getAttribute("function-Name")); // the ID to assign the PIN too is stored in function name attr
 
+    // update all pin selectors with the change
+    getEndpoint(option.getAttribute("endpoint"))
+    .then(pinConfig => buildPinSelectorsFromEndpoint(pinConfig)) //rebuilding them all is easy but inefficent #TODO
+}
+
+
+function buildPinSelectorsFromEndpoint(pinConfig) {
     // Create "unassigned" option
     const unassignedOption = document.createElement('option');
     unassignedOption.style.backgroundColor = 'grey';
@@ -281,7 +292,7 @@ function buildPinSelectorsFromEndpoint(config) {
     pinSelectors.forEach(pinSelector => {
         // Clear existing options (if any)
         pinSelector.innerHTML = '';
-        
+
         //add unassigned option
         pinSelector.appendChild(unassignedOption);
 
@@ -289,17 +300,19 @@ function buildPinSelectorsFromEndpoint(config) {
         // default selection to  
         unassignedOption.selected = true;
 
-        // get assignment data
-        const pinFunction = pinSelector.getAttribute('function-Name');
         const allowedClass = pinSelector.getAttribute('allowed-class');
 
-        Object.entries(config.Pins.Pins).forEach(([pinNumber, pinData]) => {
+        Object.entries(pinConfig).forEach(([pinNumber, pinData]) => {
             // Only add options that are "allowed"
             if (pinData.class.includes(allowedClass)) {
                 const option = document.createElement('option');
                 option.value = pinNumber;  // Use pinNumber as the value
+                option.endpoint = `${pinSelector.getAttribute("endpoint")}/${pinNumber}/function`
 
-                if (pinData.function !== "" && pinData.function !== pinFunction) {
+                // get assignment data. This is called in a loop during build so not very efficent... Code is tidier though?
+                const pinFunction = pinSelector.getAttribute('function-Name');
+
+                if (pinData.function !== "" && pinData.function !== pinFunction) { //if the pin is assigned to another function
                     option.disabled = true;
                     option.style.backgroundColor = 'black';
                     option.innerText = `Pin ${pinNumber} (in use)`;  // Display pinNumber as text
@@ -331,9 +344,7 @@ function buildPinSelectorsFromEndpoint(config) {
 
         // Add event listener to change the background color of the selection box and make API call
         pinSelector.addEventListener('change', function () {
-            const selectedOption = pinSelector.options[pinSelector.selectedIndex];
-            pinSelector.style.backgroundColor = selectedOption.style.backgroundColor;
-            setEndpoint(pinSelector.getAttribute("endpoint"),selectedOption);
+            handlePinSelectionClick(this)
         });
     });
 }
@@ -343,7 +354,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setColorGlobals(config.ShiftLights); // set color modification parameters
         buildButtonGroupsFromEndpoint(config);
         buildColorCirclesFromEndpoint(config);
-        buildPinSelectorsFromEndpoint(config);
+        buildPinSelectorsFromEndpoint(config.Pins.Pins);
         buildSlider(document.getElementById("brightnessSlider"), config.ShiftLights.brightness * brightnessScaler, setBrightness);
         buildSlider(document.getElementById("limiterPeriodSlider"), config.ShiftLights.Limiter.period_s / limiterScaler, setLimiterPeriod);
 
