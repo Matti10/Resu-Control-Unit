@@ -1,11 +1,16 @@
 PIN_UNASSIGN_NAME = "Unassigned"
 
 
+
 class RcuFunction:
-    def __init__(self, config, pinFuncNames):
+    def __init__(self, config, pinFuncNames, init, run, stop, deinit):
         self.config = config
         self.pinFuncNames = pinFuncNames
         self.assignedPins = []
+        self.init = init
+        self.run = run
+        self.stop = stop
+        self.deinit = deinit
         for pinFuncName in pinFuncNames:
             self.get_funcs_pins(pinFuncName)
 
@@ -54,6 +59,9 @@ class RcuFunction:
             for pin in self.assignedPins[maxPins:]:
                 print(f"Clearing {pin}")
                 pin["function"] = ""
+                
+        
+    
 
 
 class PinsNotAssigned(Exception):
