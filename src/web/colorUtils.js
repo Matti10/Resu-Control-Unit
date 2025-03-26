@@ -1,3 +1,4 @@
+//This should be a class
 //init varibles with default values lets there are issues reading them from config
 let global_brightness = 0.5
 let global_whiteBalanceFactors = {
@@ -71,9 +72,9 @@ function hsvToRgb(h, s, v) {
     }
 
     return {
-        red: Math.round((r + m) * 255),
-        green: Math.round((g + m) * 255),
-        blue: Math.round((b + m) * 255)
+        r: Math.round((r + m) * 255),
+        g: Math.round((g + m) * 255),
+        b: Math.round((b + m) * 255)
     };
 }
 
@@ -83,50 +84,50 @@ function rgbStringToObject(rgbString) {
         throw new Error("Invalid RGB string format: " + rgbString);
     }
     return {
-        red: parseInt(match[1]),
-        green: parseInt(match[2]),
-        blue: parseInt(match[3])
+        r: parseInt(match[1]),
+        g: parseInt(match[2]),
+        b: parseInt(match[3])
     };
 }
 
 function applyColorAdjustments(color, brightness = global_brightness, gamma = global_gamma, colorFactors = global_whiteBalanceFactors) {
     // Step 1: Apply brightness adjustment
-    let { h, s, v } = rgbToHsv(color.red, color.green, color.blue);
+    let { h, s, v } = rgbToHsv(color.r, color.g, color.b);
     v *= brightness;
     let adjustedColor = hsvToRgb(h, s, v);
 
     // Step 2: Apply gamma correction
     adjustedColor = {
-        red: Math.round(255 * Math.pow(adjustedColor.red / 255, gamma)),
-        green: Math.round(255 * Math.pow(adjustedColor.green / 255, gamma)),
-        blue: Math.round(255 * Math.pow(adjustedColor.blue / 255, gamma))
+        r: Math.round(255 * Math.pow(adjustedColor.r / 255, gamma)),
+        g: Math.round(255 * Math.pow(adjustedColor.g / 255, gamma)),
+        b: Math.round(255 * Math.pow(adjustedColor.b / 255, gamma))
     };
 
     // Step 3: Apply white balance adjustment
     return {
-        red: Math.round(adjustedColor.red * colorFactors.red),
-        green: Math.round(adjustedColor.green * colorFactors.green),
-        blue: Math.round(adjustedColor.blue * colorFactors.blue)
+        r: Math.round(adjustedColor.r * colorFactors.r),
+        g: Math.round(adjustedColor.g * colorFactors.g),
+        b: Math.round(adjustedColor.b * colorFactors.b)
     };
 }
 
 function reverseColorAdjustments(color, brightness = global_brightness, gamma = global_gamma, colorFactors = global_whiteBalanceFactors) {
     // Step 1: Reverse white balance adjustment
     let corrected = {
-        red: color.red / colorFactors.red,
-        green: color.green / colorFactors.green,
-        blue: color.blue / colorFactors.blue
+        r: color.r / colorFactors.r,
+        g: color.g / colorFactors.g,
+        b: color.b / colorFactors.b
     };
 
     // Step 2: Reverse gamma correction
     corrected = {
-        red: Math.pow(corrected.red / 255, 1 / gamma) * 255,
-        green: Math.pow(corrected.green / 255, 1 / gamma) * 255,
-        blue: Math.pow(corrected.blue / 255, 1 / gamma) * 255
+        r: Math.pow(corrected.r / 255, 1 / gamma) * 255,
+        g: Math.pow(corrected.g / 255, 1 / gamma) * 255,
+        b: Math.pow(corrected.b / 255, 1 / gamma) * 255
     };
 
     // Step 3: Reverse brightness adjustment
-    let { h, s, v } = rgbToHsv(corrected.red, corrected.green, corrected.blue);
+    let { h, s, v } = rgbToHsv(corrected.r, corrected.g, corrected.b);
     v /= brightness;
     return hsvToRgb(h, s, v);
 }

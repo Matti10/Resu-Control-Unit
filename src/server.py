@@ -77,10 +77,10 @@ class RCU_server:
 
     def get_config(self, request, preParsedRequest=None):
         _, path, _, _ = utils.handle_preparsed_request(request, preParsedRequest)
-        print(f"path:{path}")
+        print(f"keys:{utils.get_config_keys(path, ROUTE_CONFIG)}")
 
         return self.serve_json(
-            utils.get_nested_dict(self.config, utils.get_config_keys(path))
+            utils.get_nested_dict(self.config, utils.get_config_keys(path, ROUTE_CONFIG))
         )
 
     def set_config(self, request, preParsedRequest=None):
@@ -94,7 +94,7 @@ class RCU_server:
 
         print(f"found data under '{key}' with value {data}")
 
-        keys = utils.get_config_keys(path)
+        keys = utils.get_config_keys(path, ROUTE_CONFIG)
 
         try:
             utils.set_nested_dict(self.config, keys, data)
