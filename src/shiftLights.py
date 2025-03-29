@@ -2,51 +2,12 @@ import asyncio
 import gc
 import json
 import time
+from static import *
+from utils import deep_copy
 
-import RCU
+# import RCU
 import RcuFunction
 import color
-
-KEY_LIMITER = "Limiter"
-KEY_SHIFTLIGHT = "ShiftLights"
-KEY_PATTERN = "pattern"
-KEY_PATTERN_SELECTED = "selected"
-KEY_PATTERN_OPTIIONS = "options"
-KEY_COLORS = "colors"
-KEY_START_RPM = "startRPM"
-KEY_END_RPM = "endRPM"
-KEY_LIMITER_PERIOD_S = "period_s"
-KEY_BRIGHTNESS = "brightness"
-
-ASYNC_PAUSE_S = 0.15
-
-PIN_FUNCNAME_SHIFTLIGHTS = KEY_SHIFTLIGHT
-PIN_COUNT_SHIFTLIGHTS = 1
-LIGHT_COUNT = 15
-PATTERN_FLASH = "Flash"
-PATTERN_LR = "Left to Right"
-PATTERN_RL = "Right to Left"
-PATTERN_CI = "Center In"
-PATTERN_CO = "Center Out"
-PATTERN_SOLID = "Solid"
-
-LIMITER_PATTERNS = [
-    PATTERN_FLASH,
-    PATTERN_LR,
-    PATTERN_RL,
-    PATTERN_CI,
-    PATTERN_CO,
-    PATTERN_SOLID
-]
-
-REV_PATTERNS = [
-    PATTERN_FLASH,
-    PATTERN_LR,
-    PATTERN_RL,
-    PATTERN_CI,
-    PATTERN_CO
-]
-
 
 class ShiftLight(RcuFunction.RcuFunction):
     dependencies = [
@@ -54,9 +15,10 @@ class ShiftLight(RcuFunction.RcuFunction):
     ]
 
     @staticmethod
-    def from_loadedJson(jsonLoadedObj, instance_register):        
+    def from_loadedJson(jsonLoadedObj, instance_register, module_register):        
         return ShiftLight(
             instance_register,
+            module_register,
             limiterPattern = jsonLoadedObj[KEY_LIMITER][KEY_PATTERN][KEY_PATTERN_SELECTED],
             limiterColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in jsonLoadedObj[KEY_LIMITER][KEY_COLORS]], 
             revPattern = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_PATTERN][KEY_PATTERN_SELECTED], 
@@ -69,10 +31,10 @@ class ShiftLight(RcuFunction.RcuFunction):
 
     def to_dict(self):
         parentConfig = super().to_dict()
-        tempConfig = self.config.copy()
-        for colorList in [tempConfig[KEY_SHIFTLIGHT],tempConfig[KEY_LIMITER]]:
-            for color in colorList:
-                color = color.to_dict()
+        tempConfig = deep_copy(self.config)
+        print(tempConfig)
+        for section in [KEY_SHIFTLIGHT,KEY_LIMITER]:
+            tempConfig[section][KEY_COLORS] = [color.to_dict() for color in self.config[section][KEY_COLORS]]
 
         parentConfig[self.functionType] = tempConfig
         
@@ -81,6 +43,8 @@ class ShiftLight(RcuFunction.RcuFunction):
     def __init__(
         self,
         instance_register,
+        module_register,
+        id,
         limiterPattern = PATTERN_CO,
         limiterColors = [color.Color(id) for id in range(LIGHT_COUNT)],
         revPattern = PATTERN_LR,
@@ -97,7 +61,7 @@ class ShiftLight(RcuFunction.RcuFunction):
                 KEY_COLORS: revColors,
                 KEY_PATTERN: {
                     KEY_PATTERN_SELECTED: revPattern,
-                    KEY_PATTERN_OPTIIONS: REV_PATTERNS
+                    KEY_PATTERN_OPTIIONS: REV_PATTERNS # Is this being stored twice?
                 }
             },
             KEY_START_RPM: startRPM,
@@ -107,14 +71,14 @@ class ShiftLight(RcuFunction.RcuFunction):
                 KEY_LIMITER_PERIOD_S: limiterPeriod_s,
                 KEY_PATTERN: {
                     KEY_PATTERN_SELECTED: limiterPattern,
-                    KEY_PATTERN_OPTIIONS: LIMITER_PATTERNS
+                    KEY_PATTERN_OPTIIONS: LIMITER_PATTERNS # Is this being stored twice?
                 },
                 KEY_COLORS: limiterColors
             }
         }
         super().__init__(
             KEY_SHIFTLIGHT,
-            10, #id
+            id, #id
             self._init,
             self._start,
             self._stop,
@@ -125,9 +89,9 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.task = None
         # self.rpm_getter = instance_register[RCU.ID].get_rpm
         self.rpm_getter = None
-        self.lib_neopixel = lib_neoPixel
-        self.lib_Pin = lib_pin
-        self.handle_mocked_imports()
+        self.lib_neopixel = module_register[MOD_NEOPIXEL]
+        self.lib_Pin = module_register[MOD_PIN]
+
 
     def _deinit(self):
         self.np = None
@@ -135,6 +99,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         gc.collect()
 
     def _init(self):
+        print(self.config)
         self.lightCount = len(
             self.config[KEY_SHIFTLIGHT][KEY_COLORS]
         )
@@ -159,18 +124,18 @@ class ShiftLight(RcuFunction.RcuFunction):
     # -------------- Setup  -------------- #
     def handle_mocked_imports(self):
         if self.lib_neopixel == None:
-            from neopixlel import NeoPixel
+            from neopixel import NeoPixel
             self.lib_neopixel = NeoPixel
         if self.lib_pin == None:
             from machine import Pin
             self.lib_pin = Pin
             
     def init_np(self):
-        # print(self.assignedPins)
-        self.np = self.lib_neopixel(
-            self.lib_Pin(self.assignedPins[0]["FirmwareID"], self.lib_Pin.OUT),
-            self.lightCount
-        )
+        print(self.assignedPins)
+        # self.np = self.lib_neopixel(
+        #     self.lib_Pin(self.assignedPins[0]["FirmwareID"], self.lib_Pin.OUT),
+        #     self.lightCount
+        # )
 
     def set_rpmStep(self, lightCount):
         self.rpmStep = int(

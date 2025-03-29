@@ -6,58 +6,101 @@ except:
 import rpmReader
 import server
 import shiftLights
-import RcuFunction
+import gc
+import testing_utils
+from static import *
+import asyncio
 
-CONFIG_PATH = "/workspaces/Resu-Control-Unit/src/data/config.json"
-FUNC_ACTIVE_KEY = "activated"
 
-SHIFTLIGHT_ID = "ShiftLights"
-RPMREADER_ID = "RPMReader"
-SERVER_ID = "Server"
-CAN_ID = "CAN"
 
 
 
 class RCU:
     CLASS_REGISTER = {
-        SHIFTLIGHT_ID : shiftLights.ShiftLight,
-        RPMREADER_ID : rpmReader.RpmReader,
-        SERVER_ID : server.RCU_server
+        SHIFTLIGHT_TYPE : shiftLights.ShiftLight,
+        RPMREADER_TYPE : rpmReader.TachoRpmReader,
+        SERVER_TYPE : server.RCU_server
     }
     INSTANCE_REGISTER = {
-        SERVER_ID : CLASS_REGISTER[SERVER_ID]()
+        # SERVER_TYPE : CLASS_REGISTER[SERVER_TYPE](testMode=True)
+    }
+    
+    MODULE_REGISTER = { # Unix/Test mode
+        MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
+        MOD_PIN: testing_utils.MockedPin
     }
 
     def __init__(self):
         self.config = self.import_config()
         
-        self.find_activated_functions()
+        # self.add_RCUFunc(SHIFTLIGHT_TYPE)
         
         
-
-    def instaciate_active_functions(self):
-        for activeFunc in self.activeFunctions:
-            self.INSTANCE_REGISTER[activeFunc] = self.CLASS_REGISTER[activeFunc](self.config)
-
-    def init_RCUFunctions_fromConfig(self, config):
-        for rcuFuncConfig in config[RcuFunction.RCUFUNC_KEY]:
-            self.INSTANCE_REGISTER[rcuFuncConfig[RcuFunction.RCUFUNC_KEY_ID]] = self.CLASS_REGISTER[rcuFuncConfig[RcuFunction.RCUFUNC_KEY_TYPE]].()
-
-    def find_activated_functions(self):
-        self.activeFunctions = []
-        for funcID in self.config.keys():
-            if FUNC_ACTIVE_KEY in funcID.keys():
-                if funcID[FUNC_ACTIVE_KEY]: # if it's active
-                    self.activeFunctions.append(funcID)
+        self.config = None
+        gc.collect()
+    
+    async def init_RCUFunc(self,id):
+        await asyncio.run(self.INSTANCE_REGISTER[id].init())
         
+    async def init_all_RCUFuncs(self):
+        tasks = [RCUFunc.init() for RCUFunc in self.INSTANCE_REGISTER.values()]
+        await asyncio.gather(*tasks)
+        
+    def add_RCUFunc_fromConfig(self):
+        try:
+            for rcuFuncConfig in self.config[RCUFUNC_KEY]:
+                self.add_RCUFunc(
+                    rcuFuncConfig[RCUFUNC_KEY_TYPE],
+                    rcuFuncConfig[RCUFUNC_KEY_ID]
+                )
+        except KeyError:
+            print("No RCU Funcs in Config adding empty list")
+            self.config[RCUFUNC_KEY] = []
 
+    def add_RCUFunc(self, type, id = None):
+        if id == None:
+            id = self.gen_RCUFunc_id(type)
+            
+        self.INSTANCE_REGISTER[id] = self.CLASS_REGISTER[type](
+            self.INSTANCE_REGISTER,
+            self.MODULE_REGISTER,
+            id
+        )
+        
+        return self.INSTANCE_REGISTER[id]
+    
+    def rm_RCUFunc(self,id):
+        self.INSTANCE_REGISTER.pop(id,None)
+    
+    def gen_RCUFunc_id(self,type):
+        max = -1
+        for key in self.INSTANCE_REGISTER.keys():
+            try:                
+                id = int(key.split(ID_SEPERATOR)[1])
+                if id > max:
+                    max = id
+            except IndexError:
+                print(f"invalid ID: {key}")
+                #TODO, fix the id?
+                
+        return f"{type}{ID_SEPERATOR}{max + 1}"
+    
+    def to_dict(self):
+        dict = {}
+        dict[RCUFUNC_KEY] = [RCUFunc.to_dict() for RCUFunc in self.INSTANCE_REGISTER.values()]            
+        
+        return dict
+            
+    def export_config(self, configPath=CONFIG_PATH):
+        self.write_config(self.to_dict(),configPath)
+    
     @staticmethod
     def import_config(configPath=CONFIG_PATH):
         with open(configPath, "r") as file:
             return json.load(file)  # Parse JSON file into a dictionary
 
     @staticmethod
-    def export_config(config, configPath=CONFIG_PATH):
+    def write_config(config, configPath=CONFIG_PATH):
         with open(configPath, "w") as file:
             json.dump(config, file)
 

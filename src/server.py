@@ -11,9 +11,8 @@ except:
     import json
 
 import micropyserver
-import RCU
+# import RCU
 import utils
-from lib_shiftLights import ShiftLight
 
 ROUTE_WEB_FILES = "/webFiles"
 WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
@@ -47,7 +46,7 @@ class InternalError(Exception):
 
 
 class RCU_server:
-    def __init__(self, config=None, testMode=False, lib_shiftLights, lib_rpmReader):
+    def __init__(self, lib_shiftLights = None, lib_rpmReader = None, config=None, testMode=False):
         self.testMode = testMode
         self.lib_shiftLights = lib_shiftLights
         self.lib_rpmReader = lib_rpmReader
@@ -99,7 +98,7 @@ class RCU_server:
 
         # save changes
         if not self.testMode:
-            RCU.export_config(self.config)
+            RCU.write_config(self.config)
 
         utils.send_response(self.server, "", http_code=201)
 

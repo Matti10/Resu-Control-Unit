@@ -1,5 +1,5 @@
 from RcuFunction import RcuFunction
-import RCU
+# from RCU import CAN_ID
 
 RPM_MODE_TACHO = "TACHO"
 RPM_MODE_CAN = "CAN"
@@ -72,7 +72,7 @@ class TachoRpmReader(RpmReader):
         self.pulseCount += 1
 
 class CanRpmReader(RpmReader):
-    dependencies = [RCU.CAN_ID]
+    # dependencies = [CAN_ID]
     async def __init__(self,config, instance_register):
         await super().__init__(
             config,

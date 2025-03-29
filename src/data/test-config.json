@@ -1,0 +1,181 @@
+"Pins": {
+    "18": {
+        "class": "IO",
+        "FirmwareID": 35,
+        "Name": "GPIO35",
+        "function": ""
+    },
+    "5": {
+        "class": "IO",
+        "FirmwareID": 4,
+        "Name": "GPIO4",
+        "function": ""
+    },
+    "4": {
+        "class": "IO",
+        "FirmwareID": 7,
+        "Name": "GPIO7",
+        "function": ""
+    },
+    "7": {
+        "class": "IO",
+        "FirmwareID": 25,
+        "Name": "GPIO25",
+        "function": ""
+    },
+    "6": {
+        "class": "IO",
+        "FirmwareID": 2,
+        "Name": "GPIO2",
+        "function": ""
+    },
+    "27": {
+        "class": "I",
+        "FirmwareID": 36,
+        "Name": "GPI36",
+        "function": ""
+    },
+    "25": {
+        "class": "Debug",
+        "FirmwareID": 12,
+        "Name": "TCK",
+        "function": "Debug"
+    },
+    "26": {
+        "class": "Debug",
+        "FirmwareID": 14,
+        "Name": "TDO",
+        "function": "Debug"
+    },
+    "2": {
+        "class": "IO",
+        "FirmwareID": 5,
+        "Name": "GPIO5",
+        "function": ""
+    },
+    "23": {
+        "class": "Debug",
+        "FirmwareID": 15,
+        "Name": "TDI",
+        "function": "Debug"
+    },
+    "15": {
+        "class": "IO",
+        "FirmwareID": 33,
+        "Name": "GPIO33",
+        "function": ""
+    },
+    "16": {
+        "class": "IO",
+        "FirmwareID": 32,
+        "Name": "GPIO32",
+        "function": ""
+    },
+    "17": {
+        "class": "I",
+        "FirmwareID": 34,
+        "Name": "GPI34",
+        "function": ""
+    },
+    "9": {
+        "class": "Power",
+        "FirmwareID": "-",
+        "Name": "12V",
+        "function": "Power"
+    },
+    "10": {
+        "class": "Power",
+        "FirmwareID": "-",
+        "Name": "GND",
+        "function": "Power"
+    },
+    "11": {
+        "class": "CAN",
+        "FirmwareID": "-",
+        "Name": "CAN-L",
+        "function": "CAN-L"
+    },
+    "13": {
+        "class": "IO",
+        "FirmwareID": 26,
+        "Name": "GPIO26",
+        "function": ""
+    },
+    "12": {
+        "class": "CAN",
+        "FirmwareID": "-",
+        "Name": "CAN-H",
+        "function": "CAN-H"
+    },
+    "29": {
+        "class": "Debug",
+        "FirmwareID": 0,
+        "Name": "BOOT",
+        "function": "Debug"
+    },
+    "28": {
+        "class": "I",
+        "FirmwareID": 38,
+        "Name": "GPI38",
+        "function": ""
+    },
+    "8": {
+        "class": "Power",
+        "FirmwareID": "-",
+        "Name": "5V",
+        "function": "Power"
+    },
+    "30": {
+        "class": "Power",
+        "FirmwareID": "-",
+        "Name": "GND",
+        "function": "Power"
+    },
+    "24": {
+        "class": "Debug",
+        "FirmwareID": 13,
+        "Name": "TMS",
+        "function": "Debug"
+    },
+    "21": {
+        "class": "UART",
+        "FirmwareID": "UART-TX",
+        "Name": "UART-TX",
+        "function": "UART-TX"
+    },
+    "22": {
+        "class": "UART",
+        "FirmwareID": "UART-RX",
+        "Name": "UART-RX",
+        "function": "UART-RX"
+    },
+    "19": {
+        "class": "IO",
+        "FirmwareID": 37,
+        "Name": "GPI37",
+        "function": ""
+    },
+    "20": {
+        "class": "IO",
+        "FirmwareID": 27,
+        "Name": "GPIO27",
+        "function": ""
+    },
+    "1": {
+        "class": "IO",
+        "FirmwareID": 8,
+        "Name": "GPIO8",
+        "function": ""
+    },
+    "14": {
+        "class": "I",
+        "FirmwareID": 39,
+        "Name": "GPI39",
+        "function": ""
+    },
+    "3": {
+        "class": "IO",
+        "FirmwareID": 20,
+        "Name": "GPIO20",
+        "function": ""
+    }

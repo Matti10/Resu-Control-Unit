@@ -267,7 +267,7 @@ class unitTestServer(unittest.TestCase):
 
         self.assertEqual(testConfig, data)
 
-        RCU.export_config(self.server.config)  # reset the local config
+        RCU.write_config(self.server.config)  # reset the local config
 
 
 if __name__ == "__main__":

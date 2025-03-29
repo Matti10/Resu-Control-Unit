@@ -1,0 +1,63 @@
+# RCU
+CONFIG_PATH = "/workspaces/Resu-Control-Unit/src/data/config.json"
+FUNC_ACTIVE_KEY = "activated"
+
+SHIFTLIGHT_TYPE = "ShiftLights"
+RPMREADER_TYPE = "RPMReader"
+SERVER_TYPE = "Server"
+CAN_TYPE = "CAN"
+
+MOD_NEOPIXEL = "neo"
+MOD_PIN = "pin"
+
+
+ID_SEPERATOR = "_"
+
+# ShiftLights
+
+KEY_LIMITER = "Limiter"
+KEY_SHIFTLIGHT = "ShiftLights"
+KEY_PATTERN = "pattern"
+KEY_PATTERN_SELECTED = "selected"
+KEY_PATTERN_OPTIIONS = "options"
+KEY_COLORS = "colors"
+KEY_START_RPM = "startRPM"
+KEY_END_RPM = "endRPM"
+KEY_LIMITER_PERIOD_S = "period_s"
+KEY_BRIGHTNESS = "brightness"
+
+ASYNC_PAUSE_S = 0.15
+
+PIN_FUNCNAME_SHIFTLIGHTS = KEY_SHIFTLIGHT
+PIN_COUNT_SHIFTLIGHTS = 1
+LIGHT_COUNT = 15
+PATTERN_FLASH = "Flash"
+PATTERN_LR = "Left to Right"
+PATTERN_RL = "Right to Left"
+PATTERN_CI = "Center In"
+PATTERN_CO = "Center Out"
+PATTERN_SOLID = "Solid"
+
+LIMITER_PATTERNS = [
+    PATTERN_FLASH,
+    PATTERN_LR,
+    PATTERN_RL,
+    PATTERN_CI,
+    PATTERN_CO,
+    PATTERN_SOLID
+]
+
+REV_PATTERNS = [
+    PATTERN_FLASH,
+    PATTERN_LR,
+    PATTERN_RL,
+    PATTERN_CI,
+    PATTERN_CO
+]
+
+# RCU_Function
+PIN_UNASSIGN_NAME = ""
+RCUFUNC_KEY = "RCUFuncs"
+RCUFUNC_KEY_ID = "id"
+RCUFUNC_KEY_TYPE = "type"
+DEPENDENCY_SLEEP_TIME_S = 0.1

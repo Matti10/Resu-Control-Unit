@@ -294,3 +294,11 @@ def handle_preparsed_request(request, preParsedRequest):
         return parse_request(request)
     else:
         return preParsedRequest
+
+def deep_copy(obj):
+    if isinstance(obj, dict):
+        return {key: deep_copy(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [deep_copy(item) for item in obj]
+    else:
+        return obj  # Assume primitive types (int, str, etc.) are immutable
