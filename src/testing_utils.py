@@ -115,14 +115,14 @@ class Mocked:
 
 class MockedTimer(Mocked):
     PERIODIC = "PERIODIC"
-    def __init__(self):
+    def __init__(self,id):
         super().__init__()
+        self.id = id
 
     def init(self,**kwargs):
         self.mock_run("init",kwargs)
 
 class MockedShiftLight(Mocked):
-    PERIODIC = "PERIODIC"
     def __init__(self):
         super().__init__()
 

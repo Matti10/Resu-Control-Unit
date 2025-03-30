@@ -10,7 +10,18 @@ class RcuFunction:
         self.functionType : {},
     }
 
-    def __init__(self, functionType, functionID, init, run, stop, deinit, dependencies, instance_register):
+    def __init__(
+        self,
+        functionType,
+        functionID,
+        init,
+        run,
+        stop,
+        deinit,
+        dependencies,
+        instance_register,
+        timer_gen = None,
+    ):
         self.functionType = functionType
         self.functionID = functionID
         self.initFunc = init
@@ -19,14 +30,24 @@ class RcuFunction:
         self.deinit = deinit
         self.dependencies = dependencies
         self.instance_register = instance_register
-
+        self.timer_gen = timer_gen
+        
 
         # for pinFuncName in pinFuncNames:
         #     self.get_funcs_pins(pinFuncName)
 
     async def init(self):
-        await self.wait_dependencies() # wait for all dependencies to be instanciated
-        self.initFunc()
+        try:
+            await self.wait_dependencies() # wait for all dependencies to be instanciated
+            self.initFunc()
+        except PinsNotAssigned:
+            pass #pins aren't assigned yet, this may want actioning later?
+        
+    def reinit(self,reinit = True):
+        if reinit:
+            self.deinit()
+            asyncio.run(self.init())
+        
 
     async def wait_dependencies(self):
         for dependency in self.dependencies:
@@ -36,6 +57,13 @@ class RcuFunction:
                     asyncio.sleep(DEPENDENCY_SLEEP_TIME_S)
             except Exception as e:
                 print(f"Waiting for dependencies has failed, likely due to dependency is {dependency} not being in the instance register {self.instance_register}. The error was: {e}")
+                
+    def set_assigned_pins(self, pins, reinit = True):
+        self.pins = pins
+        
+        self.reinit(reinit)
+            
 
+        
 
 

@@ -10,6 +10,7 @@ import gc
 import testing_utils
 from static import *
 import asyncio
+import pins
 
 
 
@@ -21,21 +22,28 @@ class RCU:
         RPMREADER_TYPE : rpmReader.TachoRpmReader,
         SERVER_TYPE : server.RCU_server
     }
-    INSTANCE_REGISTER = {
-        # SERVER_TYPE : CLASS_REGISTER[SERVER_TYPE](testMode=True)
-    }
-    
+    INSTANCE_REGISTER = {}
+        
     MODULE_REGISTER = { # Unix/Test mode
         MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
-        MOD_PIN: testing_utils.MockedPin
+        MOD_PIN: testing_utils.MockedPin,
+        MOD_TIMER: testing_utils.MockedTimer,
+    }
+    
+    RESOURCE_REGISTER = {
+        KEY_TIMER : []
+        # KEY_VIRTUAL_TIMER : []
     }
 
     def __init__(self):
         self.config = self.import_config()
         
-        # self.add_RCUFunc(SHIFTLIGHT_TYPE)
+        # init RcuPins
+        self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
         
-        
+        # instaticate any RCUFuncs from config
+        self.add_RCUFunc_fromConfig()
+
         self.config = None
         gc.collect()
     
@@ -47,7 +55,7 @@ class RCU:
         await asyncio.gather(*tasks)
         
     def add_RCUFunc_fromConfig(self):
-        try:
+        try: #Pass pins into funcs here? #TODO
             for rcuFuncConfig in self.config[RCUFUNC_KEY]:
                 self.add_RCUFunc(
                     rcuFuncConfig[RCUFUNC_KEY_TYPE],
@@ -64,10 +72,26 @@ class RCU:
         self.INSTANCE_REGISTER[id] = self.CLASS_REGISTER[type](
             self.INSTANCE_REGISTER,
             self.MODULE_REGISTER,
-            id
+            id,
+            self.get_next_timer
         )
         
+        # assign pins to RCUFuncs
+        self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[id])
+        
         return self.INSTANCE_REGISTER[id]
+    
+    def add_RCUFunc_Pins(self, RCUFunc):
+        try:
+            RCUFunc.set_assigned_pins(self.RCU_PINS.get_funcs_pins(RCUFunc.functionType), reinit=False)
+        except pins.PinsNotAssigned as e:
+            pass # at this stage, there isn't nessecarily an issue with no pins being assigned
+        
+    def get_next_timer(self):
+        """"Return a new timer Object. ID increments as the list len grows"""
+        self.RESOURCE_REGISTER[KEY_TIMER].append(
+            self.MODULE_REGISTER[MOD_TIMER](len(self.RESOURCE_REGISTER[KEY_TIMER]))
+        )
     
     def rm_RCUFunc(self,id):
         self.INSTANCE_REGISTER.pop(id,None)
@@ -87,7 +111,11 @@ class RCU:
     
     def to_dict(self):
         dict = {}
-        dict[RCUFUNC_KEY] = [RCUFunc.to_dict() for RCUFunc in self.INSTANCE_REGISTER.values()]            
+        # Add RCU funcs config
+        dict[RCUFUNC_KEY] = [RCUFunc.to_dict() for RCUFunc in self.INSTANCE_REGISTER.values()]
+        
+        # add Pins
+        dict[KEY_PIN] = self.RCU_PINS.to_dict()
         
         return dict
             

@@ -15,18 +15,20 @@ class ShiftLight(RcuFunction.RcuFunction):
     ]
 
     @staticmethod
-    def from_loadedJson(jsonLoadedObj, instance_register, module_register):        
+    def from_loadedJson(jsonLoadedObj, instance_register, module_register, pins = []):        
         return ShiftLight(
             instance_register,
             module_register,
-            limiterPattern = jsonLoadedObj[KEY_LIMITER][KEY_PATTERN][KEY_PATTERN_SELECTED],
-            limiterColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in jsonLoadedObj[KEY_LIMITER][KEY_COLORS]], 
-            revPattern = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_PATTERN][KEY_PATTERN_SELECTED], 
-            revColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in jsonLoadedObj[KEY_LIMITER][KEY_COLORS]],
-            startRPM = jsonLoadedObj[KEY_START_RPM],
-            endRPM = jsonLoadedObj[KEY_END_RPM],
-            brightness = jsonLoadedObj[KEY_BRIGHTNESS],
-            limiterPeriod_s = jsonLoadedObj[KEY_LIMITER_PERIOD_S]
+            pins,
+            jsonLoadedObj[RCUFUNC_KEY_ID],
+            limiterPattern = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
+            limiterColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in jsonLoadedObj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
+            revPattern = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_PATTERN][KEY_SELECTED], 
+            revColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in jsonLoadedObj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]],
+            startRPM = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_START_RPM],
+            endRPM = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_END_RPM],
+            brightness = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_BRIGHTNESS],
+            limiterPeriod_s = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_LIMITER_PERIOD_S],
         )
 
     def to_dict(self):
@@ -45,6 +47,8 @@ class ShiftLight(RcuFunction.RcuFunction):
         instance_register,
         module_register,
         id,
+        _, # timer getter
+        pins = [],
         limiterPattern = PATTERN_CO,
         limiterColors = [color.Color(id) for id in range(LIGHT_COUNT)],
         revPattern = PATTERN_LR,
@@ -53,15 +57,14 @@ class ShiftLight(RcuFunction.RcuFunction):
         endRPM = 5000,
         brightness = 0.5,
         limiterPeriod_s = 0.25,
-        lib_neoPixel = None,
-        lib_pin = None
+
     ):
         self.config = {
             KEY_SHIFTLIGHT: {
                 KEY_COLORS: revColors,
                 KEY_PATTERN: {
-                    KEY_PATTERN_SELECTED: revPattern,
-                    KEY_PATTERN_OPTIIONS: REV_PATTERNS # Is this being stored twice?
+                    KEY_SELECTED: revPattern,
+                    KEY_OPTIIONS: REV_PATTERNS # Is this being stored twice?
                 }
             },
             KEY_START_RPM: startRPM,
@@ -70,8 +73,8 @@ class ShiftLight(RcuFunction.RcuFunction):
             KEY_LIMITER: {
                 KEY_LIMITER_PERIOD_S: limiterPeriod_s,
                 KEY_PATTERN: {
-                    KEY_PATTERN_SELECTED: limiterPattern,
-                    KEY_PATTERN_OPTIIONS: LIMITER_PATTERNS # Is this being stored twice?
+                    KEY_SELECTED: limiterPattern,
+                    KEY_OPTIIONS: LIMITER_PATTERNS # Is this being stored twice?
                 },
                 KEY_COLORS: limiterColors
             }
@@ -91,6 +94,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.rpm_getter = None
         self.lib_neopixel = module_register[MOD_NEOPIXEL]
         self.lib_Pin = module_register[MOD_PIN]
+        self.pins = pins
 
 
     def _deinit(self):
@@ -99,7 +103,6 @@ class ShiftLight(RcuFunction.RcuFunction):
         gc.collect()
 
     def _init(self):
-        print(self.config)
         self.lightCount = len(
             self.config[KEY_SHIFTLIGHT][KEY_COLORS]
         )
@@ -107,7 +110,9 @@ class ShiftLight(RcuFunction.RcuFunction):
             self.lightCount // 2 + (self.lightCount % 2) - 1
         )  # magic number 1 is to account for 0 index
 
-        self.init_np()
+        if self.pins != []:
+            self.init_np()
+            
         self.patternFuncs = {
             KEY_LIMITER: self.init_pattern_fromConfig(
                 KEY_LIMITER
@@ -131,11 +136,10 @@ class ShiftLight(RcuFunction.RcuFunction):
             self.lib_pin = Pin
             
     def init_np(self):
-        print(self.assignedPins)
-        # self.np = self.lib_neopixel(
-        #     self.lib_Pin(self.assignedPins[0]["FirmwareID"], self.lib_Pin.OUT),
-        #     self.lightCount
-        # )
+        self.np = self.lib_neopixel(
+            self.lib_Pin(self.pins[0]["FirmwareID"], self.lib_Pin.OUT),
+            self.lightCount
+        )
 
     def set_rpmStep(self, lightCount):
         self.rpmStep = int(
@@ -177,7 +181,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         while counter < self.lightCount:
             # print(f"i:{i}")
             i = self.handle_pattern(
-                self.config[subKey][KEY_PATTERN][KEY_PATTERN_SELECTED], i
+                self.config[subKey][KEY_PATTERN][KEY_SELECTED], i
             )
             self.update()
             # TODO make this an interupt so it doesn't lockup the loop. Mocking the getRPM func would be a good way to do it
@@ -237,7 +241,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         patternCorr = self.get_patternCorr()
 
         thisPattern = patternCorr[
-            self.config[subKey][KEY_PATTERN][KEY_PATTERN_SELECTED]
+            self.config[subKey][KEY_PATTERN][KEY_SELECTED]
         ]
 
         if subKey == KEY_SHIFTLIGHT:

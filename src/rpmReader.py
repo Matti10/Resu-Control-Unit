@@ -1,68 +1,112 @@
 from RcuFunction import RcuFunction
+from static import *
 # from RCU import CAN_ID
 
-RPM_MODE_TACHO = "TACHO"
-RPM_MODE_CAN = "CAN"
-RPM_TACHO_TIMER_PERIOD_MS = 100
-PIN_FUNCNAME_RPM = "RPMReader"
 
-class RpmReader(RcuFunction):
-    async def __init__(self,config,pinFuncNames,init, run, stop, deinit, dependencies, instance_register):
+
+class RpmReader(RcuFunction): # Does this actually want to extend RCU? That would give me access to the RCU methods in init the children, can just overload Class ref???? Or, maybe better to just pass class ref, with both reader types and allow initing from there?
+    def __init__(
+        self,
+        rpmReaderType,
+        functionID,
+        _init,
+        _run,
+        _stop ,
+        _deinit,
+        dependencies,
+        instance_register
+    ):
         self.rpm = 0
-        self.config = config
+        self.rpmReaderType = rpmReaderType
         super().__init__(
-            config,
-            pinFuncNames,
-            init,
-            run,
-            stop,
-            deinit,
+            RPMREADER_TYPE,
+            functionID,
+            _init,
+            _run,
+            _stop,
+            _deinit,
             dependencies,
             instance_register
         )
+
+    def to_dict(self):
+        parentConfig = super().to_dict()
+        parentConfig[RPMREADER_TYPE] = {KEY_OPTIIONS: {
+            KEY_SELECTED: self.rpmReaderType,
+            KEY_OPTIIONS: [
+                RPMREADER_TACHO_TYPE,
+                RPMREADER_CAN_TYPE
+            ]
+        }
+        }
+        
+        return parentConfig
 
     def get_rpm(self):
         return self.rpm
     
 class TachoRpmReader(RpmReader):
     dependencies = []
-    async def __init__(self,config,tachoTimer, instance_register, lib_pin = None):
-        self.lib_pin = lib_pin
-        self.handle_mocked_imports()
-
-        await super().__init__(
-            config,
-            [PIN_FUNCNAME_RPM],
+    # def __init__(self,config,timer_tachoce_register, lib_pin = None):
+    def __init__(
+        self,
+        instance_register,
+        module_register,
+        id,
+        timer_gen,
+        pulsesPerRevolution = 6
+    ):
+        self.pulsesPerRevolution = pulsesPerRevolution
+        self.lib_pin = module_register[MOD_PIN]
+        super().__init__(
+            RPMREADER_TACHO_TYPE,
+            id, #id
             self._init,
             self._run,
             self._stop,
-            self._clear,
+            self._deinit,
             self.dependencies,
             instance_register
         )
-
+        self.timer_tacho = timer_gen()
         self.pulseCount = 0
-        self.tachoTimer = tachoTimer
+        
+    def to_dict(self):
+        parentConfig = super().to_dict()
+        parentConfig[RPMREADER_TYPE][RPMREADER_TACHO_TYPE] = {
+            KEY_PULSES_PER_REV : self.pulsesPerRevolution
+        }
+        
+        return parentConfig
     
     def _init(self):
-        self.tachoRPMScaler = (60*(1000/RPM_TACHO_TIMER_PERIOD_MS)) / self.config["RPMReader"]["tachoMode"]["pulsesPerRevolution"]
-        self.tachoPin = self.lib_pin(self.assignedPins[0]["FirmwareID"],self.lib_pin.IN,self.lib_pin.PULL_DOWN)
-        self.tachoTimer.init(period = RPM_TACHO_TIMER_PERIOD_MS,mode=self.tachoTimer.PERIODIC,callback=self.tacho_calc_rpm_callback)
+        try:
+            self.tachoRPMScaler = int(
+                (60*(1000/RPM_TACHO_TIMER_PERIOD_MS)) / float(self.pulsesPerRevolution)
+            )
+            self.tachoPin = self.lib_pin(
+                self.pins[0]["FirmwareID"],
+                self.lib_pin.IN,
+                self.lib_pin.PULL_DOWN
+            )
+            self.timer_tacho(
+                period = RPM_TACHO_TIMER_PERIOD_MS,
+                mode=self.timer_tacho.PERIODIC,
+                callback=self.tacho_calc_rpm_callback
+            )
+        except AttributeError:
+            raise PinsNotAssigned()
 
-    def _clear(self):
-        # No way to deinit pins, they just get inited "over"
-        self.tachoTimer.deinit()
+
+    def _deinit(self):
+        self.timer_tacho.deinit()
+        self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=lambda:None)
 
     def _run(self):
         self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=self.tacho_irq)  # Interrupt on rising edge
 
     def _stop(self):
         pass #the gravy train never stops
-
-    def handle_mocked_imports(self):
-        if self.lib_pin == None:
-            from machine import Pin
-            self.lib_pin = Pin
 
     def tacho_calc_rpm_callback(self,_):
         self.rpm = self.pulseCount * self.tachoRPMScaler
@@ -73,10 +117,10 @@ class TachoRpmReader(RpmReader):
 
 class CanRpmReader(RpmReader):
     # dependencies = [CAN_ID]
-    async def __init__(self,config, instance_register):
-        await super().__init__(
-            config,
-            [PIN_FUNCNAME_RPM],
+    def __init__(self,config, instance_register):
+        super().__init__(
+            "wrong",
+            RPMREADER_CAN_TYPE,
             self._init,
             self._run,
             self._stop,

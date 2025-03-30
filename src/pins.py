@@ -3,14 +3,14 @@
 
 from static import *
 
-class RcuPin:
-    def __init__(
-        self, 
-        pinNum,
-        func
-    ):
-        self.pinNum = pinNum
-        self.func = func
+# class RcuPin:
+#     def __init__(
+#         self, 
+#         pinNum,
+#         func
+#     ):
+#         self.pinNum = pinNum
+#         self.func = func
         
 class RcuPins:
     def __init__(
@@ -42,7 +42,7 @@ class RcuPins:
     #     except PinsNotAssigned:
     #         pass  # its already unassigned!
 
-    def get_funcs_pins(self, pin_funcName, maxPins=None):
+    def get_funcs_pins(self, pin_funcName):
         pins = []
         # discover assigned pins
         for pinId in self.pinConfig:
@@ -53,12 +53,6 @@ class RcuPins:
             raise PinsNotAssigned
 
         return pins
-
-
-class PinAssigned(Exception):
-    def __init__(self, pinID):
-        super().__init__(f"Pin {pinID} is already assigned to a function")
-
-class PinsNotAssigned(Exception):
-    def __init__(self):
-        super().__init__("No Pins Allocated for this Function")
+    
+    def to_dict(self):
+        return self.pinConfig
