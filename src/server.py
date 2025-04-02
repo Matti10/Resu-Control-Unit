@@ -11,7 +11,7 @@ except:
     import json
 
 import micropyserver
-# import RCU
+import RCU
 import utils
 
 ROUTE_WEB_FILES = "/webFiles"
@@ -50,6 +50,7 @@ class RCU_server:
         self.testMode = testMode
         self.lib_shiftLights = lib_shiftLights
         self.lib_rpmReader = lib_rpmReader
+        self.config = config
 
         self.server = micropyserver.MicroPyServer(port=PORT, testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
@@ -98,7 +99,7 @@ class RCU_server:
 
         # save changes
         if not self.testMode:
-            RCU.write_config(self.config)
+            RCU.RCU.write_config(self.config)
 
         utils.send_response(self.server, "", http_code=201)
 
@@ -189,7 +190,7 @@ class RCU_server:
         raise RouteNotFound(path, self.server)
 
     def download_config(self, _):
-        self.download_file(RCU.get_rawConfig(), "RCU-Config.json")
+        self.download_file(RCU.RCU.get_rawConfig(), "RCU-Config.json")
 
     def download_file(self, file_content, downloadName):
         try:
@@ -218,7 +219,7 @@ class RCU_server:
                 if "Content-Disposition" in part:
                     headers, file_content = part.split("\r\n\r\n", 1)
                     file_content = file_content.rsplit("\r\n", 1)[0]
-                    with open(RCU.CONFIG_PATH, "wb") as f:
+                    with open(RCU.RCU.CONFIG_PATH, "wb") as f:
                         f.write(file_content.encode("utf-8"))
                     break
 
@@ -227,7 +228,7 @@ class RCU_server:
             self.server.send("\r\n")
             self.server.send(json.dumps({"message": "File uploaded successfully"}))
             if not self.testMode:
-                self.config = RCU.import_config(RCU.CONFIG_PATH)
+                self.config = RCU.RCU.import_config(RCU.RCU.CONFIG_PATH)
 
         except Exception as e:
             raise InternalError(
@@ -246,6 +247,6 @@ class RCU_server:
 
 if __name__ == "__main__":
     import testing_utils
-    config = RCU.import_config()
-    shift = ShiftLight(config=config,neoPixel=testing_utils.MockedNeoPixel,pin=testing_utils.MockedPin)
-    RCU_server(None, False)
+    config = RCU.RCU.import_config()
+    # shift = ShiftLight(config=config,neoPixel=testing_utils.MockedNeoPixel,pin=testing_utils.MockedPin)
+    RCU_server(None, False, config=config)

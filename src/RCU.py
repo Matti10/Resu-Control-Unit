@@ -3,24 +3,21 @@ try:
 except:
     import json
 
+import asyncio
+import gc
+
+import pins
 import rpmReader
 import server
 import shiftLights
-import gc
 import testing_utils
 from static import *
-import asyncio
-import pins
-
-
-
 
 
 class RCU:
     CLASS_REGISTER = {
         SHIFTLIGHT_TYPE : shiftLights.ShiftLight,
         RPMREADER_TYPE : rpmReader.TachoRpmReader,
-        SERVER_TYPE : server.RCU_server
     }
     INSTANCE_REGISTER = {}
         
@@ -40,7 +37,7 @@ class RCU:
         
         # init RcuPins
         self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
-        
+        self.RCU_SERVER = server.RCU_server
         # instaticate any RCUFuncs from config
         self.add_RCUFunc_fromConfig()
 
@@ -112,7 +109,10 @@ class RCU:
     def to_dict(self):
         dict = {}
         # Add RCU funcs config
-        dict[RCUFUNC_KEY] = [RCUFunc.to_dict() for RCUFunc in self.INSTANCE_REGISTER.values()]
+        dict[RCUFUNC_KEY] = {}#[RCUFunc.to_dict() for RCUFunc in self.INSTANCE_REGISTER.values()]
+
+        for RCUFunc in self.INSTANCE_REGISTER.values():
+            dict[RCUFUNC_KEY][RCUFunc.functionID] = RCUFunc.to_dict()
         
         # add Pins
         dict[KEY_PIN] = self.RCU_PINS.to_dict()

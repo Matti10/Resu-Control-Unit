@@ -1,5 +1,5 @@
 //This should be a class
-//init varibles with default values lets there are issues reading them from config
+//init varibles with default values lest there are issues reading them from config
 let global_brightness = 0.5
 let global_whiteBalanceFactors = {
     "r": 1.0,
@@ -10,10 +10,10 @@ let global_gamma = 2.2
 const brightnessScaler = 100;
 
 
-function setColorGlobals(shiftLightConfig) {
-    whiteBalance_factors = shiftLightConfig.whiteBalance_factors
-    gamma = shiftLightConfig.gamma
-    brightness = shiftLightConfig.brightness
+function setColorGlobals(colorConfig) {
+    gloobal_whiteBalance_factors = colorConfig.whiteBalance_factors
+    gloobal_gamma = colorConfig.gamma
+    gloobal_brightness = colorConfig.brightness
 }
 
 // Helper function to convert RGB color to HEX
