@@ -13,8 +13,13 @@
 import uasyncio as asyncio
 import CAN
 import time
+from machine import Pin
 
-dev = CAN(0, extframe=False, tx=22, rx=19, mode=CAN.LOOPBACK, baudrate=500000, auto_restart=False)
+pwr = Pin(21,Pin.OUT)
+pwr.value(0)
+dev = CAN(0, extframe=False, tx=19, rx=22, mode=CAN.LOOPBACK, baudrate=500000, auto_restart=False)
+# dev.send([0,0,0,0,0,0,0,0], 0x305)
+# dev.restart()
 
 # - identifier of can packet (int)
 # - extended packet (bool)
