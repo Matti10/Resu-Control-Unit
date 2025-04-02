@@ -1,9 +1,9 @@
 let selectedCircle = null;
 
-const limiterScaler = 0.001
-const colorContainers = document.querySelectorAll('[class="color-container"]');
-const toggleSwitches = document.querySelectorAll('[class="toggleSwitch"]');
-const pinSelectors = document.querySelectorAll('.pinSelector-dropdown');
+const limiterScaler = 1000;
+let colorContainers;
+let toggleSwitches;
+let pinSelectors;
 
 
 async function getAllConfig() {
@@ -33,7 +33,8 @@ function getLocalConfigFromEndpoint(endpoint, config) {
         if (value[key] !== undefined) {
             value = value[key];
         } else {
-            throw new Error(`${key} does not exist, likely due to endpoint ${endpoint} being incorrect`)
+            console.log(`${key} does not exist, likely due to endpoint ${endpoint} being incorrect`)
+            // throw new Error(`${key} does not exist, likely due to endpoint ${endpoint} being incorrect`)
         }
     }
 
@@ -178,32 +179,51 @@ function handleButtonGroupClick(button) {
     button.className = "pure-button pure-button-active";
 
     // Send API request with the selected button's ID
-    setEndpoint(endpoint, button.innerText)
+    setEndpoint(endpoint, button.innerText);
 
 }
 
 
 
-function buildSlider(container, value, callback = setEndpoint) {
-    const slider = container.getElementsByClassName("sliderBar")[0];
-    const inputBox = container.getElementsByClassName("value")[0];
+function buildSliderFromEndpoint(config) {
+    const containers = document.getElementsByClassName("slider-container")
+    for (const container of containers) {
+        const slider = container.getElementsByClassName("sliderBar")[0];
+        const inputBox = container.getElementsByClassName("value")[0];
+        const endpoint = container.getAttribute('endpoint');
 
-    slider.value = value
-    inputBox.value = value
+        const value = getLocalConfigFromEndpoint(endpoint,config);
+    
+        slider.value = value;
+        inputBox.value = value;
+    
+        // Sync input box with slider
+        slider.oninput = function () {
+            handleSliderInput(this);
+            inputBox.value = this.value;
+        };
+    
+        // Sync slider with input box (with min/max validation)
+        inputBox.oninput = function () {
+            if (this.value < slider.min) this.value = slider.min;
+            if (this.value > slider.max) this.value = slider.max;
+            slider.value = this.value;
+            handleSliderInput(this);
+        }
+    }
+}
 
-    // Sync input box with slider
-    slider.oninput = function () {
-        callback(this.getAttribute("endpoint"), this.value)
-        inputBox.value = this.value;
-    };
+function handleSliderInput(slider) {
+    let parent = slider.parentNode
+    let endpoint = parent.getAttribute('endpoint');
+    if (parent.id == "brightNessSlider") {
+        setBrightness(endpoint,slider.value)
+    }
+    else {
+        let scaler = parent.getAttribute('scaler') ? "" : 1;
+        setEndpoint(endpoint,slider.value/scaler);
+    }
 
-    // Sync slider with input box (with min/max validation)
-    inputBox.oninput = function () {
-        if (this.value < slider.min) this.value = slider.min;
-        if (this.value > slider.max) this.value = slider.max;
-        slider.value = this.value;
-        callback(this.getAttribute("endpoint"), this.value)
-    };
 }
 
 function buildButtonGroupsFromEndpoint(config) {
@@ -222,6 +242,7 @@ function buildColorCirclesFromEndpoint(config) {
         });
     }
 }
+
 
 function toggleTableRows(element, post = true) {
     // show/hide content
@@ -244,6 +265,8 @@ function buildToggleSwitchesFromEndpoint(config) {
         toggleTableRows(toggleSwitch, post = false)
     }
 }
+
+
 
 async function setBrightness(endpoint, brightness) {
     global_brightness = brightness;
@@ -268,9 +291,6 @@ async function setBrightness(endpoint, brightness) {
     }
 }
 
-async function setLimiterPeriod(endpoint, value) {
-    await setEndpoint(endpoint, value * limiterScaler);
-}
 
 function handlePinSelectionClick(option) {
     const selectedOption = option.options[option.selectedIndex]; // get the data from the selection
@@ -279,7 +299,7 @@ function handlePinSelectionClick(option) {
 
     // update all pin selectors with the change
     getEndpoint(option.getAttribute("endpoint"))
-    .then(pinConfig => buildPinSelectorsFromEndpoint(pinConfig)) //rebuilding them all is easy but inefficent #TODO
+        .then(pinConfig => buildPinSelectorsFromEndpoint(pinConfig)) //rebuilding them all is easy but inefficent #TODO
 }
 
 
@@ -312,7 +332,7 @@ function buildPinSelectorsFromEndpoint(pinConfig) {
                 // get assignment data. This is called in a loop during build so not very efficent... Code is tidier though?
                 const pinFunction = pinSelector.getAttribute('function-Name');
 
-                if (pinData.function !== "" && pinData.function !== pinFunction) { //if the pin is assigned to another function
+                if (pinData.type !== "" && pinData.type !== pinFunction) { //if the pin is assigned to another function
                     option.disabled = true;
                     option.style.backgroundColor = 'black';
                     option.innerText = `Pin ${pinNumber} (in use)`;  // Display pinNumber as text
@@ -333,7 +353,7 @@ function buildPinSelectorsFromEndpoint(pinConfig) {
                 }
 
                 // overwrite the default selection if the pin is already assigned
-                if (pinFunction === pinData.function) {
+                if (pinFunction === pinData.type) {
                     option.selected = true;
                     pinSelector.style.backgroundColor = option.style.backgroundColor;
                 }
@@ -351,13 +371,17 @@ function buildPinSelectorsFromEndpoint(pinConfig) {
 
 document.addEventListener("DOMContentLoaded", () => {
     getAllConfig().then(config => {
-        setColorGlobals(config.ShiftLights); // set color modification parameters
+        
+        build_shiftLight_table(config.RCUFuncs.ShiftLights_0)
+        
+
+        colorContainers = document.querySelectorAll('[class="color-container"]');
+        toggleSwitches = document.querySelectorAll('[class="toggleSwitch"]');
+        pinSelectors = document.querySelectorAll('.pinSelector-dropdown');
         buildButtonGroupsFromEndpoint(config);
         buildColorCirclesFromEndpoint(config);
-        buildPinSelectorsFromEndpoint(config.Pins.Pins);
-        buildSlider(document.getElementById("brightnessSlider"), config.ShiftLights.brightness * brightnessScaler, setBrightness);
-        buildSlider(document.getElementById("limiterPeriodSlider"), config.ShiftLights.Limiter.period_s / limiterScaler, setLimiterPeriod);
-
+        buildPinSelectorsFromEndpoint(config.Pins);
+        buildSliderFromEndpoint(config);
         buildToggleSwitchesFromEndpoint(config);
     });
 });
@@ -367,4 +391,142 @@ function updateRPM() {
     fetch('/rpm')
         .then(response => response.json())
         .then(data => document.getElementById('currentRPM').innerText = data.rpm);
+}
+
+function build_function_table(funcID, displayName, container = document.getElementById("mainbody")) {
+    const table = document.createElement('table');
+    table.id = `${funcID}-table`;
+    table.innerHTML = `<tr>
+        <td class="table-global-heading" colspan="2">
+            <div class="heading-with-tooltip">
+                ${displayName}
+            </div>
+        </td>
+    </tr>`;
+
+    container.appendChild(table);
+
+    return table;
+}
+
+function add_function_table_row(table, heading, tooltipText, content) {
+    const row = document.createElement('tr');
+    row.innerHTML = `<th>
+                <div class="heading-with-tooltip">
+                    ${heading}
+                    <div class="tooltip">
+                        <img src="/webFiles/info-icon.png" alt="Info" style="width: 20px; height: 20px;">
+                        <span class="tooltiptext">${tooltipText}</span>
+                    </div>
+                </div>
+            </th>
+            <td>
+                ${content}
+            </td>`;
+    table.appendChild(row);
+}
+
+function add_sidebar_entry(text, href) {
+    const sidebar = document.getElementById("sidebar");
+    const link = document.createElement("li");
+
+    link.className = "pure-menu-link";
+    link.href = href;
+    link.innerHTML = `<a href="${href}" class="pure-menu-link">${text}</a>`;
+    
+
+}
+
+function build_shiftLight_table(funcConfig, displayName = "Shift Lights") {
+    const funcTable = build_function_table(funcConfig.id, displayName);
+    add_sidebar_entry(displayName, `#${funcTable.id}`);
+
+    const shiftLightConfigRoot = `/RCUFuncs/${funcConfig.id}/${funcConfig.type}`;
+
+    add_function_table_row(
+        funcTable,
+        `Shift Light Output Pin`,
+        `Select the pin you've connected the shift light signal wire too`,
+        `<select class="pinSelector-dropdown" endpoint="/config/Pins" function-name="${funcConfig.id}" ,="" allowed-class="O"><!--This is dynamically set by JS --></select>`
+    );
+
+    add_function_table_row(
+        funcTable,
+        `RPM Range Selection`,
+        `Select the rpm range you want the lights to display. Any rpm over the Max RPM value will trigger the limiter pattern/colors`,
+        `<div class="pure-g"> <div class="pure-u-1-2">     <label for="name">Start RPM</label>     <input type="text" id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2">     <label for="name">End RPM</label>     <input type="text" id="name" name="name" style="width: 60px;"> </div> </div>`
+    );
+    add_function_table_row(
+        funcTable,
+        `RPM Range Selection`,
+        `Select the rpm range you want the lights to display. Any rpm over the Max RPM value will trigger the limiter pattern/colors`,
+        `<div class="pure-g"> <div class="pure-u-1-2">     <label for="name">Start RPM</label>     <input type="text" id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2">     <label for="name">End RPM</label>     <input type="text" id="name" name="name" style="width: 60px;"> </div> </div>`
+    );
+    add_function_table_row(
+        funcTable,
+        `Light Color`,
+        `Select the color of each of the 15 shift lights by clicking on the corresponding light below. The color will update once you "click out" of the color picker.`,
+        `<div class="color-container"  endpoint="${shiftLightConfigRoot}/ShiftLights/colors"> <!--This is dynamically set by JS--></div> <input type="color" id="colorPicker" style="opacity: 0; position: absolute; pointer-events: none;" onchange="changeColor(event)">`
+    );
+    add_function_table_row(
+        funcTable,
+        `Rev Pattern`,
+        `Select the pattern used through the rev range`,
+        `<div id="revPattern-containter" class="pure-button-group" role="group"  endpoint="${shiftLightConfigRoot}/ShiftLights/pattern" aria-label="..."> </div>`
+    );
+    add_function_table_row(
+        funcTable,
+        `Limiter Color`,
+        `Select the color the shiftlights change to when the shift point is reached`,
+        `<div class="color-container"  endpoint="${shiftLightConfigRoot}/Limiter/colors"> <!--This is dynamically set by JS --></div>`
+    );
+    add_function_table_row(
+        funcTable,
+        `Limiter Pattern`,
+        `Select the pattern used when shift point is reached`,
+        `<div id="limiterPattern-containter" class="pure-button-group" role="group"  endpoint="${shiftLightConfigRoot}/Limiter/pattern" aria-label="..."> </div>`
+    );
+    add_function_table_row(
+        funcTable,
+        `Limiter Period (ms)`,
+        `This sets the rate that limiter pattern increments!`,
+        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="50" max="1000" value="50"> <input type="number" class="value" min="50" max="1000" value="50"> </div>`
+    );
+    add_function_table_row(
+        funcTable,
+        `Brightness`,
+        `Controls the Overall Brightness of the shift lights`,
+        `<div class="slider-container" scaler=${brightnessScaler} id="brightnessSlider" endpoint="${shiftLightConfigRoot}/brightness"> <input type="range" class="sliderBar" min="0" max="100" value="50"> <input type="number" class="value" min="0" max="100" value="50"> </div>`
+    );
+
+}
+
+function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
+    const funcTable = build_function_table(funcConfig.id, displayName);
+    add_sidebar_entry(displayName, `#${funcTable.id}`);
+
+    add_function_table_row(
+        funcTable,
+        `RPM Input Mode`,
+        `This tells the RCU where to look for the RPM signal!`,
+        `<div id="rpmInput-containter" class="pure-button-group" role="group" endpoint="/config/RPMReader/readerModes" aria-label="..."></div>`
+    );
+    add_function_table_row(
+        funcTable,
+        `RPM Input Selection`,
+        `Select the pin you've connected the Tacho input too.This can be left unassigned if using the shiftlights in CAN mode`,
+        `<select class="pinSelector-dropdown" endpoint="/config/Pins" function-name="RPMReader" ,="" allowed-class="I"><!--This is dynamically set by JS --></select>`
+    );
+    add_function_table_row(
+        funcTable,
+        `Pulses Per Revolution`,
+        `Please enter the number of pulses your RPM sensor sends per engine revolution. This number is typically 6 or 8 and acts as a scaler for the RPM value. If you're unsure, adjust the number below until the current RPM value matches your tacho`,
+        `<label for="name"></label><input type="text" id="name" name="name">`
+    );
+    add_function_table_row(
+        funcTable,
+        `Current RPM`,
+        `The RPM value currently being read by the RCU. If this is wrong try adjusting the input method, or pulses per revolution (tacho mode only)`,
+        `<p id="currentRPM">Not Set</p>`
+    );
 }

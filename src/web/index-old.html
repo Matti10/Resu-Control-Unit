@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="A layout example with a side menu that hides on mobile, just like the Pure website.">
+    <title>Responsive Side Menu &ndash; Layout Examples &ndash; Pure</title>
+    <link rel="stylesheet" href="/webFiles/pure-min.css">
+    <link rel="stylesheet" href="/webFiles/styles.css">
+</head>
+
+<body>
+    <div id="layout">
+        <!-- Menu toggle -->
+        <a href="#menu" id="menuLink" class="menu-link">
+            <!-- Hamburger icon -->
+            <span></span>
+        </a>
+
+        <div id="menu">
+            <div class="pure-menu">
+                <a class="pure-menu-heading" href="#company"><img src="/webFiles/resu-horiz-white.png" alt="Resu"
+                        style="width: 90%;"></a>
+
+                <ul class="pure-menu-list" id="sidebar">
+                    <li class="pure-menu-item"><a href="#ShiftLights" class="pure-menu-link">Shift Lights</a></li>
+                    <li class="pure-menu-item"><a href="#about" class="pure-menu-link">About</a></li>
+
+                    <li class="pure-menu-item menu-item-divided pure-menu-selected">
+                        <a href="#" class="pure-menu-link">Services</a>
+                    </li>
+
+                    <li class="pure-menu-item"><a href="#contact" class="pure-menu-link">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="main">
+            <div class="header">
+                <h1>Resu Control Unit Settings</h1>
+            </div>
+
+            <div class="content" id="mainbody">
+                <div>
+                    <table id="shiftLights-table">
+                        <tr>
+                            <td class="table-global-heading" colspan="2">
+                                <div class="heading-with-tooltip">
+                                    Shift Lights
+                                    <div class="tooltip">
+                                        <label class="switch">
+                                            <input type="checkbox" class="toggleSwitch"
+                                                endpoint="/config/ShiftLights/activated">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span class="tooltiptext">Enable/Disable ShiftLight functionality</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Shift Light Output Pin
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Select the pin you've connected the shift light signal
+                                            wire too</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <select class="pinSelector-dropdown" endpoint="/config/Pins/Pins"
+                                    function-Name="ShiftLights" ,
+                                    allowed-class="O"><!--This is dynamically set by JS --></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    RPM Range Selection
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Select the rpm range you want the lights to display.
+                                            Any rpm over the Max RPM value will trigger the limiter
+                                            pattern/colors</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div class="pure-g">
+                                    <div class="pure-u-1-2">
+                                        <label for="name">Start RPM</label>
+                                        <input type="text" id="name" name="name" style="width: 60px;">
+                                    </div>
+                                    <div class="pure-u-1-2">
+                                        <label for="name">End RPM</label>
+                                        <input type="text" id="name" name="name" style="width: 60px;">
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Light Color
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Select the color of each of the 15 shift lights by
+                                            clicking on the
+                                            corresponding light below. The color will update once you "click out" of the
+                                            color
+                                            picker.</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div class="color-container" endpoint="/ShiftLights/ShiftLights/colors">
+                                    <!--This is dynamically set by JS--></div>
+                                <input type="color" id="colorPicker"
+                                    style="opacity: 0; position: absolute; pointer-events: none;"
+                                    onchange="changeColor(event)">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Rev Pattern
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Select the pattern used through the rev range</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div id="revPattern-containter" class="pure-button-group" role="group"
+                                    endpoint="/ShiftLights/ShiftLights/pattern" aria-label="...">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Limiter Color
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">
+                                            Select the color the shiftlights change to when the shift point is reached
+                                        </span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div class="color-container" endpoint="/ShiftLights/Limiter/colors">
+                                    <!--This is dynamically set by JS --></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Limiter Pattern
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Select the pattern used when shift point is
+                                            reached</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div id="limiterPattern-containter" class="pure-button-group" role="group"
+                                    endpoint="/ShiftLights/Limiter/pattern" aria-label="...">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Limiter Period (ms)
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">This sets the rate that limiter pattern increments!</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+
+                                <div class="slider-container" id="limiterPeriodSlider">
+                                    <input type="range" class="sliderBar" min="50" max="1000" value="50">
+                                    <input type="number" class="value" min="0" max="100" value="50">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Brightness
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Controls the Overall Brightness of the shift
+                                            lights</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                
+                                <div class="slider-container" id="brightnessSlider">
+                                    <input type="range" class="sliderBar" min="0" max="100" value="50">
+                                    <input type="number" class="value" min="0" max="100" value="50">
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <div style="padding-top: 20px;"></div>
+                    <table id="rpmReader-table">
+                        <tr>
+                            <td class="table-global-heading" colspan="2">
+                                <div class="heading-with-tooltip">
+                                    RPM Input
+                                    <div class="tooltip">
+                                        <label class="switch">
+                                            <input type="checkbox" class="toggleSwitch"
+                                                endpoint="/config/RPMReader/activated">
+                                            <span class="slider"></span>
+                                        </label>
+                                        <span class="tooltiptext">Enable/Disable RPM Reader functionality. Note that this is required for the shiftlights!</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    RPM Input Mode
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">This tells the RCU where to look for the RPM signal!</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <div id="rpmInput-containter" class="pure-button-group" role="group"
+                                endpoint="/config/RPMReader/readerModes" aria-label="...">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    RPM Input Selection
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Select the pin you've connected the Tacho input too.
+                                            This can be left unassigned if using the shiftlights in CAN mode</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <select class="pinSelector-dropdown" endpoint="/config/Pins/Pins"
+                                    function-Name="RPMReader" ,
+                                    allowed-class="I"><!--This is dynamically set by JS --></select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Pulses Per Revolution
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Please enter the number of pulses your RPM sensor sends per engine revolution. This number is typically 6 or 8 and acts as a scaler for the RPM value. If you're unsure, adjust the number below until the current RPM value matches your tacho</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <label for="name"></label>
+                                <input type="text" id="name" name="name">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>
+                                <div class="heading-with-tooltip">
+                                    Current RPM
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">The RPM value currently being read by the RCU. If this is wrong try adjusting the input method, or pulses per revolution (tacho mode only)</span>
+                                    </div>
+                                </div>
+                            </th>
+                            <td>
+                                <p id="currentRPM">Not Set</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <div style="padding-top: 20px;"></div>
+                    <table>
+                        <tr>
+                            <td class="table-global-heading">
+                                <div class="heading-with-tooltip">
+                                    Config Files
+                                    <div class="tooltip">
+                                        <img src="/webFiles/info-icon.png" alt="Info"
+                                            style="width: 20px; height: 20px;">
+                                        <span class="tooltiptext">Upload or Download config</span>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="border-bottom-left-radius: 10px;">
+                                <div>
+                                    <div class="pure-g">
+                                        <div class="pure-u-1-2 center-button">
+                                            <button class="pure-button pure-button-primary"
+                                                onclick="downloadConfig()">Download Current Config</button>
+                                        </div>
+                                        <div class="pure-u-1-2 center-button">
+                                            <input type="file" id="fileInput" style="display: none;"
+                                                onchange="uploadConfig(event)">
+                                            <button class="pure-button pure-button-primary"
+                                                onclick="document.getElementById('fileInput').click();">Upload
+                                                Config</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/webFiles/ui.js"></script>
+    <script src="/webFiles/colorUtils.js"></script>
+    <script src="/webFiles/ui-extended.js"></script>
+
+</body>
+
+</html>

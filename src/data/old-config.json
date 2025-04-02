@@ -1,0 +1,486 @@
+{
+    "ShiftLights": {
+        "activated": true,
+        "ShiftLights": {
+            "colors": [
+                {
+                    "id": "0",
+                    "color": {
+                        "b": 2,
+                        "g": 26,
+                        "r": 0
+                    }
+                },
+                {
+                    "id": "1",
+                    "color": {
+                        "b": 1,
+                        "g": 39,
+                        "r": 1
+                    }
+                },
+                {
+                    "id": "2",
+                    "color": {
+                        "b": 2,
+                        "g": 30,
+                        "r": 9
+                    }
+                },
+                {
+                    "id": "3",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 12
+                    }
+                },
+                {
+                    "id": "4",
+                    "color": {
+                        "color": {
+                            "blue": null,
+                            "green": null,
+                            "red": null
+                        }
+                    }
+                },
+                {
+                    "id": "5",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 7
+                    }
+                },
+                {
+                    "id": "6",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 53
+                    }
+                },
+                {
+                    "id": "7",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 53
+                    }
+                },
+                {
+                    "id": "8",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 53
+                    }
+                },
+                {
+                    "id": "9",
+                    "color": {
+                        "color": {
+                            "blue": null,
+                            "green": null,
+                            "red": null
+                        }
+                    }
+                },
+                {
+                    "id": "10",
+                    "color": {
+                        "color": {
+                            "r": 20,
+                            "g": 10,
+                            "b": 8
+                        }
+                    }
+                },
+                {
+                    "id": "11",
+                    "color": {
+                        "b": 0,
+                        "g": 0,
+                        "r": 33
+                    }
+                },
+                {
+                    "id": "12",
+                    "color": {
+                        "b": 0,
+                        "g": 0,
+                        "r": 33
+                    }
+                },
+                {
+                    "id": "13",
+                    "color": {
+                        "b": 0,
+                        "g": 0,
+                        "r": 33
+                    }
+                },
+                {
+                    "id": "14",
+                    "color": {
+                        "b": 1,
+                        "g": 0,
+                        "r": 33
+                    }
+                }
+            ],
+            "pattern": {
+                "selected": "Center Out",
+                "options": [
+                    "Right to Left",
+                    "Left to Right",
+                    "Center Out",
+                    "Center In"
+                ]
+            }
+        },
+        "startRPM": 0,
+        "endRPM": 5000,
+        "gamma": 2.2,
+        "brightness": 0.5,
+        "whiteBalance_factors": {
+            "b": 0.6,
+            "g": 0.8,
+            "r": 1.0
+        },
+        "Limiter": {
+            "period_s": 0.25,
+            "pattern": {
+                "selected": "Right to Left",
+                "options": [
+                    "Flash",
+                    "Left to Right",
+                    "Right to Left",
+                    "Center In",
+                    "Center Out",
+                    "Solid"
+                ],
+                "selected%7D": "Left to Right"
+            },
+            "colors": [
+                {
+                    "id": "0",
+                    "color": {
+                        "b": 2,
+                        "g": 26,
+                        "r": 0
+                    }
+                },
+                {
+                    "id": "1",
+                    "color": {
+                        "b": 1,
+                        "g": 39,
+                        "r": 0
+                    }
+                },
+                {
+                    "id": "2",
+                    "color": {
+                        "b": 0,
+                        "g": 30,
+                        "r": 9
+                    }
+                },
+                {
+                    "id": "3",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 12
+                    }
+                },
+                {
+                    "id": "4",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 1
+                    }
+                },
+                {
+                    "id": "5",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 7
+                    }
+                },
+                {
+                    "id": "6",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 53
+                    }
+                },
+                {
+                    "id": "7",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 53
+                    }
+                },
+                {
+                    "id": "8",
+                    "color": {
+                        "b": 0,
+                        "g": 45,
+                        "r": 53
+                    }
+                },
+                {
+                    "id": "9",
+                    "color": {
+                        "b": 0,
+                        "g": 33,
+                        "r": 56
+                    }
+                },
+                {
+                    "id": "10",
+                    "color": {
+                        "b": 0,
+                        "g": 0,
+                        "r": 33
+                    }
+                },
+                {
+                    "id": "11",
+                    "color": {
+                        "b": 0,
+                        "g": 0,
+                        "r": 33
+                    }
+                },
+                {
+                    "id": "12",
+                    "color": {
+                        "b": 0,
+                        "g": 0,
+                        "r": 33
+                    }
+                },
+                {
+                    "id": "13",
+                    "color": {
+                        "b": 0,
+                        "g": 0,
+                        "r": 33
+                    }
+                },
+                {
+                    "id": "14",
+                    "color": {
+                        "b": 1,
+                        "g": 0,
+                        "r": 33
+                    }
+                }
+            ]
+        }
+    },
+    "Pins": {
+        "18": {
+            "class": "IO",
+            "FirmwareID": 35,
+            "Name": "GPIO35",
+            "type": ""
+        },
+        "5": {
+            "class": "IO",
+            "FirmwareID": 4,
+            "Name": "GPIO4",
+            "type": ""
+        },
+        "4": {
+            "class": "IO",
+            "FirmwareID": 7,
+            "Name": "GPIO7",
+            "type": ""
+        },
+        "7": {
+            "class": "IO",
+            "FirmwareID": 25,
+            "Name": "GPIO25",
+            "type": ""
+        },
+        "6": {
+            "class": "IO",
+            "FirmwareID": 2,
+            "Name": "GPIO2",
+            "type": ""
+        },
+        "27": {
+            "class": "I",
+            "FirmwareID": 36,
+            "Name": "GPI36",
+            "type": ""
+        },
+        "25": {
+            "class": "Debug",
+            "FirmwareID": 12,
+            "Name": "TCK",
+            "type": "Debug"
+        },
+        "26": {
+            "class": "Debug",
+            "FirmwareID": 14,
+            "Name": "TDO",
+            "type": "Debug"
+        },
+        "2": {
+            "class": "IO",
+            "FirmwareID": 5,
+            "Name": "GPIO5",
+            "type": ""
+        },
+        "23": {
+            "class": "Debug",
+            "FirmwareID": 15,
+            "Name": "TDI",
+            "type": "Debug"
+        },
+        "15": {
+            "class": "IO",
+            "FirmwareID": 33,
+            "Name": "GPIO33",
+            "type": ""
+        },
+        "16": {
+            "class": "IO",
+            "FirmwareID": 32,
+            "Name": "GPIO32",
+            "type": ""
+        },
+        "17": {
+            "class": "I",
+            "FirmwareID": 34,
+            "Name": "GPI34",
+            "type": ""
+        },
+        "9": {
+            "class": "Power",
+            "FirmwareID": "-",
+            "Name": "12V",
+            "type": "Power"
+        },
+        "10": {
+            "class": "Power",
+            "FirmwareID": "-",
+            "Name": "GND",
+            "type": "Power"
+        },
+        "11": {
+            "class": "CAN",
+            "FirmwareID": "-",
+            "Name": "CAN-L",
+            "type": "CAN-L"
+        },
+        "13": {
+            "class": "IO",
+            "FirmwareID": 26,
+            "Name": "GPIO26",
+            "type": ""
+        },
+        "12": {
+            "class": "CAN",
+            "FirmwareID": "-",
+            "Name": "CAN-H",
+            "type": "CAN-H"
+        },
+        "29": {
+            "class": "Debug",
+            "FirmwareID": 0,
+            "Name": "BOOT",
+            "type": "Debug"
+        },
+        "28": {
+            "class": "I",
+            "FirmwareID": 38,
+            "Name": "GPI38",
+            "type": ""
+        },
+        "8": {
+            "class": "Power",
+            "FirmwareID": "-",
+            "Name": "5V",
+            "type": "Power"
+        },
+        "30": {
+            "class": "Power",
+            "FirmwareID": "-",
+            "Name": "GND",
+            "type": "Power"
+        },
+        "24": {
+            "class": "Debug",
+            "FirmwareID": 13,
+            "Name": "TMS",
+            "type": "Debug"
+        },
+        "21": {
+            "class": "UART",
+            "FirmwareID": "UART-TX",
+            "Name": "UART-TX",
+            "type": "UART-TX"
+        },
+        "22": {
+            "class": "UART",
+            "FirmwareID": "UART-RX",
+            "Name": "UART-RX",
+            "type": "UART-RX"
+        },
+        "19": {
+            "class": "IO",
+            "FirmwareID": 37,
+            "Name": "GPI37",
+            "type": ""
+        },
+        "20": {
+            "class": "IO",
+            "FirmwareID": 27,
+            "Name": "GPIO27",
+            "type": ""
+        },
+        "1": {
+            "class": "IO",
+            "FirmwareID": 8,
+            "Name": "GPIO8",
+            "type": ""
+        },
+        "14": {
+            "class": "I",
+            "FirmwareID": 39,
+            "Name": "GPI39",
+            "type": ""
+        },
+        "3": {
+            "class": "IO",
+            "FirmwareID": 20,
+            "Name": "GPIO20",
+            "type": ""
+        }
+    },
+    "RPMReader": {
+        "activated": true,
+        "readerModes": {
+            "selected": "Tacho",
+            "options": [
+                "Tacho",
+                "CAN"
+            ]
+        },
+        "modes": "CAN",
+        "tachoMode": {
+            "pulsesPerRevolution": 6
+        }
+    }
+}
