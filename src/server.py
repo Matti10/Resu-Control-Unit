@@ -13,6 +13,7 @@ except:
 import micropyserver
 import RCU
 import utils
+from static import *
 
 ROUTE_WEB_FILES = "/webFiles"
 WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
@@ -205,35 +206,57 @@ class RCU_server:
         except OSError as e:
             raise InternalError(server=self.server, message=str(e))
 
+
     def upload_config(self, request):
         try:
             _, _, body, headers = utils.parse_request(request)
-            content_type_header = [
-                header for header in headers.split("\r\n") if "Content-key" in header
-            ][0]
+            print(f"headers:\n{headers}")
 
-            boundary = content_type_header.split("=")[1]
+            # Extract boundary from Content-Type header
+            content_type_line = [
+                line for line in headers.split("\r\n") if "Content-Type: multipart/form-data" in line
+            ][0]
+            boundary = content_type_line.split("boundary=")[1]
+
+            # Split the body by the boundary marker
             parts = body.split(f"--{boundary}")
 
             for part in parts:
-                if "Content-Disposition" in part:
-                    headers, file_content = part.split("\r\n\r\n", 1)
-                    file_content = file_content.rsplit("\r\n", 1)[0]
-                    with open(RCU.RCU.CONFIG_PATH, "wb") as f:
-                        f.write(file_content.encode("utf-8"))
-                    break
+                if "Content-Disposition" in part and 'name="file"' in part:
+                    # Separate headers from content
+                    header_and_content = part.split("\r\n\r\n", 1)
+                    if len(header_and_content) != 2:
+                        continue  # skip malformed parts
 
+                    headers_block, file_content = header_and_content
+
+                    # The file content ends just before the next boundary, but may have a trailing \r\n
+                    # We remove only one trailing \r\n if present, NOT all of them
+                    if file_content.endswith("\r\n"):
+                        file_content = file_content[:-2]
+
+                    # Save the file
+                    with open(CONFIG_PATH, "wb") as f:
+                        f.write(file_content.encode("utf-8"))
+                    print(f"Saved config file, size: {len(file_content)} bytes")
+                    break  # Done with file
+
+            # Send response
             self.server.send("HTTP/1.1 200 OK\r\n")
-            self.server.send("Content-key: application/json\r\n")
+            self.server.send("Content-Type: application/json\r\n")
             self.server.send("\r\n")
             self.server.send(json.dumps({"message": "File uploaded successfully"}))
+
             if not self.testMode:
-                self.config = RCU.RCU.import_config(RCU.RCU.CONFIG_PATH)
+                self.config = RCU.RCU.import_config(CONFIG_PATH)
 
         except Exception as e:
             raise InternalError(
                 server=self.server, message=f"Error uploading file: {e}"
             )
+
+
+
         
     def get_rpm(self,_):
         try:

@@ -1,13 +1,15 @@
 let selectedCircle = null;
-
+const configSetPeriodMs = 3000;
 const limiterScaler = 1000;
 let colorContainers;
 let toggleSwitches;
 let pinSelectors;
+window.config = null;
+let configChanged = false;
 
 
 async function getAllConfig() {
-    return await getEndpoint("/config/")
+    return await getEndpoint("/config/");
 }
 
 async function getEndpoint(endpoint) {
@@ -24,9 +26,14 @@ async function getEndpoint(endpoint) {
         return null;
     }
 }
-function getLocalConfigFromEndpoint(endpoint, config) {
-    endpoint = endpoint.replace("/config", "")
-    const keys = endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
+
+function convertEndpointToConfigKey(endpoint) {
+    endpoint = endpoint.replace("/config", "");
+    return endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
+}
+
+function getLocalConfigFromEndpoint(endpoint, config = window.config) {
+    const keys = convertEndpointToConfigKey(endpoint);
     let value = config;
 
     for (const key of keys) {
@@ -39,6 +46,28 @@ function getLocalConfigFromEndpoint(endpoint, config) {
     }
 
     return value
+}
+
+
+function setLocalConfigFromEndpoint(endpoint, data, config = window.config) {
+    const keys = convertEndpointToConfigKey(endpoint);
+    let current = config;
+    configChanged = true;
+
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+
+        // If it's the last key, set the value
+        if (i === keys.length - 1) {
+            current[key] = data;
+        } else {
+            // If the key doesn't exist or isn't an object, create an empty object
+            if (!(key in current) || typeof current[key] !== 'object' || current[key] === null) {
+                current[key] = {};
+            }
+            current = current[key];
+        }
+    }
 }
 
 async function setEndpoint(endpoint, data) {
@@ -70,18 +99,34 @@ function downloadConfig() {
     window.location.href = '/downloadConfig';
 }
 
-function uploadConfig(event) {
+
+function setAllConfig(config = window.config) {
+    if (configChanged) {
+        configChanged = false;
+        const jsonData = JSON.stringify(config);
+        //Create a Blob with the JSON data
+        const blob = new Blob([jsonData], { type: "application/json" });
+        uploadConfig(blob);
+    }
+}
+
+
+function uploadLocalConfig(event) {
     const file = event.target.files[0];
     if (!file) {
         return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
+    uploadConfig(file)
+}
 
+function uploadConfig(file) {
+    const fd = new FormData();
+    fd.append("file", new File([file], "config.json", { type: "application/json" }));
+    
     fetch('/uploadConfig', {
         method: 'POST',
-        body: formData
+        body: fd
     })
         .then(response => response.json())
         .then(data => {
@@ -125,7 +170,7 @@ function postColorChange(endpoint, id, newColor) {
         color: applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server. 
     };
 
-    setEndpoint(`${endpoint}/[${id}]/color`, requestBody)
+    setLocalConfigFromEndpoint(`${endpoint}/[${id}]/color`, requestBody)
 }
 
 function changeColor(event) {
@@ -155,7 +200,7 @@ function populateButtonGroup(container, buttonData) {
         const button = document.createElement('button');
         button.id = `${pattern}-${container.id}`;
         button.innerText = pattern;
-        button.setAttribute("endpoint", `${container.getAttribute('endpoint')}/selected}`)
+        button.setAttribute("endpoint", `${container.getAttribute('endpoint')}/selected`)
         button.onclick = function () { handleButtonGroupClick(this); };
 
         if (pattern === selected) {
@@ -179,30 +224,30 @@ function handleButtonGroupClick(button) {
     button.className = "pure-button pure-button-active";
 
     // Send API request with the selected button's ID
-    setEndpoint(endpoint, button.innerText);
+    setLocalConfigFromEndpoint(endpoint, button.innerText);
 
 }
 
 
 
-function buildSliderFromEndpoint(config) {
+function buildSliderFromEndpoint() {
     const containers = document.getElementsByClassName("slider-container")
     for (const container of containers) {
         const slider = container.getElementsByClassName("sliderBar")[0];
         const inputBox = container.getElementsByClassName("value")[0];
         const endpoint = container.getAttribute('endpoint');
+        const scaler = container.getAttribute('scaler') || 1;
+        const value = getLocalConfigFromEndpoint(endpoint) * scaler;
 
-        const value = getLocalConfigFromEndpoint(endpoint,config);
-    
         slider.value = value;
         inputBox.value = value;
-    
+
         // Sync input box with slider
         slider.oninput = function () {
             handleSliderInput(this);
             inputBox.value = this.value;
         };
-    
+
         // Sync slider with input box (with min/max validation)
         inputBox.oninput = function () {
             if (this.value < slider.min) this.value = slider.min;
@@ -217,27 +262,27 @@ function handleSliderInput(slider) {
     let parent = slider.parentNode
     let endpoint = parent.getAttribute('endpoint');
     if (parent.id == "brightNessSlider") {
-        setBrightness(endpoint,slider.value)
+        setBrightness(endpoint, slider.value)
     }
     else {
-        let scaler = parent.getAttribute('scaler') ? "" : 1;
-        setEndpoint(endpoint,slider.value/scaler);
+        let scaler = parent.getAttribute('scaler') || 1;
+        setLocalConfigFromEndpoint(endpoint, slider.value / scaler);
     }
 
 }
 
-function buildButtonGroupsFromEndpoint(config) {
+function buildButtonGroupsFromEndpoint() {
     const buttonGroups = document.getElementsByClassName("pure-button-group")
 
     for (const buttonGroup of buttonGroups) {
-        const buttonInfo = getLocalConfigFromEndpoint(buttonGroup.getAttribute("endpoint"), config)
+        const buttonInfo = getLocalConfigFromEndpoint(buttonGroup.getAttribute("endpoint"))
         populateButtonGroup(buttonGroup, buttonInfo)
     }
 }
 
-function buildColorCirclesFromEndpoint(config) {
+function buildColorCirclesFromEndpoint() {
     for (const colorContainer of colorContainers) {
-        getLocalConfigFromEndpoint(colorContainer.getAttribute("endpoint"), config).forEach(light => {
+        getLocalConfigFromEndpoint(colorContainer.getAttribute("endpoint")).forEach(light => {
             addCirle(colorContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
         });
     }
@@ -252,13 +297,13 @@ function toggleTableRows(element, post = true) {
         row.style.display = element.checked ? "" : "none";
     });
     if (post) {
-        setEndpoint(element.getAttribute("endpoint"), element.checked);
+        setLocalConfigFromEndpoint(element.getAttribute("endpoint"), element.checked);
     }
 }
 
-function buildToggleSwitchesFromEndpoint(config) {
+function buildToggleSwitchesFromEndpoint() {
     for (const toggleSwitch of toggleSwitches) {
-        toggleSwitch.checked = getLocalConfigFromEndpoint(toggleSwitch.getAttribute("endpoint"), config);
+        toggleSwitch.checked = getLocalConfigFromEndpoint(toggleSwitch.getAttribute("endpoint"));
         toggleSwitch.addEventListener("change", function () {
             toggleTableRows(this); // `this` refers to `toggleSwitch`
         });
@@ -284,9 +329,9 @@ async function setBrightness(endpoint, brightness) {
         });
 
         // Store the fetch promise
-        await setEndpoint(colorContainers[i].getAttribute("endpoint"), brightenedColors)
+        await setLocalConfigFromEndpoint(colorContainers[i].getAttribute("endpoint"), brightenedColors)
         if (i < 1) {
-            setEndpoint(endpoint, brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
+            setLocalConfigFromEndpoint(endpoint, brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
         }
     }
 }
@@ -295,15 +340,15 @@ async function setBrightness(endpoint, brightness) {
 function handlePinSelectionClick(option) {
     const selectedOption = option.options[option.selectedIndex]; // get the data from the selection
     option.style.backgroundColor = selectedOption.style.backgroundColor; // update the color of the selector to match
-    setEndpoint(selectedOption.endpoint, option.getAttribute("function-Name")); // the ID to assign the PIN too is stored in function name attr
+    setLocalConfigFromEndpoint(selectedOption.endpoint, option.getAttribute("function-Name")); // the ID to assign the PIN too is stored in function name attr
 
     // update all pin selectors with the change
-    getEndpoint(option.getAttribute("endpoint"))
-        .then(pinConfig => buildPinSelectorsFromEndpoint(pinConfig)) //rebuilding them all is easy but inefficent #TODO
+    buildPinSelectorsFromEndpoint() //rebuilding them all is easy but inefficent #TODO
 }
 
 
-function buildPinSelectorsFromEndpoint(pinConfig) {
+function buildPinSelectorsFromEndpoint(pinConfig = window.config.Pins) {
+
     // Create "unassigned" option
     const unassignedOption = document.createElement('option');
     unassignedOption.style.backgroundColor = 'grey';
@@ -327,7 +372,7 @@ function buildPinSelectorsFromEndpoint(pinConfig) {
             if (pinData.class.includes(allowedClass)) {
                 const option = document.createElement('option');
                 option.value = pinNumber;  // Use pinNumber as the value
-                option.endpoint = `${pinSelector.getAttribute("endpoint")}/${pinNumber}/function`
+                option.endpoint = `${pinSelector.getAttribute("endpoint")}/${pinNumber}/type`
 
                 // get assignment data. This is called in a loop during build so not very efficent... Code is tidier though?
                 const pinFunction = pinSelector.getAttribute('function-Name');
@@ -371,18 +416,21 @@ function buildPinSelectorsFromEndpoint(pinConfig) {
 
 document.addEventListener("DOMContentLoaded", () => {
     getAllConfig().then(config => {
-        
-        build_shiftLight_table(config.RCUFuncs.ShiftLights_0)
-        
+        window.config = config
+
+        // build_shiftLight_table()
+        build_rpmReader_table(window.config.RCUFuncs.RPMReader_3)
 
         colorContainers = document.querySelectorAll('[class="color-container"]');
         toggleSwitches = document.querySelectorAll('[class="toggleSwitch"]');
         pinSelectors = document.querySelectorAll('.pinSelector-dropdown');
-        buildButtonGroupsFromEndpoint(config);
-        buildColorCirclesFromEndpoint(config);
-        buildPinSelectorsFromEndpoint(config.Pins);
-        buildSliderFromEndpoint(config);
-        buildToggleSwitchesFromEndpoint(config);
+        buildButtonGroupsFromEndpoint();
+        buildColorCirclesFromEndpoint();
+        buildPinSelectorsFromEndpoint();
+        buildSliderFromEndpoint();
+        buildToggleSwitchesFromEndpoint();
+
+        setInterval(setAllConfig,configSetPeriodMs)
     });
 });
 
@@ -426,6 +474,14 @@ function add_function_table_row(table, heading, tooltipText, content) {
     table.appendChild(row);
 }
 
+function add_PinSelection_function_table_row(table,heading,tooltipText, id, allowedClass = "IO") {
+    add_function_table_row(
+        table,
+        heading,
+        tooltipText,
+        `<select class="pinSelector-dropdown" endpoint="/config/Pins" function-name="${id}" allowed-class="${allowedClass}"><!--This is dynamically set by JS --></select>`
+    );
+}
 function add_sidebar_entry(text, href) {
     const sidebar = document.getElementById("sidebar");
     const link = document.createElement("li");
@@ -433,34 +489,27 @@ function add_sidebar_entry(text, href) {
     link.className = "pure-menu-link";
     link.href = href;
     link.innerHTML = `<a href="${href}" class="pure-menu-link">${text}</a>`;
-    
+
 
 }
 
-function build_shiftLight_table(funcConfig, displayName = "Shift Lights") {
+function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_0, displayName = "Shift Lights") {
     const funcTable = build_function_table(funcConfig.id, displayName);
     add_sidebar_entry(displayName, `#${funcTable.id}`);
 
-    const shiftLightConfigRoot = `/RCUFuncs/${funcConfig.id}/${funcConfig.type}`;
-
-    add_function_table_row(
+    const shiftLightConfigRoot = `/RCUFuncs/${funcConfig.id}/${funcConfig.type}`; // TODO port this to parent function
+    add_PinSelection_function_table_row(
         funcTable,
         `Shift Light Output Pin`,
         `Select the pin you've connected the shift light signal wire too`,
-        `<select class="pinSelector-dropdown" endpoint="/config/Pins" function-name="${funcConfig.id}" ,="" allowed-class="O"><!--This is dynamically set by JS --></select>`
-    );
-
-    add_function_table_row(
-        funcTable,
-        `RPM Range Selection`,
-        `Select the rpm range you want the lights to display. Any rpm over the Max RPM value will trigger the limiter pattern/colors`,
-        `<div class="pure-g"> <div class="pure-u-1-2">     <label for="name">Start RPM</label>     <input type="text" id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2">     <label for="name">End RPM</label>     <input type="text" id="name" name="name" style="width: 60px;"> </div> </div>`
+        funcConfig.id,
+        "O"
     );
     add_function_table_row(
         funcTable,
         `RPM Range Selection`,
         `Select the rpm range you want the lights to display. Any rpm over the Max RPM value will trigger the limiter pattern/colors`,
-        `<div class="pure-g"> <div class="pure-u-1-2">     <label for="name">Start RPM</label>     <input type="text" id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2">     <label for="name">End RPM</label>     <input type="text" id="name" name="name" style="width: 60px;"> </div> </div>`
+        `<div class="pure-g"> <div class="pure-u-1-2">     <label for="name">Start RPM</label>     <input type="text" value=${funcConfig.ShiftLights.startRPM} id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2">     <label for="name">End RPM</label>     <input type="text" value=${funcConfig.ShiftLights.endRPM} id="name" name="name" style="width: 60px;"> </div> </div>`
     );
     add_function_table_row(
         funcTable,
@@ -504,24 +553,26 @@ function build_shiftLight_table(funcConfig, displayName = "Shift Lights") {
 function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
     const funcTable = build_function_table(funcConfig.id, displayName);
     add_sidebar_entry(displayName, `#${funcTable.id}`);
+    const rpmReaderConfigRoot = `/RCUFuncs/${funcConfig.id}/${funcConfig.type}` // TODO port this to parent function
 
     add_function_table_row(
         funcTable,
         `RPM Input Mode`,
         `This tells the RCU where to look for the RPM signal!`,
-        `<div id="rpmInput-containter" class="pure-button-group" role="group" endpoint="/config/RPMReader/readerModes" aria-label="..."></div>`
+        `<div id="rpmInput-containter" class="pure-button-group" role="group" endpoint="${rpmReaderConfigRoot}/options" aria-label="..."></div>`
     );
-    add_function_table_row(
+    add_PinSelection_function_table_row(
         funcTable,
         `RPM Input Selection`,
         `Select the pin you've connected the Tacho input too.This can be left unassigned if using the shiftlights in CAN mode`,
-        `<select class="pinSelector-dropdown" endpoint="/config/Pins" function-name="RPMReader" ,="" allowed-class="I"><!--This is dynamically set by JS --></select>`
+        funcConfig.id,
+        "I"
     );
     add_function_table_row(
         funcTable,
         `Pulses Per Revolution`,
         `Please enter the number of pulses your RPM sensor sends per engine revolution. This number is typically 6 or 8 and acts as a scaler for the RPM value. If you're unsure, adjust the number below until the current RPM value matches your tacho`,
-        `<label for="name"></label><input type="text" id="name" name="name">`
+        `<label for="name"></label><input value="${funcConfig.RPMReader.Tacho.pulsesPerRev || 6}" type="text" id="name" name="name">`
     );
     add_function_table_row(
         funcTable,
