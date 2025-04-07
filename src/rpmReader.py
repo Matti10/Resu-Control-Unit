@@ -4,7 +4,7 @@ from static import *
 
 
 
-class RpmReader(RcuFunction): # Does this actually want to extend RCU? That would give me access to the RCU methods in init the children, can just overload Class ref???? Or, maybe better to just pass class ref, with both reader types and allow initing from there?
+class RpmReader(RcuFunction): 
     def __init__(
         self,
         rpmReaderType,
@@ -117,7 +117,7 @@ class TachoRpmReader(RpmReader):
 
 class CanRpmReader(RpmReader):
     # dependencies = [CAN_ID]
-    def __init__(self,config, instance_register):
+    def __init__(self, instance_register):
         super().__init__(
             "wrong",
             RPMREADER_CAN_TYPE,
