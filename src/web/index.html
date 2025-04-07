@@ -37,6 +37,41 @@
             <div class="content" id="mainbody">
             
             </div>
+            <div class="content">
+                <table>
+                    <tr>
+                        <td class="table-global-heading">
+                            <div class="heading-with-tooltip">
+                                Config Files
+                                <div class="tooltip">
+                                    <img src="/webFiles/info-icon.png" alt="Info"
+                                        style="width: 20px; height: 20px;">
+                                    <span class="tooltiptext">Upload or Download config</span>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="border-bottom-left-radius: 10px;">
+                            <div>
+                                <div class="pure-g">
+                                    <div class="pure-u-1-2 center-button">
+                                        <button class="pure-button pure-button-primary"
+                                            onclick="downloadConfig()">Download Current Config</button>
+                                    </div>
+                                    <div class="pure-u-1-2 center-button">
+                                        <input type="file" id="fileInput" style="display: none;"
+                                            onchange="uploadLocalConfig(event)">
+                                        <button class="pure-button pure-button-primary"
+                                            onclick="document.getElementById('fileInput').click();">Upload
+                                            Config</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </div>
     </div>
 

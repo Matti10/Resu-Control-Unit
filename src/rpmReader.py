@@ -1,5 +1,6 @@
 from RcuFunction import RcuFunction
 from static import *
+
 # from RCU import CAN_ID
 
 
@@ -100,14 +101,13 @@ class TachoRpmReader(RpmReader):
 
     def _deinit(self):
         self.timer_tacho.deinit()
-        self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=lambda:None)
-
+        self._stop()
+        
     def _run(self):
         self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=self.tacho_irq)  # Interrupt on rising edge
 
     def _stop(self):
-        pass #the gravy train never stops
-
+        self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=lambda:None)
     def tacho_calc_rpm_callback(self,_):
         self.rpm = self.pulseCount * self.tachoRPMScaler
         self.pulseCount = 0

@@ -78,6 +78,11 @@ class RCU:
         
         return self.INSTANCE_REGISTER[id]
     
+    def remove_RCUFunc(self,id):
+        if id in self.INSTANCE_REGISTER:
+            self.INSTANCE_REGISTER[id].deinit()
+            del self.INSTANCE_REGISTER[id]
+    
     def add_RCUFunc_Pins(self, RCUFunc):
         try:
             RCUFunc.set_assigned_pins(self.RCU_PINS.get_funcs_pins(RCUFunc.functionType), reinit=False)
