@@ -27,12 +27,15 @@ THE SOFTWARE.
 """
 
 import re
+
 try: 
     import usocket as socket
 except:
     import socket
-import sys
+
 import io
+import sys
+
 
 class MicroPyServer(object):
 
@@ -129,7 +132,7 @@ class MicroPyServer(object):
                 if match:
                     print(method, path, route["path"])
                     return route
-    def get_request(self, buffer_length=4096):
+    def get_request(self, buffer_length=8192):
         """ Return request body """
         return str(self._connect.recv(buffer_length), "utf8")
 

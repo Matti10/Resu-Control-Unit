@@ -117,10 +117,10 @@ function uploadLocalConfig(event) {
         return;
     }
 
-    uploadConfig(file)
+    uploadConfig(file,true)
 }
 
-function uploadConfig(file) {
+function uploadConfig(file,alert=false) {
     const fd = new FormData();
     fd.append("file", new File([file], "config.json", { type: "application/json" }));
     
@@ -131,11 +131,15 @@ function uploadConfig(file) {
         .then(response => response.json())
         .then(data => {
             console.log('Success:', data);
-            alert('File uploaded successfully');
+            if (alert) {
+                alert('File uploaded successfully');
+            }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('File upload failed');
+            if (alert) {
+                alert('File upload failed');
+            }
         });
 }
 

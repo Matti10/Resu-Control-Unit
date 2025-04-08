@@ -79,7 +79,14 @@ RPM_MODES = [
 RPM_TACHO_TIMER_PERIOD_MS = 100
 PIN_FUNCNAME_RPM = "RPMReader"
 
-
+#Networking
+IP = "1.1.1.1"
+SUB_MASK = "255.255.255.255"
+KEY_SSID = "ssid"
+KEY_PASSWORD = "password"
+KEY_AP = "ap"
+KEY_WLAN = "wlan"
+AP_DEFAULT_PASSWORD = "1234567890"
 
 class PinAssigned(Exception):
     def __init__(self, pinID):

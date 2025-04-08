@@ -7,6 +7,8 @@ import asyncio
 import gc
 
 import pins
+
+# import rcuNetwork
 import rpmReader
 import server
 import shiftLights
@@ -35,7 +37,9 @@ class RCU:
     def __init__(self):
         self.config = self.import_config()
         
-        # init RcuPins
+        # init backbone functionality
+        self.RCU_AP = rcuNetwork.rcuAP.from_loadedJson(self.config[KEY_AP])
+        self.RCU_AP.start()
         self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
         self.RCU_SERVER = server.RCU_server
         # instaticate any RCUFuncs from config
@@ -121,6 +125,9 @@ class RCU:
         
         # add Pins
         dict[KEY_PIN] = self.RCU_PINS.to_dict()
+
+        # add AP
+        dict[KEY_AP]
         
         return dict
             
