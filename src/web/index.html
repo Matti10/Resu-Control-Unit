@@ -5,8 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description"
-        content="A layout example with a side menu that hides on mobile, just like the Pure website.">
-    <title>Responsive Side Menu &ndash; Layout Examples &ndash; Pure</title>
+        content="Configure your RCU">
+    <title>RCU Settings</title>
     <link rel="stylesheet" href="/webFiles/pure-min.css">
     <link rel="stylesheet" href="/webFiles/styles.css">
 </head>
@@ -24,7 +24,10 @@
                 <a class="pure-menu-heading" href="#company"><img src="/webFiles/resu-horiz-white.png" alt="Resu"
                         style="width: 90%;"></a>
 
+                <ul class="pure-menu-list" id="func-sidebar">
+                </ul>
                 <ul class="pure-menu-list" id="sidebar">
+                    <li class="pure-menu-item"><a href="#config" class="pure-menu-link">Manage Config</a></li>
                 </ul>
             </div>
         </div>
@@ -34,15 +37,14 @@
                 <h1>Resu Control Unit Settings</h1>
             </div>
 
-            <div class="content" id="mainbody">
-            
+            <div class="content" id="mainbody" style="margin-bottom: 10px;">
             </div>
             <div class="content">
-                <table>
+                <table id="config">
                     <tr>
                         <td class="table-global-heading">
                             <div class="heading-with-tooltip">
-                                Config Files
+                                Manage Config Files
                                 <div class="tooltip">
                                     <img src="/webFiles/info-icon.png" alt="Info"
                                         style="width: 20px; height: 20px;">

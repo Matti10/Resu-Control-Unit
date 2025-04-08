@@ -422,8 +422,7 @@ document.addEventListener("DOMContentLoaded", () => {
     getAllConfig().then(config => {
         window.config = config
 
-        // build_shiftLight_table()
-        build_rpmReader_table(window.config.RCUFuncs.RPMReader_3)
+        build_rcuFunction_tables();
 
         colorContainers = document.querySelectorAll('[class="color-container"]');
         toggleSwitches = document.querySelectorAll('[class="toggleSwitch"]');
@@ -446,17 +445,20 @@ function updateRPM() {
 }
 
 function build_function_table(funcID, displayName, container = document.getElementById("mainbody")) {
+    displayName = `${displayName} <sub>(${funcID.split("_").at(-1)})</sub>`
+    const id = `${funcID}-table`
     const table = document.createElement('table');
-    table.id = `${funcID}-table`;
+    table.id = id;
     table.innerHTML = `<tr>
-        <td class="table-global-heading" colspan="2">
-            <div class="heading-with-tooltip">
-                ${displayName}
-            </div>
-        </td>
+    <td class="table-global-heading" colspan="2">
+    <div class="heading-with-tooltip">
+    ${displayName}
+    </div>
+    </td>
     </tr>`;
-
+    
     container.appendChild(table);
+    add_sidebar_entry(`${displayName}`, id);
 
     return table;
 }
@@ -487,19 +489,19 @@ function add_PinSelection_function_table_row(table,heading,tooltipText, id, allo
     );
 }
 function add_sidebar_entry(text, href) {
-    const sidebar = document.getElementById("sidebar");
+    const sidebar = document.getElementById("func-sidebar");
     const link = document.createElement("li");
 
-    link.className = "pure-menu-link";
+    link.className = "pure-menu-item";
     link.href = href;
     link.innerHTML = `<a href="${href}" class="pure-menu-link">${text}</a>`;
-
+    sidebar.append(link)
 
 }
 
 function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_0, displayName = "Shift Lights") {
+    
     const funcTable = build_function_table(funcConfig.id, displayName);
-    add_sidebar_entry(displayName, `#${funcTable.id}`);
 
     const shiftLightConfigRoot = `/RCUFuncs/${funcConfig.id}/${funcConfig.type}`; // TODO port this to parent function
     add_PinSelection_function_table_row(
@@ -584,4 +586,18 @@ function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
         `The RPM value currently being read by the RCU. If this is wrong try adjusting the input method, or pulses per revolution (tacho mode only)`,
         `<p id="currentRPM">Not Set</p>`
     );
+}
+
+function build_rcuFunction_tables(
+    config = window.config,
+    rcuFuncCorrelation = {
+        "ShiftLights" : build_shiftLight_table,
+        "RPMReader" : build_rpmReader_table,
+    }
+) {
+    Object.keys(config.RCUFuncs).forEach(key => {
+        rcuConfig = config.RCUFuncs[key]
+        rcuFuncCorrelation[rcuConfig.type](rcuConfig)
+    });
+
 }
