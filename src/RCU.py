@@ -8,7 +8,7 @@ import gc
 
 import pins
 
-# import rcuNetwork
+import rcuNetwork
 import rpmReader
 import server
 import shiftLights

@@ -1,5 +1,5 @@
 # RCU
-CONFIG_PATH = "/workspaces/Resu-Control-Unit/src/data/config.json"
+CONFIG_PATH = "data/config.json"
 FUNC_ACTIVE_KEY = "activated"
 
 SHIFTLIGHT_TYPE = "ShiftLights"
