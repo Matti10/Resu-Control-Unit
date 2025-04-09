@@ -24,7 +24,8 @@ PORT = 8000
 
 ROUTE_CONFIG = "/config"
 ROUTE_RPM = "/rpm"
-
+ROUTE_ADDFUNC = "/addFunc"
+ROUTE_RMFUNC = "/rmFunc"
 KEY_STRING_JSON = "json"
 KEY_STRING_INT = "int"
 KEY_STRING_STRING = "string"
@@ -47,11 +48,9 @@ class InternalError(Exception):
 
 
 class RCU_server:
-    def __init__(self, lib_shiftLights = None, lib_rpmReader = None, config=None, testMode=False):
+    def __init__(self, RCU, testMode=False):
         self.testMode = testMode
-        self.lib_shiftLights = lib_shiftLights
-        self.lib_rpmReader = lib_rpmReader
-        self.config = config
+        self.RCU = RCU
 
         self.server = micropyserver.MicroPyServer(port=PORT, testMode=testMode)
         self.server.add_route("/", self.get_webFiles)
@@ -61,6 +60,8 @@ class RCU_server:
         self.server.add_route("/downloadConfig", self.download_config)
         self.server.add_route("/uploadConfig", self.upload_config, method="POST")
         self.server.add_route(ROUTE_CONFIG, self.set_config, method="POST")
+        self.server.add_route(ROUTE_ADDFUNC, self.add_rcuFunc, method="POST")
+        self.server.add_route(ROUTE_RMFUNC, self.rm_rcuFunc, method="POST")
         self.server.add_route(ROUTE_CONFIG, self.get_config)
         self.server.add_route(ROUTE_RPM, self.get_rpm)
         self.server._print_routes()
@@ -68,16 +69,31 @@ class RCU_server:
 
         if not testMode:
             self.server.start()
-            
-            
+    
+    def add_rcuFunc(self,request,preParsedRequest=None):
+        _, path, body, _ = utils.handle_preparsed_request(request, preParsedRequest)
+                # process the data
+        body = json.loads(body)
+        key = next(iter(body))
+
+        data = body[key]
+
+        rcuFunc = self.RCU.add_RCUFunc(data)
+        self.RCU.export_config()
+        utils.send_response(self.server, rcuFunc.functionID, http_code=201)
+
+
+    def rm_rcuFunc(self, request, preParsedRequest=None):
+        _, path, body, _ = utils.handle_preparsed_request(request, preParsedRequest)
+
+        self.RCU.remove_RCUFunc(self,body)
+
+
 
     def get_config(self, request, preParsedRequest=None):
         _, path, _, _ = utils.handle_preparsed_request(request, preParsedRequest)
         print(f"keys:{utils.get_config_keys(path, ROUTE_CONFIG)}")
-
-        return self.serve_json(
-            utils.get_nested_dict(self.config, utils.get_config_keys(path, ROUTE_CONFIG))
-        )
+        return self.serve_file(CONFIG_PATH)
 
     def set_config(self, request, preParsedRequest=None):
         _, path, body, _ = utils.handle_preparsed_request(request, preParsedRequest)
@@ -254,9 +270,6 @@ class RCU_server:
             raise InternalError(
                 server=self.server, message=f"Error uploading file: {e}"
             )
-
-
-
         
     def get_rpm(self,_):
         try:

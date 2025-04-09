@@ -4,8 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Configure your RCU">
+    <meta name="description" content="Configure your RCU">
     <title>RCU Settings</title>
     <link rel="stylesheet" href="/webFiles/pure-min.css">
     <link rel="stylesheet" href="/webFiles/styles.css">
@@ -26,10 +25,12 @@
 
                 <ul class="pure-menu-list" id="func-sidebar">
                 </ul>
-                <ul class="pure-menu-list" id="sidebar">
-                    <li class="pure-menu-item"><a href="#config" class="pure-menu-link">Manage Config</a></li>
+                <ul class="pure-menu-list" id="sidebar" style="justify-content: flex-end">
+                    <li class="pure-menu-item"><a href="javascript:void(0);" class="pure-menu-link pure-menu-selected" onclick="openPopup()">+ Add Function</a></li>
+                    <li class="pure-menu-item"><a href="#config" class="pure-menu-link pure-menu-selected">Manage Config</a></li>
                 </ul>
             </div>
+
         </div>
 
         <div id="main">
@@ -46,8 +47,7 @@
                             <div class="heading-with-tooltip">
                                 Manage Config Files
                                 <div class="tooltip">
-                                    <img src="/webFiles/info-icon.png" alt="Info"
-                                        style="width: 20px; height: 20px;">
+                                    <img src="/webFiles/info-icon.png" alt="Info" style="width: 20px; height: 20px;">
                                     <span class="tooltiptext">Upload or Download config</span>
                                 </div>
                             </div>
@@ -57,11 +57,11 @@
                         <td style="border-bottom-left-radius: 10px;">
                             <div>
                                 <div class="pure-g">
-                                    <div class="pure-u-1-2 center-button">
+                                    <div class="pure-u-1-2 center-button" style="text-align:center;padding: 0px">
                                         <button class="pure-button pure-button-primary"
-                                            onclick="downloadConfig()">Download Current Config</button>
+                                            onclick="downloadConfig()">Download Config</button>
                                     </div>
-                                    <div class="pure-u-1-2 center-button">
+                                    <div class="pure-u-1-2 center-button" style="text-align:center;padding: 0px">
                                         <input type="file" id="fileInput" style="display: none;"
                                             onchange="uploadLocalConfig(event)">
                                         <button class="pure-button pure-button-primary"
@@ -74,6 +74,23 @@
                     </tr>
                 </table>
             </div>
+            <div id="popup-overlay"></div>
+
+            <div id="popup">
+                <h3>Select a Function</h3>
+                <select id="rcuFunc-dropdown">
+                </select>
+                <br><br>
+                <div style="  display: flex;
+                justify-content: center;
+                gap: 10px;">
+                    <button class="pure-button pure-button-primary" onclick="confirmSelection()">Add</button>
+                    <button class="pure-button pure-button-primary" onclick="closePopup()">Cancel</button>
+                </div>
+            </div>
+        </div>
+        <div id="overlay">
+            <img src="/webFiles/resu-horiz-white.png" alt="" class="pulse">
         </div>
     </div>
 

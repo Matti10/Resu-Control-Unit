@@ -5,6 +5,18 @@ let colorContainers;
 let toggleSwitches;
 let pinSelectors;
 window.config = null;
+window.rcuFuncCorrelation = {
+    "ShiftLights": {
+        "buildFunc":build_shiftLight_table,
+        "displayName" : "Shift Lights"
+
+    },
+    "RPMReader": {
+        "buildFunc":build_rpmReader_table,
+        "displayName" : "RPM Input"
+
+    },
+}
 let configChanged = false;
 
 
@@ -71,22 +83,26 @@ function setLocalConfigFromEndpoint(endpoint, data, config = window.config) {
 }
 
 async function setEndpoint(endpoint, data) {
+    try {
+        const response = await fetch(`${endpoint}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ data: data })
+        });
 
-    await fetch(`${endpoint}`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ "data": data })
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Failed to update ${endpoint} with data: ${data} Error: ${response.statusText}`);
-            }
-            return response;
-        })
-        .then(data => console.log(`Updated ${endpoint} with data: ${data}`))
-        .catch(error => console.error(error));
+        if (!response.ok) {
+            throw new Error(`Failed to update ${endpoint} with data: ${data} Error: ${response.statusText}`);
+        }
+
+        const responseData = await response.text()
+        console.log(`Updated ${endpoint} with data:`, responseData);
+
+        return responseData; 
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 function setInnerTextFromEndpoint(element) {
@@ -117,13 +133,13 @@ function uploadLocalConfig(event) {
         return;
     }
 
-    uploadConfig(file,true)
+    uploadConfig(file, true)
 }
 
-function uploadConfig(file,alert=false) {
+function uploadConfig(file, alert = false) {
     const fd = new FormData();
     fd.append("file", new File([file], "config.json", { type: "application/json" }));
-    
+
     fetch('/uploadConfig', {
         method: 'POST',
         body: fd
@@ -419,9 +435,20 @@ function buildPinSelectorsFromEndpoint(pinConfig = window.config.Pins) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    show_loadingScreen()
+    build_all()
+    populate_RcuFunc_Popup()
+});
+
+function rebuild_all(redirect = "") {
+    show_loadingScreen()
+    clear_all_dynamic()
+    build_all(redirect)
+}
+
+function build_all(redirect = "") {
     getAllConfig().then(config => {
         window.config = config
-
         build_rcuFunction_tables();
 
         colorContainers = document.querySelectorAll('[class="color-container"]');
@@ -432,11 +459,29 @@ document.addEventListener("DOMContentLoaded", () => {
         buildPinSelectorsFromEndpoint();
         buildSliderFromEndpoint();
         buildToggleSwitchesFromEndpoint();
+        setInterval(setAllConfig, configSetPeriodMs)
+    }).then(() => {
+        window.location.hash = redirect
+        hide_loadingScreen()
+    })
+}
 
-        setInterval(setAllConfig,configSetPeriodMs)
-    });
-});
 
+function show_loadingScreen() {
+    const overlay = document.getElementById("overlay");
+    overlay.classList.remove("fade-out");
+    // Show overlay
+    document.getElementById("overlay").style.display = "flex";
+}
+
+function hide_loadingScreen() {
+    const overlay = document.getElementById("overlay");
+    overlay.classList.add("fade-out");
+
+    setTimeout(() => {
+        overlay.style.display = "none";
+    }, 500);
+}
 
 function updateRPM() {
     fetch('/rpm')
@@ -445,18 +490,19 @@ function updateRPM() {
 }
 
 function build_function_table(funcID, displayName, container = document.getElementById("mainbody")) {
-    displayName = `${displayName} <sub>(${funcID.split("_").at(-1)})</sub>`
+    displayName = `${displayName} <span style="font-size: 0.8em;display: inline-block; text-align: left;">(${funcID.split("_").at(-1)})</span>`
     const id = `${funcID}-table`
     const table = document.createElement('table');
     table.id = id;
     table.innerHTML = `<tr>
     <td class="table-global-heading" colspan="2">
     <div class="heading-with-tooltip">
-    ${displayName}
+    <div>${displayName}</div>
+    <a>X</a>
     </div>
     </td>
     </tr>`;
-    
+
     container.appendChild(table);
     add_sidebar_entry(`${displayName}`, id);
 
@@ -480,7 +526,7 @@ function add_function_table_row(table, heading, tooltipText, content) {
     table.appendChild(row);
 }
 
-function add_PinSelection_function_table_row(table,heading,tooltipText, id, allowedClass = "IO") {
+function add_PinSelection_function_table_row(table, heading, tooltipText, id, allowedClass = "IO") {
     add_function_table_row(
         table,
         heading,
@@ -494,13 +540,27 @@ function add_sidebar_entry(text, href) {
 
     link.className = "pure-menu-item";
     link.href = href;
-    link.innerHTML = `<a href="${href}" class="pure-menu-link">${text}</a>`;
+    link.innerHTML = `<a href="#${href}" class="pure-menu-link">${text}</a>`;
     sidebar.append(link)
 
 }
 
+function clear_all_dynamic(){
+    clear_dynamic_content()
+    clear_dynamic_sidebar()
+};
+
+function clear_dynamic_content() {
+    document.getElementById("mainbody").innerHTML = ""
+
+};
+
+function clear_dynamic_sidebar() {
+    document.getElementById("func-sidebar").innerHTML = ""
+}
+
 function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_0, displayName = "Shift Lights") {
-    
+
     const funcTable = build_function_table(funcConfig.id, displayName);
 
     const shiftLightConfigRoot = `/RCUFuncs/${funcConfig.id}/${funcConfig.type}`; // TODO port this to parent function
@@ -558,7 +618,6 @@ function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_
 
 function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
     const funcTable = build_function_table(funcConfig.id, displayName);
-    add_sidebar_entry(displayName, `#${funcTable.id}`);
     const rpmReaderConfigRoot = `/RCUFuncs/${funcConfig.id}/${funcConfig.type}` // TODO port this to parent function
 
     add_function_table_row(
@@ -578,7 +637,7 @@ function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
         funcTable,
         `Pulses Per Revolution`,
         `Please enter the number of pulses your RPM sensor sends per engine revolution. This number is typically 6 or 8 and acts as a scaler for the RPM value. If you're unsure, adjust the number below until the current RPM value matches your tacho`,
-        `<label for="name"></label><input value="${funcConfig.RPMReader.Tacho.pulsesPerRev || 6}" type="text" id="name" name="name">`
+        `<label for="name"></label><input value="${funcConfig.RPMReader.Tacho.pulsesPerRev || 6}" type="text" id="name" style="width:100%">`
     );
     add_function_table_row(
         funcTable,
@@ -590,14 +649,48 @@ function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
 
 function build_rcuFunction_tables(
     config = window.config,
-    rcuFuncCorrelation = {
-        "ShiftLights" : build_shiftLight_table,
-        "RPMReader" : build_rpmReader_table,
-    }
+    rcuFuncCorrelation = window.rcuFuncCorrelation
 ) {
     Object.keys(config.RCUFuncs).forEach(key => {
         rcuConfig = config.RCUFuncs[key]
-        rcuFuncCorrelation[rcuConfig.type](rcuConfig)
+        rcuFuncCorrelation[rcuConfig.type]["buildFunc"](rcuConfig)
     });
 
+}
+
+function populate_RcuFunc_Popup() {
+    const dropdown = document.getElementById('rcuFunc-dropdown');
+    Object.keys(rcuFuncCorrelation).forEach(key => {
+        const newOption = document.createElement("option")
+        newOption.value = key
+        newOption.innerHTML = rcuFuncCorrelation[key]["displayName"]
+        dropdown.append(newOption)
+    });
+}
+
+function openPopup() {
+    document.getElementById('popup').style.display = 'block';
+    document.getElementById('popup-overlay').style.display = 'block';
+}
+
+function closePopup() {
+    document.getElementById('popup').style.display = 'none';
+    document.getElementById('popup-overlay').style.display = 'none';
+}
+
+function confirmSelection() {
+    const selected = document.getElementById('rcuFunc-dropdown').value;
+    console.log('Selected:', selected);
+    // Pass the selected value to your function
+    add_rcuFunction(selected).then(response => {
+        console.log(response)
+        rebuild_all(`${response}-table`);
+        closePopup();
+    });
+    
+    
+}
+
+async function add_rcuFunction(funcType, endpoint = "/addFunc") {
+    return await setEndpoint(endpoint,funcType)
 }

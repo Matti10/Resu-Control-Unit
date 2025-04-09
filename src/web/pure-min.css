@@ -896,7 +896,9 @@ a.pure-button-selected {
 .pure-menu-link {
     display: block;
     text-decoration: none;
-    white-space: nowrap
+    white-space: nowrap;
+    color : white;
+    text-decoration: none; 
 }
 
 .pure-menu-horizontal {
@@ -995,7 +997,7 @@ a.pure-button-selected {
 }
 
 .pure-menu-link {
-    color: #777
+    color: #fff
 }
 
 .pure-menu-children {

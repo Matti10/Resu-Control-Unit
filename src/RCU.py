@@ -38,10 +38,12 @@ class RCU:
         self.config = self.import_config()
         
         # init backbone functionality
-        self.RCU_AP = rcuNetwork.rcuAP.from_loadedJson(self.config[KEY_AP])
-        self.RCU_AP.start()
+        # self.RCU_AP = rcuNetwork.rcuAP.from_loadedJson(self.config[KEY_AP])
+        # self.RCU_AP.start()
         self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
-        self.RCU_SERVER = server.RCU_server
+        
+
+        self.RCU_SERVER = server.RCU_server(self)
         # instaticate any RCUFuncs from config
         self.add_RCUFunc_fromConfig()
 
@@ -70,6 +72,7 @@ class RCU:
         if id == None:
             id = self.gen_RCUFunc_id(type)
             
+        print(f"addng rcu func {id}")
         self.INSTANCE_REGISTER[id] = self.CLASS_REGISTER[type](
             self.INSTANCE_REGISTER,
             self.MODULE_REGISTER,
@@ -127,7 +130,7 @@ class RCU:
         dict[KEY_PIN] = self.RCU_PINS.to_dict()
 
         # add AP
-        dict[KEY_AP]
+        dict[KEY_AP] = "placeholder"
         
         return dict
             
@@ -148,3 +151,6 @@ class RCU:
     def get_rawConfig(configPath=CONFIG_PATH):
         with open(configPath, "r") as file:
             return file.read()
+
+if __name__ == "__main__":
+    rcu = RCU()

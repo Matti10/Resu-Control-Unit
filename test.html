@@ -1,95 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Styled Table with Global Header</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            padding: 20px;
-        }
+  <meta charset="UTF-8">
+  <title>Popup with Dropdown</title>
+  <style>
+    #popup {
+      display: none;
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -30%);
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      z-index: 1000;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.3);
+    }
 
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            border-radius: 10px;
-            overflow: hidden;
-            background-color: white;
-            border: 1px solid #666666;
-        }
+    #popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.3);
+      z-index: 999;
+    }
 
-        th,
-        td {
-            padding: 12px;
-            text-align: left;
-            border: 1px solid #666666;
-            /* Updated border color */
-        }
-
-        th {
-            background-color: #ccc;
-            color: white;
-            font-weight: bold;
-            width: 200px;
-            white-space: nowrap;
-            border-right: none;
-            /* Removes the vertical border */
-        }
-
-        td {
-            width: auto;
-            background-color: #fff;
-            border-left: none;
-            /* Removes the vertical border */
-        }
-
-        /* Global heading row */
-        .global-heading {
-            background-color: red;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            text-align: center;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-            border: 1px solid #666666;
-        }
-
-        /* Preserve rounded corners */
-        tr:first-child th:first-child {
-            border-top-left-radius: 0;
-        }
-
-        tr:first-child td:last-child {
-            border-top-right-radius: 0;
-        }
-
-        tr:last-child th:first-child {
-            border-bottom-left-radius: 10px;
-        }
-
-        tr:last-child td:last-child {
-
-            border-bottom-right-radius: 10px;
-        }
-
-        .table-global-heading>* {
-            border-radius: 10px;
-            /* Apply the same border-radius to the child */
-        }
-    </style>
+    button {
+      margin: 5px;
+    }
+  </style>
 </head>
-
 <body>
 
-    <table>
-        <!-- Global heading row -->
+  <button onclick="openPopup()">Open Dropdown Popup</button>
 
+  <div id="popup-overlay"></div>
+
+  <div id="popup">
+    <label for="dropdown">Choose an option:</label>
+    <select id="dropdown">
+      <option value="option1">Option 1</option>
+      <option value="option2">Option 2</option>
+      <option value="option3">Option 3</option>
+    </select>
+    <br><br>
+    <button onclick="confirmSelection()">Confirm</button>
+    <button onclick="closePopup()">Cancel</button>
+  </div>
+
+  <script>
+  
+  </script>
 
 </body>
-
 </html>

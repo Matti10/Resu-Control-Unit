@@ -101,7 +101,7 @@ appears on the left side of the page.
     All anchors inside the menu should be styled like this.
     */
 #menu a {
-    color: #999;
+    color: #fff;
     border: none;
     padding: 0.6em 0 0.6em 0.6em;
 }
@@ -128,7 +128,7 @@ appears on the left side of the page.
         */
 #menu .pure-menu li a:hover,
 #menu .pure-menu li a:focus {
-    background: #333;
+    background: #ff0700;
 }
 
 /*
@@ -144,6 +144,7 @@ appears on the left side of the page.
         */
 #menu .pure-menu-selected a {
     color: #fff;
+    text-decoration: none; 
 }
 
 /*
@@ -276,9 +277,9 @@ select {
     font-family: inherit;
     font-size: 100%;
     padding: .5em 1em;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 1);
     border: none transparent;
-    background-color: #e6e6e6;
+    background-color: #ff0700;
     text-decoration: none;
     border-radius: 2px;
 }
@@ -361,7 +362,7 @@ td {
 
 /* Global heading row */
 .table-global-heading {
-    background-color: red;
+    background-color: #ff0700;
     color: white;
     font-size: 18px;
     font-weight: bold;
@@ -393,6 +394,8 @@ tr:last-child td:last-child {
     justify-content: space-between;
     align-items: center;
     flex-wrap: nowrap;
+    overflow-x: auto;
+    /* flex-wrap: wrap; */
     gap: 2px;
     padding: 5px;
     width: 100%;
@@ -400,15 +403,17 @@ tr:last-child td:last-child {
 }
 
 .circle {
-    flex-grow: 1;
+    flex-grow: 1;   
+    /* flex: 0 1 34px; */
     /* Makes each circle grow to fit the available space */
     aspect-ratio: 1 / 1;
     /* Ensures the height matches the width */
-    max-width: 40px;
+    max-width: 34px;
+    min-width: 25px;
     /* Prevents circles from becoming too large */
     border-radius: 50%;
     /* Makes the circle round */
-    background-color: red;
+    background-color: #ff0700;
     cursor: pointer;
 }
 
@@ -432,7 +437,7 @@ body {
     position: relative;
     /* Prevent the image from breaking the border-radius */
     z-index: 1;
-    /* Keeps it properly layered */
+    /* Keeps it properly laye#ff0700 */
 }
 
 .tooltip .tooltiptext {
@@ -502,7 +507,7 @@ input[type="range"]::-webkit-slider-thumb {
     appearance: none;
     width: 20px;
     height: 20px;
-    background: red;
+    background: #ff0700;
     border-radius: 50%;
     cursor: pointer;
 }
@@ -510,7 +515,7 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-moz-range-thumb {
     width: 20px;
     height: 20px;
-    background: red;
+    background: #ff0700;
     border-radius: 50%;
     cursor: pointer;
 }
@@ -568,4 +573,66 @@ input:checked+.slider {
 
 input:checked+.slider:before {
     transform: translateX(22px);
+}
+
+
+#popup {
+    display: none;
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -30%);
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 20px;
+    z-index: 1000;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
+    align-items: center;
+    align-content: center;
+    text-align: center;
+}
+
+#popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 999;
+}
+
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #ff0700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease;
+    opacity: 1;
+    pointer-events: all;
+    overflow: visible;
+}
+
+.pulse {
+    width: 60%; /* Or whatever size suits your image */
+    animation: pulse 1.5s infinite ease-in-out;
+    overflow: visible;
+}
+
+#overlay.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes pulse {
+    0%   { transform: scale(1); opacity: 0.7; }
+    50%  { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.7; }
 }
