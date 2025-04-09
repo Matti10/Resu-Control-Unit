@@ -5,20 +5,22 @@ from static import *
 
 """These are efficeively just wrappers for the network.WLAN class that implements very basic, insecure, encryption"""
 
-class rcuNetwork(network.WLAN):
+class rcuNetwork:
     def __init__(
         self,
         ssid,
-        type,
-        password
+        password,
+        networkType
     ):
-        self.net = super().__init__(type)
-        self.net.active(True)
+        print(networkType)
+        self.net = network.WLAN(networkType)
         self.ssid = ssid
         # self.mac = self.get_mac() # TODO Test if this is needed. Depending on whether the AP actually needs to be activated 
         self.encKey = encrypt.get_aes_key_fromMac(self.net.config('mac'))
         if password != AP_DEFAULT_PASSWORD: #for firsttime setup, all othertimes it will at minumum be an encrypted version of AP_DEFAULT_PASSWORD
             self.password = encrypt.decrypt(password, self.encKey)
+        else:
+            self.password = password
         
     def set_credentials(self,password=None,ssid=None):
         if None == password:
@@ -58,13 +60,16 @@ class rcuAP(rcuNetwork):
         
     def __init__(
         self,
-        password = AP_DEFAULT_PASSWORD,
+        password = None,
         ssid = None,
     ):
         #default value for SSID
         if None == ssid:
-            ssid = f"RCU-{self.mac}"
-        
+            # ssid = f"RCU-{self.mac}"
+            ssid = "Resu Control Unit"
+        if None == password:
+            password = AP_DEFAULT_PASSWORD
+        print(network.AP_IF)
         super().__init__(
             ssid,
             password,
@@ -72,15 +77,19 @@ class rcuAP(rcuNetwork):
         )
 
     def start(self):
+        print("start")
         # Create an Access Point
         self.net.config(essid=self.ssid, password=self.password)
         self.net.active(True)
+        print("end")
 
         # Wait until the AP is active
         while not self.net.active():
             pass
         
+        
         self.net.ifconfig((IP, SUB_MASK, IP, IP)) 
+        
 
     def to_dict(self):
         return {
