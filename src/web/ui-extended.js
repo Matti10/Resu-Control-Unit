@@ -488,10 +488,10 @@ function build_all(redirect = "") {
 
 
 function show_loadingScreen() {
-    // const overlay = document.getElementById("overlay");
-    // overlay.classList.remove("fade-out");
-    // // Show overlay
-    // document.getElementById("overlay").style.display = "flex";
+    const overlay = document.getElementById("overlay");
+    overlay.classList.remove("fade-out");
+    // Show overlay
+    document.getElementById("overlay").style.display = "flex";
 }
 
 function hide_loadingScreen() {
@@ -635,13 +635,13 @@ function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_
     add_function_table_row(
         funcTable,
         `Limiter Period (ms)`,
-        `This sets the rate that limiter pattern increments!`,
+        `This sets speed the limiter plays its pattern (in milliseconds)`,
         `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="50" max="1000" value="50"> <input type="number" class="value" min="50" max="1000" value="50"> </div>`
     );
     add_function_table_row(
         funcTable,
         `Brightness`,
-        `Controls the Overall Brightness of the shift lights`,
+        `I think you already know what this one does ;). This Controls the Overall Brightness of the shift lights`,
         `<div class="slider-container" scaler=${brightnessScaler} id="brightnessSlider" endpoint="${shiftLightConfigRoot}/brightness"> <input type="range" class="sliderBar" min="0" max="100" value="50"> <input type="number" class="value" min="0" max="100" value="50"> </div>`
     );
 

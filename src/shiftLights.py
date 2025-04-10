@@ -36,7 +36,6 @@ class ShiftLight(RcuFunction.RcuFunction):
     def to_dict(self):
         parentConfig = super().to_dict()
         tempConfig = deep_copy(self.config)
-        print(tempConfig)
         for section in [KEY_SHIFTLIGHT,KEY_LIMITER]:
             tempConfig[section][KEY_COLORS] = [color.to_dict() for color in self.config[section][KEY_COLORS]]
 
@@ -58,7 +57,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         startRPM = 0,
         endRPM = 5000,
         brightness = 0.5,
-        limiterPeriod_s = 0.25,
+        limiterPeriod_s = 1,
 
     ):
         self.config = {
@@ -156,7 +155,13 @@ class ShiftLight(RcuFunction.RcuFunction):
 
     def clear_all(self):
         self.setAll_color(self.clearColor)
-
+        
+    def lights_are_clear(self):
+        clearNp = self.clearColor.to_npColor()
+        for light in self.np:
+            if light != clearNp:
+                return False
+        return True
 
     def set_color_fromConfig(self, id, subKey=KEY_SHIFTLIGHT):
         self.set_color(
@@ -202,21 +207,27 @@ class ShiftLight(RcuFunction.RcuFunction):
         i = 0
         while i < pattern_handler[KEY_LIGHT_COUNT]:
             # print(f"i:{i}")
-            pattern_handler[KEY_FUNC](subKey)
+            pattern_handler[KEY_FUNC](i,subKey)
             self.update()
             # TODO make this async so it doesn't lockup the loop. Mocking the getRPM func would be a good way to do it
-            time.sleep_ms(period)
+            time.sleep(int(period))
             i += 1
+        
+        self.clear_all()
 
-    def sample_brightness(self, old_brightness, new_brightness=None):
-        if None == new_brightness:
-            new_brightness = self.config[KEY_BRIGHTNESS]
+    def sample_brightness(self, new_brightness, old_brightness):
 
-        brightness = 1 / old_brightness * new_brightness
-
-        for light in self.np:
-            for color in light:
-                color = color * brightness
+        print(old_brightness)
+        print(new_brightness)
+        brightness = new_brightness / old_brightness 
+        print(f"bright{brightness}")
+        if self.lights_are_clear():
+            self.setAll_color_fromConfig()
+        print(f"np before {[col for col in self.np]}")
+        for id in range(len(self.np)):
+            self.np[id] = tuple(int(color * brightness) for color in self.np[id])
+        print(f"np after {[col for col in self.np]}")
+        
         self.update()
 
     # -------------- Pattern Handling  -------------- #

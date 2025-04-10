@@ -12,7 +12,6 @@ class rcuNetwork:
         password,
         networkType
     ):
-        print(networkType)
         self.net = network.WLAN(networkType)
         self.ssid = ssid
         # self.mac = self.get_mac() # TODO Test if this is needed. Depending on whether the AP actually needs to be activated 
@@ -55,21 +54,34 @@ class rcuAP(rcuNetwork):
     def from_loadedJson(jsonLoadedObj):
         return rcuAP(
             jsonLoadedObj[KEY_PASSWORD],
-            jsonLoadedObj[KEY_SSID]
+            jsonLoadedObj[KEY_SSID],
+            jsonLoadedObj[KEY_IP],
+            jsonLoadedObj[KEY_SUB_MASK],
+            jsonLoadedObj[KEY_GATEWAY],
+            jsonLoadedObj[KEY_DNS],
         )
         
     def __init__(
         self,
         password = None,
         ssid = None,
+        ip = "1.1.1.1",
+        sub = "255.255.255.0",
+        gateway = "1.1.1.1",
+        dns =  "1.1.1.1"
     ):
+        self.ip = ip
+        self.sub= sub
+        self.gateway= gateway
+        self.dns= dns
+        
         #default value for SSID
         if None == ssid:
             # ssid = f"RCU-{self.mac}"
             ssid = "Resu Control Unit"
         if None == password:
             password = AP_DEFAULT_PASSWORD
-        print(network.AP_IF)
+
         super().__init__(
             ssid,
             password,
@@ -88,7 +100,7 @@ class rcuAP(rcuNetwork):
             pass
         
         
-        self.net.ifconfig((IP, SUB_MASK, IP, IP)) 
+        self.net.ifconfig((self.ip, self.sub, self.gateway, self.dns)) 
         
 
     def to_dict(self):

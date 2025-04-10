@@ -1,5 +1,7 @@
 # RCU
-CONFIG_PATH = "/workspaces/Resu-Control-Unit/src/data/config.json"
+# ROOT_PATH = "/workspaces/Resu-Control-Unit/src"
+ROOT_PATH = ""
+CONFIG_PATH = f"{ROOT_PATH}/data/config.json"
 FUNC_ACTIVE_KEY = "activated"
 
 SHIFTLIGHT_TYPE = "ShiftLights"
@@ -81,8 +83,11 @@ RPM_TACHO_TIMER_PERIOD_MS = 100
 PIN_FUNCNAME_RPM = "RPMReader"
 
 #Networking
-IP = "1.1.1.1"
-SUB_MASK = "255.255.255.255"
+
+KEY_IP = "ip"
+KEY_SUB_MASK = "sub"
+KEY_GATEWAY = "gate"
+KEY_DNS = "dns"
 KEY_SSID = "ssid"
 KEY_PASSWORD = "password"
 KEY_AP = "ap"
@@ -94,6 +99,23 @@ KEY_COLOR = "color"
 KEY_RED = "r"
 KEY_GREEN = "g"
 KEY_BLUE = "b"
+
+#server
+ROUTE_WEB_FILES = "/webFiles"
+WEB_FILES_PATH = f"{ROOT_PATH}/web"
+INDEX_PATH = f"{WEB_FILES_PATH}/index.html"
+ROUTE_FAVICON = "/favicon.ico"
+FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
+PORT = 8000
+
+ROUTE_CONFIG = "/config"
+ROUTE_RPM = "/rpm"
+ROUTE_ADDFUNC = "/addFunc"
+ROUTE_RMFUNC = "/rmFunc"
+KEY_STRING_JSON = "json"
+KEY_STRING_INT = "int"
+KEY_STRING_STRING = "string"
+
 
 class PinAssigned(Exception):
     def __init__(self, pinID):

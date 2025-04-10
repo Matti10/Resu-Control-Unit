@@ -8,13 +8,16 @@ import gc
 
 import pins
 
-# import rcuNetwork
+import rcuNetwork
 import rpmReader
 import server
 import shiftLights
 import testing_utils
 from static import *
 
+import neopixel
+from machine import Pin
+from machine import Timer
 
 class RCU:
     CLASS_REGISTER = {
@@ -24,10 +27,16 @@ class RCU:
     }
     INSTANCE_REGISTER = {}
     
+    # MODULE_REGISTER = { # Unix/Test mode
+    #     MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
+    #     MOD_PIN: testing_utils.MockedPin,
+    #     MOD_TIMER: testing_utils.MockedTimer,
+    # }
+    
     MODULE_REGISTER = { # Unix/Test mode
-        MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
-        MOD_PIN: testing_utils.MockedPin,
-        MOD_TIMER: testing_utils.MockedTimer,
+        MOD_NEOPIXEL: neopixel.NeoPixel,
+        MOD_PIN: Pin,
+        MOD_TIMER: Timer,
     }
     
     RESOURCE_REGISTER = {
@@ -39,14 +48,15 @@ class RCU:
         self.config = self.import_config()
         
         # init backbone functionality
-        # self.RCU_AP = rcuNetwork.rcuAP.from_loadedJson(self.config[KEY_AP])
-        # self.RCU_AP.start()
+        self.RCU_AP = rcuNetwork.rcuAP.from_loadedJson(self.config[KEY_AP])
+        self.RCU_AP.start()
         self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
         
 
-        self.RCU_SERVER = server.RCU_server(self)
+        # self.RCU_SERVER = server.RCU_server(self)
         # instaticate any RCUFuncs from config
         self.add_RCUFunc_fromConfig()
+        
 
         self.config = None
         gc.collect()

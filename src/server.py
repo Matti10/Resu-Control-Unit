@@ -15,21 +15,6 @@ import RCU
 import utils
 from static import *
 
-ROUTE_WEB_FILES = "/webFiles"
-WEB_FILES_PATH = "/workspaces/Resu-Control-Unit/src/web"
-INDEX_PATH = f"{WEB_FILES_PATH}/index.html"
-ROUTE_FAVICON = "/favicon.ico"
-FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
-PORT = 8000
-
-ROUTE_CONFIG = "/config"
-ROUTE_RPM = "/rpm"
-ROUTE_ADDFUNC = "/addFunc"
-ROUTE_RMFUNC = "/rmFunc"
-KEY_STRING_JSON = "json"
-KEY_STRING_INT = "int"
-KEY_STRING_STRING = "string"
-
 
 class RouteNotFound(Exception):
     def __init__(self, message, server):
@@ -256,8 +241,8 @@ class RCU_server:
                         file_content = file_content[:-2]
 
                     # Save the file
-                    with open(CONFIG_PATH, "wb") as f:
-                        f.write(file_content.encode("utf-8"))
+                    # with open(CONFIG_PATH, "wb") as f:
+                    #     f.write(file_content.encode("utf-8"))
                     print(f"Saved config file, size: {len(file_content)} bytes")
                     break  # Done with file
 
