@@ -122,6 +122,9 @@ class MockedTimer(Mocked):
     def init(self,**kwargs):
         self.mock_run("init",kwargs)
 
+    def deinit(self,**kwargs):
+        self.mock_run("deinit",kwargs)
+
 class MockedShiftLight(Mocked):
     def __init__(self):
         super().__init__()

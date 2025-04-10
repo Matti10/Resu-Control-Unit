@@ -1,14 +1,15 @@
-from static import *
 import asyncio
+
+from static import *
 
 
 class RcuFunction:
     def to_dict(self):
         return {
-        RCUFUNC_KEY_ID : self.functionID,
-        RCUFUNC_KEY_TYPE : self.functionType,
-        self.functionType : {},
-    }
+            RCUFUNC_KEY_ID : self.functionID,
+            RCUFUNC_KEY_TYPE : self.functionType,
+            self.functionType : {},
+        }
 
     def __init__(
         self,
@@ -27,27 +28,35 @@ class RcuFunction:
         self.initFunc = init
         self.run = run
         self.stop = stop 
-        self.deinit = deinit
+        self.deinitFunc = deinit
         self.dependencies = dependencies
         self.instance_register = instance_register
         self.timer_gen = timer_gen
+        self.inited = False
         
 
         # for pinFuncName in pinFuncNames:
         #     self.get_funcs_pins(pinFuncName)
 
     async def init(self):
-        try:
-            await self.wait_dependencies() # wait for all dependencies to be instanciated
-            self.initFunc()
-        except PinsNotAssigned:
-            pass #pins aren't assigned yet, this may want actioning later?
+        if not self.inited:
+            try:
+                await self.wait_dependencies() # wait for all dependencies to be instanciated
+                self.initFunc()
+            except PinsNotAssigned:
+                pass #pins aren't assigned yet, this may want actioning later?
+
+            self.inited = True
         
     def reinit(self,reinit = True):
         if reinit:
             self.deinit()
             asyncio.run(self.init())
-        
+    
+    def deinit(self):
+        if self.inited:
+            self.deinitFunc()
+            self.inited = False
 
     async def wait_dependencies(self):
         for dependency in self.dependencies:
@@ -62,8 +71,3 @@ class RcuFunction:
         self.pins = pins
         
         self.reinit(reinit)
-            
-
-        
-
-

@@ -14,7 +14,7 @@ class unitTestTachoRpmReader(unittest.TestCase):
         )
 
     def test_init_tacho(self):
-        self.assertEqual(self.rpmReader.tachoPin.pinNum,self.rpmReader.assignedPins[0]["FirmwareID"])
+        self.assertEqual(self.rpmReader.tachoPin.pinNum,self.rpmReader.assignedPins[0][KEY_FIRM_ID])
         self.assertEqual(self.rpmReader.tachoPin.pinMode,self.rpmReader.Pin.IN)
         self.assertEqual(self.rpmReader.tachoPin.pinPull,self.rpmReader.Pin.PULL_DOWN)
 

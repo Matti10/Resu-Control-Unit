@@ -135,23 +135,23 @@ class unitTestShiftLights(unittest.TestCase):
                 (
                     self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][subKey][
                         "colors"
-                    ][i]["color"]["r"],
+                    ][i][KEY_COLOR]["r"],
                     self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][subKey][
                         "colors"
-                    ][i]["color"]["g"],
+                    ][i][KEY_COLOR]["g"],
                     self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][subKey][
                         "colors"
-                    ][i]["color"]["b"],
+                    ][i][KEY_COLOR]["b"],
                 ),
             )
 
     def assert_patternData(self, patternData):
-        self.assertTrue(type(patternData["lightCount"]) == type(2))
+        self.assertTrue(type(patternData[KEY_LIGHT_COUNT]) == type(2))
         self.assertTrue(
-            patternData["lightCount"] == self.shift.lightCount
-            or patternData["lightCount"] == (self.shift.lightMidPoint + 1)
+            patternData[KEY_LIGHT_COUNT] == self.shift.lightCount
+            or patternData[KEY_LIGHT_COUNT] == (self.shift.lightMidPoint + 1)
         )
-        self.assertTrue(type(patternData["func"]) == type(self.shift.get_patternCorr))
+        self.assertTrue(type(patternData[KEY_FUNC]) == type(self.shift.get_patternCorr))
 
     def assert_np_changed(self,function, *args):
         # check func actually runs & does something
@@ -255,7 +255,7 @@ class unitTestShiftLights(unittest.TestCase):
             shiftLights.SHIFTLIGHT_KEY_LIMITER,
             shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT,
         ]:
-            self.shift.patternFuncs[key]["func"] = some_mocked_pattern_func
+            self.shift.patternFuncs[key][KEY_FUNC] = some_mocked_pattern_func
             for i in range(0, 50):
                 self.shift.handle_pattern(i, key)
                 result = mockedPatternFuncData
@@ -294,7 +294,7 @@ class unitTestShiftLights(unittest.TestCase):
 
                 # check func actually runs & does something
                 self.shift.clear_all()
-                self.assert_np_changed(self.shift.patternFuncs[key]["func"],self.shift.patternFuncs[key]["lightCount"] - 1, key)
+                self.assert_np_changed(self.shift.patternFuncs[key][KEY_FUNC],self.shift.patternFuncs[key][KEY_LIGHT_COUNT] - 1, key)
                 
 
         self.shift.clear_all()
@@ -307,11 +307,11 @@ class unitTestShiftLights(unittest.TestCase):
         ]:
             for pattern in self.shift.config[shiftLights.SHIFTLIGHT_KEY_SHIFTLIGHT][key]["pattern"]["options"]:
                 # print(pattern)
-                for i in range(0,patternCorr[pattern]["lightCount"]):
+                for i in range(0,patternCorr[pattern][KEY_LIGHT_COUNT]):
                     if pattern != shiftLights.SHIFTLIGHT_PATTERN_SOLID:
-                        self.assert_np_changed(patternCorr[pattern]["func"],i,key)
+                        self.assert_np_changed(patternCorr[pattern][KEY_FUNC],i,key)
                     else:
-                        patternCorr[pattern]["func"](i,key)
+                        patternCorr[pattern][KEY_FUNC](i,key)
                     # print(f"\"{i}\":\"{self.shift.np}\"")
                     for lightIndex in range(self.shift.lightCount):
                         thisLightCorrect = self.correctPatternItteration[pattern][str(i)][lightIndex]

@@ -84,9 +84,13 @@ class RCU_server:
 
 
     def rm_rcuFunc(self, request, preParsedRequest=None):
-        _, path, body, _ = utils.handle_preparsed_request(request, preParsedRequest)
-
-        self.RCU.remove_RCUFunc(self,body)
+        _, _, body, _ = utils.handle_preparsed_request(request, preParsedRequest)
+        
+        body = json.loads(body)
+        funcID = body["data"]
+        self.RCU.remove_RCUFunc(funcID)
+        self.RCU.export_config()
+        utils.send_response(self.server, "", http_code=201)
 
 
 
@@ -168,8 +172,8 @@ class RCU_server:
         def sample_color(settingArea="lib_shiftLights"):
             # display changes on lib_shiftlights
             print(self.config["lib_shiftLights"]["lib_shiftLights"]["colors"])
-            self.lib_shiftLights.setAll_color_fromConfig(settingArea)
-            self.lib_shiftLights.update()
+            self.RCU.INSTACE_REGISTER[SHIFTLIGHT_TYPE].setAll_color_fromConfig(settingArea)
+            self.RCU.INSTACE_REGISTER[SHIFTLIGHT_TYPE].update()
 
         _, path, body, _ = utils.parse_request(request)
 

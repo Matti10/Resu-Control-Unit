@@ -576,7 +576,7 @@ input:checked+.slider:before {
 }
 
 
-#popup {
+.popup {
     display: none;
     position: fixed;
     top: 30%;

@@ -86,7 +86,7 @@ class TachoRpmReader(RpmReader):
                 (60*(1000/RPM_TACHO_TIMER_PERIOD_MS)) / float(self.pulsesPerRevolution)
             )
             self.tachoPin = self.lib_pin(
-                self.pins[0]["FirmwareID"],
+                self.pins[0][KEY_FIRM_ID],
                 self.lib_pin.IN,
                 self.lib_pin.PULL_DOWN
             )
@@ -108,6 +108,7 @@ class TachoRpmReader(RpmReader):
 
     def _stop(self):
         self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=lambda:None)
+        
     def tacho_calc_rpm_callback(self,_):
         self.rpm = self.pulseCount * self.tachoRPMScaler
         self.pulseCount = 0

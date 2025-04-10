@@ -26,7 +26,7 @@
                 <ul class="pure-menu-list" id="func-sidebar">
                 </ul>
                 <ul class="pure-menu-list" id="sidebar" style="justify-content: flex-end">
-                    <li class="pure-menu-item"><a href="javascript:void(0);" class="pure-menu-link pure-menu-selected" onclick="openPopup()">+ Add Function</a></li>
+                    <li class="pure-menu-item"><a href="javascript:void(0);" class="pure-menu-link pure-menu-selected" onclick="openPopup('addFunc-popup')">+ Add Function</a></li>
                     <li class="pure-menu-item"><a href="#config" class="pure-menu-link pure-menu-selected">Manage Config</a></li>
                 </ul>
             </div>
@@ -76,7 +76,7 @@
             </div>
             <div id="popup-overlay"></div>
 
-            <div id="popup">
+            <div id="addFunc-popup" class="popup">
                 <h3>Select a Function</h3>
                 <select id="rcuFunc-dropdown">
                 </select>
@@ -84,12 +84,22 @@
                 <div style="  display: flex;
                 justify-content: center;
                 gap: 10px;">
-                    <button class="pure-button pure-button-primary" onclick="confirmSelection()">Add</button>
+                    <button class="pure-button pure-button-primary" onclick="confirmFuncSelection(this)">Add</button>
+                    <button class="pure-button pure-button-primary" onclick="closePopup()">Cancel</button>
+                </div>
+            </div>
+            <div id="rmFunc-popup" class="popup">
+                <h3>Remove Function?</h3>
+                <br><br>
+                <div style="  display: flex;
+                justify-content: center;
+                gap: 10px;">
+                    <button class="pure-button pure-button-primary" onclick="confirmFuncRemove(this)">Confirm</button>
                     <button class="pure-button pure-button-primary" onclick="closePopup()">Cancel</button>
                 </div>
             </div>
         </div>
-        <div id="overlay">
+        <div id="overlay" style="display: none">
             <img src="/webFiles/resu-horiz-white.png" alt="" class="pulse">
         </div>
     </div>

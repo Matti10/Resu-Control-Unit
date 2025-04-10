@@ -8,7 +8,7 @@ import gc
 
 import pins
 
-import rcuNetwork
+# import rcuNetwork
 import rpmReader
 import server
 import shiftLights
@@ -18,11 +18,12 @@ from static import *
 
 class RCU:
     CLASS_REGISTER = {
+        # SHIFTLIGHT_TYPE : testing_utils.MockedShiftLight,
         SHIFTLIGHT_TYPE : shiftLights.ShiftLight,
         RPMREADER_TYPE : rpmReader.TachoRpmReader,
     }
     INSTANCE_REGISTER = {}
-        
+    
     MODULE_REGISTER = { # Unix/Test mode
         MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
         MOD_PIN: testing_utils.MockedPin,
@@ -66,7 +67,6 @@ class RCU:
                 )
         except KeyError:
             print("No RCU Funcs in Config adding empty list")
-            self.config[RCUFUNC_KEY] = []
 
     def add_RCUFunc(self, type, id = None):
         if id == None:
@@ -86,9 +86,14 @@ class RCU:
         return self.INSTANCE_REGISTER[id]
     
     def remove_RCUFunc(self,id):
+        print(self.INSTANCE_REGISTER)
         if id in self.INSTANCE_REGISTER:
+            print(id)
             self.INSTANCE_REGISTER[id].deinit()
             del self.INSTANCE_REGISTER[id]
+
+        print(self.INSTANCE_REGISTER)
+        
     
     def add_RCUFunc_Pins(self, RCUFunc):
         try:
@@ -98,12 +103,13 @@ class RCU:
         
     def get_next_timer(self):
         """"Return a new timer Object. ID increments as the list len grows"""
+        nextTimer = self.MODULE_REGISTER[MOD_TIMER](len(self.RESOURCE_REGISTER[KEY_TIMER]))
         self.RESOURCE_REGISTER[KEY_TIMER].append(
-            self.MODULE_REGISTER[MOD_TIMER](len(self.RESOURCE_REGISTER[KEY_TIMER]))
+            nextTimer
         )
-    
-    def rm_RCUFunc(self,id):
-        self.INSTANCE_REGISTER.pop(id,None)
+
+        return nextTimer
+
     
     def gen_RCUFunc_id(self,type):
         max = -1

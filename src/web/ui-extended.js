@@ -18,7 +18,7 @@ window.rcuFuncCorrelation = {
     },
 }
 let configChanged = false;
-
+let funcToRemove = null;
 
 async function getAllConfig() {
     return await getEndpoint("/config/");
@@ -116,31 +116,31 @@ function downloadConfig() {
 }
 
 
-function setAllConfig(config = window.config) {
+async function setAllConfig(config = window.config) {
     if (configChanged) {
         configChanged = false;
         const jsonData = JSON.stringify(config);
         //Create a Blob with the JSON data
         const blob = new Blob([jsonData], { type: "application/json" });
-        uploadConfig(blob);
+        return await uploadConfig(blob);
     }
 }
 
 
-function uploadLocalConfig(event) {
+async function uploadLocalConfig(event) {
     const file = event.target.files[0];
     if (!file) {
         return;
     }
 
-    uploadConfig(file, true)
+    return await uploadConfig(file, true)
 }
 
-function uploadConfig(file, alert = false) {
+async function uploadConfig(file, alert = false) {
     const fd = new FormData();
     fd.append("file", new File([file], "config.json", { type: "application/json" }));
 
-    fetch('/uploadConfig', {
+    return await fetch('/uploadConfig', {
         method: 'POST',
         body: fd
     })
@@ -356,32 +356,53 @@ async function setBrightness(endpoint, brightness) {
     }
 }
 
+function unassignFuncsPin(functionName, config = window.config) {
+    Object.entries(config.Pins).forEach(([pinNumber, pinData]) => {
+        if (pinData["type"] == functionName) {
+            pinData["type"] = ""
+        }
+    });
+    configChanged = true;
+}
 
 function handlePinSelectionClick(option) {
     const selectedOption = option.options[option.selectedIndex]; // get the data from the selection
+    const funcName = option.getAttribute("function-Name")
     option.style.backgroundColor = selectedOption.style.backgroundColor; // update the color of the selector to match
-    setLocalConfigFromEndpoint(selectedOption.endpoint, option.getAttribute("function-Name")); // the ID to assign the PIN too is stored in function name attr
+    if (selectedOption.innerText == "Unassigned") {
+        unassignFuncsPin(funcName)
+    } else {
+        setLocalConfigFromEndpoint(selectedOption.endpoint, funcName); // the ID to assign the PIN too is stored in function name attr
+    }
 
     // update all pin selectors with the change
-    buildPinSelectorsFromEndpoint() //rebuilding them all is easy but inefficent #TODO
+    setAllConfig().then(() => {
+        getAllConfig().then(config => {
+            window.config = config
+            buildPinSelectorsFromEndpoint() //rebuilding them all is easy but inefficent #TODO
+        });
+    });
+        
+
 }
 
 
 function buildPinSelectorsFromEndpoint(pinConfig = window.config.Pins) {
 
-    // Create "unassigned" option
-    const unassignedOption = document.createElement('option');
-    unassignedOption.style.backgroundColor = 'grey';
-    unassignedOption.innerText = `Unassigned`;
-
+    
     pinSelectors.forEach(pinSelector => {
         // Clear existing options (if any)
         pinSelector.innerHTML = '';
-
+        
+        // Create "unassigned" option
+        const unassignedOption = document.createElement('option');
+        unassignedOption.style.backgroundColor = 'grey';
+        unassignedOption.innerText = `Unassigned`;
+        unassignedOption.value = ""
         //add unassigned option
         pinSelector.appendChild(unassignedOption);
-
-
+        
+        
         // default selection to  
         unassignedOption.selected = true;
 
@@ -441,7 +462,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function rebuild_all(redirect = "") {
-    show_loadingScreen()
     clear_all_dynamic()
     build_all(redirect)
 }
@@ -468,10 +488,10 @@ function build_all(redirect = "") {
 
 
 function show_loadingScreen() {
-    const overlay = document.getElementById("overlay");
-    overlay.classList.remove("fade-out");
-    // Show overlay
-    document.getElementById("overlay").style.display = "flex";
+    // const overlay = document.getElementById("overlay");
+    // overlay.classList.remove("fade-out");
+    // // Show overlay
+    // document.getElementById("overlay").style.display = "flex";
 }
 
 function hide_loadingScreen() {
@@ -494,16 +514,27 @@ function build_function_table(funcID, displayName, container = document.getEleme
     const id = `${funcID}-table`
     const table = document.createElement('table');
     table.id = id;
-    table.innerHTML = `<tr>
-    <td class="table-global-heading" colspan="2">
-    <div class="heading-with-tooltip">
-    <div>${displayName}</div>
-    <a>X</a>
-    </div>
-    </td>
+    table.innerHTML = `
+    <tr>
+        <td class="table-global-heading" colspan="2">
+            <div class="heading-with-tooltip">
+                <div>${displayName}</div>
+                <div class="tooltip">
+                    <img src="/webFiles/close.png" alt="close" class="close-btn" style="width: 20px; height: 20px;">
+                    <span class="tooltiptext">Remove ${displayName} from the RCU</span>
+                </div>
+            </div>
+        </td>
     </tr>`;
-
+    
     container.appendChild(table);
+    
+    // Add click event to close button
+    table.querySelector('.close-btn').addEventListener('click', () => {
+        funcToRemove = funcID
+        openPopup("rmFunc-popup")
+    });
+
     add_sidebar_entry(`${displayName}`, id);
 
     return table;
@@ -668,29 +699,48 @@ function populate_RcuFunc_Popup() {
     });
 }
 
-function openPopup() {
-    document.getElementById('popup').style.display = 'block';
+function openPopup(popoupID) {
+    document.getElementById(popoupID).style.display = 'block';
     document.getElementById('popup-overlay').style.display = 'block';
 }
 
-function closePopup() {
-    document.getElementById('popup').style.display = 'none';
+function closePopup(popoupID) {
+    document.getElementById(popoupID).style.display = 'none';
     document.getElementById('popup-overlay').style.display = 'none';
 }
 
-function confirmSelection() {
+function confirmFuncSelection(button) {
+    button.disabled = true
+    show_loadingScreen()
     const selected = document.getElementById('rcuFunc-dropdown').value;
     console.log('Selected:', selected);
     // Pass the selected value to your function
     add_rcuFunction(selected).then(response => {
         console.log(response)
         rebuild_all(`${response}-table`);
-        closePopup();
+        closePopup("addFunc-popup");
+        button.disabled = false
+
     });
     
     
 }
 
+function confirmFuncRemove(button) {
+    button.disabled = true
+    show_loadingScreen()
+    rm_rcuFunction(funcToRemove).then(()=>{
+        rebuild_all();
+        closePopup("rmFunc-popup");
+        button.disabled = false
+    })
+    funcToRemove = null;
+}
+
 async function add_rcuFunction(funcType, endpoint = "/addFunc") {
     return await setEndpoint(endpoint,funcType)
+}
+
+async function rm_rcuFunction(id, endpoint = "/rmFunc") {
+    return await setEndpoint(endpoint,id)
 }

@@ -2,12 +2,14 @@ import asyncio
 import gc
 import json
 import time
-from static import *
-from utils import deep_copy
+
+import color
 
 # import RCU
 import RcuFunction
-import color
+from static import *
+from utils import deep_copy
+
 
 class ShiftLight(RcuFunction.RcuFunction):
     dependencies = [
@@ -95,6 +97,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.lib_neopixel = module_register[MOD_NEOPIXEL]
         self.lib_Pin = module_register[MOD_PIN]
         self.pins = pins
+        self.clearColor = color.Color(-1,0,0,0)
 
 
     def _deinit(self):
@@ -127,17 +130,9 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.shiftI = 0
 
     # -------------- Setup  -------------- #
-    def handle_mocked_imports(self):
-        if self.lib_neopixel == None:
-            from neopixel import NeoPixel
-            self.lib_neopixel = NeoPixel
-        if self.lib_pin == None:
-            from machine import Pin
-            self.lib_pin = Pin
-            
     def init_np(self):
         self.np = self.lib_neopixel(
-            self.lib_Pin(self.pins[0]["FirmwareID"], self.lib_Pin.OUT),
+            self.lib_Pin(self.pins[0][KEY_FIRM_ID], self.lib_Pin.OUT),
             self.lightCount
         )
 
@@ -153,18 +148,19 @@ class ShiftLight(RcuFunction.RcuFunction):
     # -------------- Light/Color Handling  -------------- #
     def set_color(self, id, color):
         # color adjustments now done on client side.
-        self.np[id] = (col[color.KEY_RED], col[KEY_GREEN], col[color.KEY_GREEN])
+        self.np[id] = color.to_npColor()
 
     def setAll_color(self, color):
         for i in range(self.lightCount):
             self.set_color(i, color)
 
     def clear_all(self):
-        self.setAll_color({color.KEY_RED: 0, KEY_GREEN: 0, color.KEY_GREEN: 0})
+        self.setAll_color(self.clearColor)
+
 
     def set_color_fromConfig(self, id, subKey=KEY_SHIFTLIGHT):
         self.set_color(
-            id, self.config[subKey][KEY_COLORS][id]["color"]
+            id, self.config[subKey][KEY_COLORS][id]
         )
 
     def setAll_color_fromConfig(self, subKey=KEY_SHIFTLIGHT):
@@ -174,19 +170,43 @@ class ShiftLight(RcuFunction.RcuFunction):
     def update(self):
         self.np.write()
 
+    # -------------- Fast color sets for use from server  -------------- #
+    #TODO test if this is needed. Ideal world the config is written and shiftlights 
+    # re-inited with little enough latency to make good user experince 
+    def set_configColor_fromDict(self,id,dict,subKey=KEY_SHIFTLIGHT):
+        """Set the color of a light from a dictionary. Dict must follow {r:xxx, g:xxx, b:xxx} format"""
+        self.config[subKey][KEY_COLORS][id] =  color.Color(dict[KEY_RED], dict[KEY_GREEN], dict[KEY_GREEN])
+
+    def setAll_configColor_fromDict(self,dict,subKey=KEY_SHIFTLIGHT):
+        """Set the color of all lights in the provided dict based on their ID. Dict must be the same format as colors config"""
+        ids = dict.keys()
+        if len(ids) != self.lightCount:
+            print("WARNING: dict doesn't contain a key for each light, not all lights wil be set")
+        
+        for id in ids:
+            self.set_configColor_fromDict(id,dict[id][KEY_COLOR],subKey)
+
     # -------------- Samples for when Data is Set  -------------- #
-    def sample_pattern(self, subKey=KEY_SHIFTLIGHT):
-        counter = 0
+    def sample_pattern(self, pattern = None, period = None, subKey = None):
+        if subKey == None:
+            subKey = KEY_LIMITER
+        
+        if period == None:
+            period = self.config[KEY_LIMITER][KEY_LIMITER_PERIOD_S]
+
+        if pattern == None:
+            pattern_handler = self.patternFuncs[subKey]
+        else:
+            pattern_handler = self.get_patternCorr()[pattern]
+
         i = 0
-        while counter < self.lightCount:
+        while i < pattern_handler[KEY_LIGHT_COUNT]:
             # print(f"i:{i}")
-            i = self.handle_pattern(
-                self.config[subKey][KEY_PATTERN][KEY_SELECTED], i
-            )
+            pattern_handler[KEY_FUNC](subKey)
             self.update()
-            # TODO make this an interupt so it doesn't lockup the loop. Mocking the getRPM func would be a good way to do it
-            time.sleep_ms(25)
-            counter += 1
+            # TODO make this async so it doesn't lockup the loop. Mocking the getRPM func would be a good way to do it
+            time.sleep_ms(period)
+            i += 1
 
     def sample_brightness(self, old_brightness, new_brightness=None):
         if None == new_brightness:
@@ -203,37 +223,37 @@ class ShiftLight(RcuFunction.RcuFunction):
     def handle_pattern(self, i, subKey):
         if i == 0:
             self.clear_all()
-        self.patternFuncs[subKey]["func"](i, subKey)
+        self.patternFuncs[subKey][KEY_FUNC](i, subKey)
 
     def get_patternCorr(
         self,
     ):  # hopefully storing like this rather than self.xxxx will mean it doesn't hang around in memory? #TODO confirm this
         return {
             PATTERN_FLASH: {
-                "lightCount": self.lightCount,
-                "func": self.patternType_Flash,
+                KEY_LIGHT_COUNT: self.lightCount,
+                KEY_FUNC: self.patternType_Flash,
             },
             PATTERN_LR: {
-                "lightCount": self.lightCount,
-                "func": self.patternType_LeftRight,
+                KEY_LIGHT_COUNT: self.lightCount,
+                KEY_FUNC: self.patternType_LeftRight,
             },
             PATTERN_RL: {
-                "lightCount": self.lightCount,
-                "func": self.patternType_RightLeft,
+                KEY_LIGHT_COUNT: self.lightCount,
+                KEY_FUNC: self.patternType_RightLeft,
             },
             PATTERN_CI: {
-                "lightCount": self.lightMidPoint
+                KEY_LIGHT_COUNT: self.lightMidPoint
                 + 1,  # magic number. Think of centre in as two half sized lists, that share index 0
-                "func": self.patternType_CenterIn,
+                KEY_FUNC: self.patternType_CenterIn,
             },
             PATTERN_CO: {
-                "lightCount": self.lightMidPoint
+                KEY_LIGHT_COUNT: self.lightMidPoint
                 + 1,  # magic number. Think of centre in as two half sized lists, that share index 0
-                "func": self.patternType_CenterOut,
+                KEY_FUNC: self.patternType_CenterOut,
             },
             PATTERN_SOLID: {
-                "lightCount": self.lightCount,
-                "func": self.patternType_Solid,
+                KEY_LIGHT_COUNT: self.lightCount,
+                KEY_FUNC: self.patternType_Solid,
             },
         }
 
@@ -245,9 +265,11 @@ class ShiftLight(RcuFunction.RcuFunction):
         ]
 
         if subKey == KEY_SHIFTLIGHT:
-            self.set_rpmStep(thisPattern["lightCount"])
+            self.set_rpmStep(thisPattern[KEY_LIGHT_COUNT])
+
         return thisPattern
 
+    # -------------- Pattern Functions  -------------- #
     def patternType_LeftRight(self, i, subKey):
         self.set_color_fromConfig(i, subKey)
 
@@ -300,7 +322,6 @@ class ShiftLight(RcuFunction.RcuFunction):
         return i
 
     # -------------- Main Loop  -------------- #
-    # call within a loop to update the shift lights
 
     def _start(self):
         self.task = asyncio.create_task(self.run())
@@ -318,7 +339,7 @@ class ShiftLight(RcuFunction.RcuFunction):
                 self.handle_pattern(i=self.limiterI, subKey=KEY_LIMITER)
                 self.limiterI = self.increment_limiterI(
                     self.limiterI,
-                    self.patternFuncs[KEY_LIMITER]["lightCount"] - 1,
+                    self.patternFuncs[KEY_LIMITER][KEY_LIGHT_COUNT] - 1,
                 )
                 await asyncio.sleep(
                     self.config[KEY_LIMITER][

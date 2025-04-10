@@ -1,9 +1,5 @@
 import RcuFunction
-
-KEY_COLOR = "color"
-KEY_RED = "r"
-KEY_GREEN = "g"
-KEY_BLUE = "b"
+from static import *
 
 class Color:
     def __init__(self, id, *args):
@@ -18,7 +14,7 @@ class Color:
     def to_dict(self):
         return {
             RcuFunction.RCUFUNC_KEY_ID: self.id,
-            "color": {
+            KEY_COLOR: {
                 KEY_RED: self.r,
                 KEY_GREEN: self.g,
                 KEY_BLUE: self.b,
@@ -30,7 +26,7 @@ class Color:
     @staticmethod
     def from_loadedJson(jsonLoadedObj):
         return Color(
-            jsonLoadedObj["id"],
+            jsonLoadedObj[RCUFUNC_KEY_ID],
             jsonLoadedObj[KEY_RED],
             jsonLoadedObj[KEY_GREEN],
             jsonLoadedObj[KEY_BLUE],

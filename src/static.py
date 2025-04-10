@@ -1,5 +1,5 @@
 # RCU
-CONFIG_PATH = "data/config.json"
+CONFIG_PATH = "/workspaces/Resu-Control-Unit/src/data/config.json"
 FUNC_ACTIVE_KEY = "activated"
 
 SHIFTLIGHT_TYPE = "ShiftLights"
@@ -15,7 +15,6 @@ KEY_PIN = "Pins"
 ID_SEPERATOR = "_"
 
 # ShiftLights
-
 KEY_LIMITER = "Limiter"
 KEY_SHIFTLIGHT = "ShiftLights"
 KEY_PATTERN = "pattern"
@@ -29,7 +28,8 @@ KEY_BRIGHTNESS = "brightness"
 KEY_PULSES_PER_REV = "pulsesPerRev"
 KEY_TIMER = "tim"
 MOD_TIMER = KEY_TIMER
-
+KEY_FUNC = "func"
+KEY_LIGHT_COUNT = "lightCount"
 
 ASYNC_PAUSE_S = 0.15
 MOD_TIMER = KEY_TIMER
@@ -67,6 +67,7 @@ RCUFUNC_KEY = "RCUFuncs"
 RCUFUNC_KEY_ID = "id"
 RCUFUNC_KEY_TYPE = "type"
 DEPENDENCY_SLEEP_TIME_S = 0.1
+KEY_FIRM_ID = "FirmwareID"
 
 # RPMReader
 
@@ -87,6 +88,12 @@ KEY_PASSWORD = "password"
 KEY_AP = "ap"
 KEY_WLAN = "wlan"
 AP_DEFAULT_PASSWORD = "1234567890"
+
+# color
+KEY_COLOR = "color"
+KEY_RED = "r"
+KEY_GREEN = "g"
+KEY_BLUE = "b"
 
 class PinAssigned(Exception):
     def __init__(self, pinID):
