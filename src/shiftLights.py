@@ -18,30 +18,34 @@ class ShiftLight(RcuFunction.RcuFunction):
 
     @staticmethod
     def build_fromDict(obj, instance_register, module_register, pins = []):        
+        kwargs = ShiftLight.dictTo_kwargs(obj)
+        
         return ShiftLight(
             instance_register,
             module_register,
             pins,
             obj[RCUFUNC_KEY_ID],
-            limiterPattern = obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
-            limiterColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
-            revPattern = obj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_PATTERN][KEY_SELECTED], 
-            revColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]],
-            startRPM = obj[KEY_SHIFTLIGHT][KEY_START_RPM],
-            endRPM = obj[KEY_SHIFTLIGHT][KEY_END_RPM],
-            brightness = obj[KEY_SHIFTLIGHT][KEY_BRIGHTNESS],
-            limiterPeriod_s = obj[KEY_SHIFTLIGHT][KEY_LIMITER_PERIOD_S],
+            **kwargs
         )
-
+    # TODO for the love of god use *args for these jesus christ man....
     def update_fromDict(self,obj):
-        self.limiterPattern = obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
-        self.limiterColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
-        self.revPattern = obj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_PATTERN][KEY_SELECTED], 
-        self.revColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]],
-        self.startRPM = obj[KEY_SHIFTLIGHT][KEY_START_RPM],
-        self.endRPM = obj[KEY_SHIFTLIGHT][KEY_END_RPM],
-        self.brightness = obj[KEY_SHIFTLIGHT][KEY_BRIGHTNESS],
-        self.limiterPeriod_s = obj[KEY_SHIFTLIGHT][KEY_LIMITER_PERIOD_S],
+        kwargs = self.dictTo_kwargs(obj)
+        self.config = self.build_config(**kwargs)
+        
+    @staticmethod
+    def dictTo_kwargs(obj):
+        kwargs = {
+            "limiterPattern" : obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
+            "limiterColors" : [color.Color(col[KEY_ID],col[KEY_COLOR][KEY_RED],col[KEY_COLOR][KEY_GREEN],col[KEY_COLOR][KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
+            "revPattern" : obj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_PATTERN][KEY_SELECTED], 
+            "revColors" : [color.Color(col[KEY_ID],col[KEY_COLOR][KEY_RED],col[KEY_COLOR][KEY_GREEN],col[KEY_COLOR][KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]],
+            "startRPM" : obj[KEY_SHIFTLIGHT][KEY_START_RPM],
+            "endRPM" : obj[KEY_SHIFTLIGHT][KEY_END_RPM],
+            "brightness" : obj[KEY_SHIFTLIGHT][KEY_BRIGHTNESS],
+            "limiterPeriod_s" : obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_LIMITER_PERIOD_S]
+        }
+
+        return kwargs
 
     def to_dict(self):
         parentConfig = super().to_dict()
@@ -70,7 +74,49 @@ class ShiftLight(RcuFunction.RcuFunction):
         limiterPeriod_s = 1,
 
     ):
-        self.config = {
+        self.config = self.build_config(
+            limiterPattern,
+            limiterColors,
+            revPattern,
+            revColors,
+            startRPM,
+            endRPM,
+            brightness,
+            limiterPeriod_s
+        )
+        super().__init__(
+            KEY_SHIFTLIGHT,
+            id, #id
+            self._init,
+            self._start,
+            self._stop,
+            self._deinit,
+            self.dependencies,
+            instance_register,
+            sample_funcs_reg = {
+
+            }
+        )
+        self.task = None
+        # self.rpm_getter = instance_register[RCU.ID].get_rpm
+        self.rpm_getter = None
+        self.lib_neopixel = module_register[MOD_NEOPIXEL]
+        self.lib_Pin = module_register[MOD_PIN]
+        self.pins = pins
+        self.clearColor = color.Color(-1,0,0,0)
+
+    @staticmethod
+    def build_config(
+        limiterPattern,
+        limiterColors, 
+        revPattern,
+        revColors, 
+        startRPM,  
+        endRPM,
+        brightness,
+        limiterPeriod_s
+    ):
+        return {
             KEY_SHIFTLIGHT: {
                 KEY_COLORS: revColors,
                 KEY_PATTERN: {
@@ -90,24 +136,6 @@ class ShiftLight(RcuFunction.RcuFunction):
                 KEY_COLORS: limiterColors
             }
         }
-        super().__init__(
-            KEY_SHIFTLIGHT,
-            id, #id
-            self._init,
-            self._start,
-            self._stop,
-            self._deinit,
-            self.dependencies,
-            instance_register
-        )
-        self.task = None
-        # self.rpm_getter = instance_register[RCU.ID].get_rpm
-        self.rpm_getter = None
-        self.lib_neopixel = module_register[MOD_NEOPIXEL]
-        self.lib_Pin = module_register[MOD_PIN]
-        self.pins = pins
-        self.clearColor = color.Color(-1,0,0,0)
-
 
     def _deinit(self):
         self.np = None
@@ -190,7 +218,7 @@ class ShiftLight(RcuFunction.RcuFunction):
     # re-inited with little enough latency to make good user experince 
     def set_configColor_fromDict(self,id,dict,subKey=KEY_SHIFTLIGHT):
         """Set the color of a light from a dictionary. Dict must follow {r:xxx, g:xxx, b:xxx} format"""
-        self.config[subKey][KEY_COLORS][id] =  color.Color(dict[KEY_RED], dict[KEY_GREEN], dict[KEY_GREEN])
+        self.config[subKey][KEY_COLORS][id] =  color.Color(col[KEY_ID],dict[KEY_RED], dict[KEY_GREEN], dict[KEY_GREEN])
 
     def setAll_configColor_fromDict(self,dict,subKey=KEY_SHIFTLIGHT):
         """Set the color of all lights in the provided dict based on their ID. Dict must be the same format as colors config"""

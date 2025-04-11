@@ -24,3 +24,9 @@ async def getConfig(req,resp):
     await resp.send_file(CONFIG_PATH)
 
 server.run(port=PORT,loop_forever=False)
+
+class Parent:
+    SomeObject = {}
+
+class Child(Parent):
+    SomeObject = {"1": "Test"}

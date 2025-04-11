@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from static import *
 
@@ -21,6 +22,7 @@ class RcuFunction:
         deinit,
         dependencies,
         instance_register,
+        sample_funcs_reg = {},
         timer_gen = None,
     ):
         self.functionType = functionType
@@ -30,9 +32,10 @@ class RcuFunction:
         self.stop = stop 
         self.deinitFunc = deinit
         self.dependencies = dependencies
-        self.instance_register = instance_register
+        self.instance_register = instance_register,
         self.timer_gen = timer_gen
         self.inited = False
+        self.sample_funcs_reg = sample_funcs_reg
         
         
 
@@ -73,8 +76,21 @@ class RcuFunction:
         
         self.reinit(reinit)
 
+    # http methods 
     def get(self,_):
         return self.to_dict()
     
-    def set(self,data):
+    def post(self,data):
+        print(data)
+        print(type(data))
         self.update_fromDict(data)
+        return {'message': f"{self.functionID} updated"}, 201
+
+    def put(self,data):
+        try:
+            result = getattr(self,data[KEY_FUNC])(*data[KEY_ARGS],**data[KEY_KWARGS])
+            return {'message':"success","data": json.dumps(result)}, 200
+        except AttributeError:
+            return {'message':f"function {data[KEY_FUNC]} not found"}, 404
+
+        
