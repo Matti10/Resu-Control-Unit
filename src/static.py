@@ -1,6 +1,6 @@
 # RCU
-# ROOT_PATH = "/workspaces/Resu-Control-Unit/src"
-ROOT_PATH = ""
+ROOT_PATH = "/workspaces/Resu-Control-Unit/src"
+# ROOT_PATH = ""
 CONFIG_PATH = f"{ROOT_PATH}/data/config.json"
 FUNC_ACTIVE_KEY = "activated"
 

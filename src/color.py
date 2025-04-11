@@ -1,6 +1,7 @@
 import RcuFunction
 from static import *
 
+
 class Color:
     def __init__(self, id, *args):
         self.id = id # Do we really need and ID? (no, we can use index but so many changes #TODO)
@@ -24,12 +25,12 @@ class Color:
         return (self.r,self.g,self.b)
     
     @staticmethod
-    def from_loadedJson(jsonLoadedObj):
+    def build_fromDict(obj):
         return Color(
-            jsonLoadedObj[RCUFUNC_KEY_ID],
-            jsonLoadedObj[KEY_RED],
-            jsonLoadedObj[KEY_GREEN],
-            jsonLoadedObj[KEY_BLUE],
+            obj[RCUFUNC_KEY_ID],
+            obj[KEY_RED],
+            obj[KEY_GREEN],
+            obj[KEY_BLUE],
         )
         
 

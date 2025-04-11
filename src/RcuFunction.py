@@ -34,6 +34,7 @@ class RcuFunction:
         self.timer_gen = timer_gen
         self.inited = False
         
+        
 
         # for pinFuncName in pinFuncNames:
         #     self.get_funcs_pins(pinFuncName)
@@ -71,3 +72,9 @@ class RcuFunction:
         self.pins = pins
         
         self.reinit(reinit)
+
+    def get(self,_):
+        return self.to_dict()
+    
+    def set(self,data):
+        self.update_fromDict(data)

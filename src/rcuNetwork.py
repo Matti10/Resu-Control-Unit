@@ -51,14 +51,14 @@ class rcuNetwork:
 
 class rcuAP(rcuNetwork):
     @staticmethod
-    def from_loadedJson(jsonLoadedObj):
+    def build_fromDict(obj):
         return rcuAP(
-            jsonLoadedObj[KEY_PASSWORD],
-            jsonLoadedObj[KEY_SSID],
-            jsonLoadedObj[KEY_IP],
-            jsonLoadedObj[KEY_SUB_MASK],
-            jsonLoadedObj[KEY_GATEWAY],
-            jsonLoadedObj[KEY_DNS],
+            obj[KEY_PASSWORD],
+            obj[KEY_SSID],
+            obj[KEY_IP],
+            obj[KEY_SUB_MASK],
+            obj[KEY_GATEWAY],
+            obj[KEY_DNS],
         )
         
     def __init__(
@@ -110,10 +110,10 @@ class rcuAP(rcuNetwork):
 
 class rcuWLAN(rcuNetwork):
     @staticmethod
-    def from_loadedJson(jsonLoadedObj):
+    def build_fromDict(obj):
         return rcuWLAN(
-            jsonLoadedObj[KEY_PASSWORD],
-            jsonLoadedObj[KEY_SSID]
+            obj[KEY_PASSWORD],
+            obj[KEY_SSID]
         )
     
     def __init__(

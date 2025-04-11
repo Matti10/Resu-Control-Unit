@@ -17,21 +17,31 @@ class ShiftLight(RcuFunction.RcuFunction):
     ]
 
     @staticmethod
-    def from_loadedJson(jsonLoadedObj, instance_register, module_register, pins = []):        
+    def build_fromDict(obj, instance_register, module_register, pins = []):        
         return ShiftLight(
             instance_register,
             module_register,
             pins,
-            jsonLoadedObj[RCUFUNC_KEY_ID],
-            limiterPattern = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
-            limiterColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in jsonLoadedObj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
-            revPattern = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_PATTERN][KEY_SELECTED], 
-            revColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in jsonLoadedObj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]],
-            startRPM = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_START_RPM],
-            endRPM = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_END_RPM],
-            brightness = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_BRIGHTNESS],
-            limiterPeriod_s = jsonLoadedObj[KEY_SHIFTLIGHT][KEY_LIMITER_PERIOD_S],
+            obj[RCUFUNC_KEY_ID],
+            limiterPattern = obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
+            limiterColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
+            revPattern = obj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_PATTERN][KEY_SELECTED], 
+            revColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]],
+            startRPM = obj[KEY_SHIFTLIGHT][KEY_START_RPM],
+            endRPM = obj[KEY_SHIFTLIGHT][KEY_END_RPM],
+            brightness = obj[KEY_SHIFTLIGHT][KEY_BRIGHTNESS],
+            limiterPeriod_s = obj[KEY_SHIFTLIGHT][KEY_LIMITER_PERIOD_S],
         )
+
+    def update_fromDict(self,obj):
+        self.limiterPattern = obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
+        self.limiterColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
+        self.revPattern = obj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_PATTERN][KEY_SELECTED], 
+        self.revColors = [color.Color(col[color.KEY_RED],col[color.KEY_GREEN],col[color.KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]],
+        self.startRPM = obj[KEY_SHIFTLIGHT][KEY_START_RPM],
+        self.endRPM = obj[KEY_SHIFTLIGHT][KEY_END_RPM],
+        self.brightness = obj[KEY_SHIFTLIGHT][KEY_BRIGHTNESS],
+        self.limiterPeriod_s = obj[KEY_SHIFTLIGHT][KEY_LIMITER_PERIOD_S],
 
     def to_dict(self):
         parentConfig = super().to_dict()

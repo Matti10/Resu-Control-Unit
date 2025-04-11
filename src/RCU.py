@@ -6,18 +6,19 @@ except:
 import asyncio
 import gc
 
+import asyncServer
 import pins
 
-import rcuNetwork
+# import rcuNetwork
 import rpmReader
-import server
 import shiftLights
 import testing_utils
 from static import *
 
-import neopixel
-from machine import Pin
-from machine import Timer
+# import neopixel
+# from machine import Pin, Timer
+
+
 
 class RCU:
     CLASS_REGISTER = {
@@ -27,17 +28,17 @@ class RCU:
     }
     INSTANCE_REGISTER = {}
     
-    # MODULE_REGISTER = { # Unix/Test mode
-    #     MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
-    #     MOD_PIN: testing_utils.MockedPin,
-    #     MOD_TIMER: testing_utils.MockedTimer,
-    # }
-    
     MODULE_REGISTER = { # Unix/Test mode
-        MOD_NEOPIXEL: neopixel.NeoPixel,
-        MOD_PIN: Pin,
-        MOD_TIMER: Timer,
+        MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
+        MOD_PIN: testing_utils.MockedPin,
+        MOD_TIMER: testing_utils.MockedTimer,
     }
+    
+    # MODULE_REGISTER = { # ESP32
+    #     MOD_NEOPIXEL: neopixel.NeoPixel,
+    #     MOD_PIN: Pin,
+    #     MOD_TIMER: Timer,
+    # }
     
     RESOURCE_REGISTER = {
         KEY_TIMER : []
@@ -48,18 +49,20 @@ class RCU:
         self.config = self.import_config()
         
         # init backbone functionality
-        self.RCU_AP = rcuNetwork.rcuAP.from_loadedJson(self.config[KEY_AP])
-        self.RCU_AP.start()
+        # self.RCU_AP = rcuNetwork.rcuAP.build_fromDict(self.config[KEY_AP])
+        # self.RCU_AP.start()
         self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
         
 
         # self.RCU_SERVER = server.RCU_server(self)
         # instaticate any RCUFuncs from config
         self.add_RCUFunc_fromConfig()
-        
+        self.add_RCUFunc(SHIFTLIGHT_TYPE)
 
         self.config = None
         gc.collect()
+        asyncio.get_event_loop().run_forever()
+
     
     async def init_RCUFunc(self,id):
         await asyncio.run(self.INSTANCE_REGISTER[id].init())
@@ -92,6 +95,9 @@ class RCU:
         
         # assign pins to RCUFuncs
         self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[id])
+
+        # add server endpoint??
+        asyncServer.server.add_resource(self.INSTANCE_REGISTER[id],f"/{id}")
         
         return self.INSTANCE_REGISTER[id]
     
