@@ -20,13 +20,14 @@ window.rcuFuncCorrelation = {
 let configChanged = false;
 let funcToRemove = null;
 
+
 async function getAllConfig() {
-    return await getEndpoint("/config/");
+    return await getEndpoint("/config/",cacheBust=`?_=${Date.now()}`);
 }
 
-async function getEndpoint(endpoint) {
+async function getEndpoint(endpoint,cacheBust = "") {
     try {
-        const response = await fetch(endpoint);
+        const response = await fetch(`${endpoint}${cacheBust}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -82,10 +83,10 @@ function setLocalConfigFromEndpoint(endpoint, data, config = window.config) {
     }
 }
 
-async function setEndpoint(endpoint, data) {
+async function setEndpoint(endpoint, data, method = "POST") {
     try {
         const response = await fetch(`${endpoint}`, {
-            method: "POST",
+            method: method,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -737,8 +738,24 @@ function confirmFuncRemove(button) {
     funcToRemove = null;
 }
 
-async function add_rcuFunction(funcType, endpoint = "/addFunc") {
-    return await setEndpoint(endpoint,funcType)
+async function run_method(endpoint,method,args=[],kwargs={}) {
+    if (!Array.isArray(args)) {
+        args = [args]
+    }
+    if (typeof kwargs !== "object") {
+        throw "Kwargs must be an object of key value pairs"
+    }
+    const data = {
+        "func" : method,
+        "kwargs" : kwargs,
+        "args" : args
+    }
+    return await setEndpoint(endpoint,data,method="PUT")
+}
+
+async function add_rcuFunction(funcType, endpoint = "/RCU") {
+    await run_method(endpoint,"add_RCUFunc",args=funcType)
+    return await run_method(endpoint,"export_config")
 }
 
 async function rm_rcuFunction(id, endpoint = "/rmFunc") {

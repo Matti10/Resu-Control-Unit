@@ -10,13 +10,15 @@ import asyncServer
 import pins
 
 # import rcuNetwork
+import RcuFunction
 import rpmReader
 import shiftLights
 import testing_utils
 from static import *
+import re
 
-# import neopixel
-# from machine import Pin, Timer
+import neopixel
+from machine import Pin, Timer
 
 
 
@@ -25,20 +27,22 @@ class RCU:
         # SHIFTLIGHT_TYPE : testing_utils.MockedShiftLight,
         SHIFTLIGHT_TYPE : shiftLights.ShiftLight,
         RPMREADER_TYPE : rpmReader.TachoRpmReader,
+        RPMREADER_TYPE : rpmReader.TachoRpmReader,
+        RCUFUNCTION_TYPE : RcuFunction.RcuFunction
     }
     INSTANCE_REGISTER = {}
     
-    MODULE_REGISTER = { # Unix/Test mode
-        MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
-        MOD_PIN: testing_utils.MockedPin,
-        MOD_TIMER: testing_utils.MockedTimer,
-    }
-    
-    # MODULE_REGISTER = { # ESP32
-    #     MOD_NEOPIXEL: neopixel.NeoPixel,
-    #     MOD_PIN: Pin,
-    #     MOD_TIMER: Timer,
+    # MODULE_REGISTER = { # Unix/Test mode
+    #     MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
+    #     MOD_PIN: testing_utils.MockedPin,
+    #     MOD_TIMER: testing_utils.MockedTimer,
     # }
+    
+    MODULE_REGISTER = { # ESP32
+        MOD_NEOPIXEL: neopixel.NeoPixel,
+        MOD_PIN: Pin,
+        MOD_TIMER: Timer,
+    }
     
     RESOURCE_REGISTER = {
         KEY_TIMER : []
@@ -54,14 +58,13 @@ class RCU:
         self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
         
 
-        # self.RCU_SERVER = server.RCU_server(self)
         # instaticate any RCUFuncs from config
         self.add_RCUFunc_fromConfig()
-        self.add_RCUFunc(SHIFTLIGHT_TYPE)
 
+        asyncServer.server.add_resource(self,"/RCU")
         self.config = None
         gc.collect()
-        asyncio.get_event_loop().run_forever()
+        # asyncio.get_event_loop().run_forever()
 
     
     async def init_RCUFunc(self,id):
@@ -72,8 +75,9 @@ class RCU:
         await asyncio.gather(*tasks)
         
     def add_RCUFunc_fromConfig(self):
-        try: #Pass pins into funcs here? #TODO
-            for rcuFuncConfig in self.config[RCUFUNC_KEY]:
+        try:
+            
+            for rcuFuncConfig in self.config[RCUFUNC_KEY].values():
                 self.add_RCUFunc(
                     rcuFuncConfig[RCUFUNC_KEY_TYPE],
                     rcuFuncConfig[RCUFUNC_KEY_ID]
@@ -81,8 +85,8 @@ class RCU:
         except KeyError:
             print("No RCU Funcs in Config adding empty list")
 
-    def add_RCUFunc(self, type, id = None):
-        if id == None:
+    def add_RCUFunc(self, type, id = ""):
+        if id == "":
             id = self.gen_RCUFunc_id(type)
             
         print(f"addng rcu func {id}")
@@ -94,9 +98,9 @@ class RCU:
         )
         
         # assign pins to RCUFuncs
-        self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[id])
+        self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[id], reinit=False)
 
-        # add server endpoint??
+        # add server endpoint
         asyncServer.server.add_resource(self.INSTANCE_REGISTER[id],f"/{id}")
         
         return self.INSTANCE_REGISTER[id]
@@ -111,9 +115,9 @@ class RCU:
         print(self.INSTANCE_REGISTER)
         
     
-    def add_RCUFunc_Pins(self, RCUFunc):
+    def add_RCUFunc_Pins(self, RCUFunc, reinit=True):
         try:
-            RCUFunc.set_assigned_pins(self.RCU_PINS.get_funcs_pins(RCUFunc.functionType), reinit=False)
+            RCUFunc.set_assigned_pins(self.RCU_PINS.get_funcs_pins(RCUFunc.functionID), reinit=reinit)
         except pins.PinsNotAssigned as e:
             pass # at this stage, there isn't nessecarily an issue with no pins being assigned
         
@@ -154,9 +158,27 @@ class RCU:
         # add AP
         dict[KEY_AP] = "placeholder"
         
+        
         return dict
-            
+    
+    # ------------------ REST API Endpoints ------------------ #
+    def put(self,data):
+        try:
+            result =  asyncServer.run_method(self,data)
+            # if its an RCU function, return it as a dict
+            if isinstance(result,self.CLASS_REGISTER[RCUFUNCTION_TYPE]):
+                return json.dumps(result.to_dict()), 200
+            if result == None:
+                return "",200
+            return result, 200
+        except AttributeError as e:
+            return {'message':f"function {data[KEY_FUNC]} not found. Error:{e}"}, 404
+
+        
+        
+    # ------------------ Config Managment ------------------ #
     def export_config(self, configPath=CONFIG_PATH):
+        print(self.INSTANCE_REGISTER)
         self.write_config(self.to_dict(),configPath)
     
     @staticmethod

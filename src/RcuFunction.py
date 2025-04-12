@@ -1,6 +1,6 @@
 import asyncio
+from asyncServer import run_method
 import json
-
 from static import *
 
 
@@ -87,10 +87,5 @@ class RcuFunction:
         return {'message': f"{self.functionID} updated"}, 201
 
     def put(self,data):
-        try:
-            result = getattr(self,data[KEY_FUNC])(*data[KEY_ARGS],**data[KEY_KWARGS])
-            return {'message':"success","data": json.dumps(result)}, 200
-        except AttributeError:
-            return {'message':f"function {data[KEY_FUNC]} not found"}, 404
-
-        
+        result = run_method(self,data)
+        return json.dumps(result), 200

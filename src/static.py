@@ -1,6 +1,6 @@
 # RCU
-ROOT_PATH = "/workspaces/Resu-Control-Unit/src"
-# ROOT_PATH = ""
+# ROOT_PATH = "/workspaces/Resu-Control-Unit/src"
+ROOT_PATH = ""
 CONFIG_PATH = f"{ROOT_PATH}/data/config.json"
 FUNC_ACTIVE_KEY = "activated"
 
@@ -123,6 +123,7 @@ ROUTE_RMFUNC = "/rmFunc"
 KEY_STRING_JSON = "json"
 KEY_STRING_INT = "int"
 KEY_STRING_STRING = "string"
+RCUFUNCTION_TYPE = RCUFUNC_KEY
 
 
 class PinAssigned(Exception):

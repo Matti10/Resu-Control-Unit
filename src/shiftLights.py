@@ -150,6 +150,7 @@ class ShiftLight(RcuFunction.RcuFunction):
             self.lightCount // 2 + (self.lightCount % 2) - 1
         )  # magic number 1 is to account for 0 index
 
+        print(f"initing pins {self.pins}")
         if self.pins != []:
             self.init_np()
             
@@ -168,6 +169,7 @@ class ShiftLight(RcuFunction.RcuFunction):
 
     # -------------- Setup  -------------- #
     def init_np(self):
+        print(f"{self.functionID} - pin {self.pins[0][KEY_FIRM_ID]}")
         self.np = self.lib_neopixel(
             self.lib_Pin(self.pins[0][KEY_FIRM_ID], self.lib_Pin.OUT),
             self.lightCount

@@ -34,19 +34,19 @@ class RcuPins:
         self.pinConfig[pinID][RCUFUNC_KEY_TYPE] = PIN_UNASSIGN_NAME
             
             
-    # def unassign_on_funcName(self,pin_funcName):
+    # def unassign_on_funcName(self,funcID):
         #raise "this shit wont work"
-    #     pins = self.get_funcs_pins(pin_funcName)
+    #     pins = self.get_funcs_pins(funcID)
     #     try:
     #         [self.unassign_pin(pinID) for pinID in pins]
     #     except PinsNotAssigned:
     #         pass  # its already unassigned!
 
-    def get_funcs_pins(self, pin_funcName):
+    def get_funcs_pins(self, funcID):
         pins = []
         # discover assigned pins
         for pinId in self.pinConfig:
-            if pin_funcName in self.pinConfig[pinId][RCUFUNC_KEY_TYPE]:
+            if funcID in self.pinConfig[pinId][RCUFUNC_KEY_TYPE]:
                 pins.append(self.pinConfig[pinId])
 
         if pins == []:
