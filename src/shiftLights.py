@@ -244,6 +244,9 @@ class ShiftLight(RcuFunction.RcuFunction):
         else:
             pattern_handler = self.get_patternCorr()[pattern]
 
+        self.clear_all()
+        self.update()
+
         i = 0
         while i < pattern_handler[KEY_LIGHT_COUNT]:
             # print(f"i:{i}")

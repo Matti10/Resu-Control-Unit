@@ -1,5 +1,290 @@
 {
     "RCUFuncs": {
+        "ShiftLights_0": {
+            "ShiftLights": {
+                "Limiter": {
+                    "period_s": 1,
+                    "pattern": {
+                        "selected": "Center Out",
+                        "options": [
+                            "Flash",
+                            "Left to Right",
+                            "Right to Left",
+                            "Center In",
+                            "Center Out",
+                            "Solid"
+                        ]
+                    },
+                    "colors": [
+                        {
+                            "id": "0",
+                            "color": {
+                                "b": 2,
+                                "g": 26,
+                                "r": 0
+                            }
+                        },
+                        {
+                            "id": "1",
+                            "color": {
+                                "b": 1,
+                                "g": 39,
+                                "r": 1
+                            }
+                        },
+                        {
+                            "id": "2",
+                            "color": {
+                                "b": 2,
+                                "g": 30,
+                                "r": 9
+                            }
+                        },
+                        {
+                            "id": "3",
+                            "color": {
+                                "b": 0,
+                                "g": 45,
+                                "r": 12
+                            }
+                        },
+                        {
+                            "id": "4",
+                            "color": {
+                                "color": {
+                                    "blue": null,
+                                    "green": null,
+                                    "red": null
+                                }
+                            }
+                        },
+                        {
+                            "id": "5",
+                            "color": {
+                                "b": 0,
+                                "g": 45,
+                                "r": 7
+                            }
+                        },
+                        {
+                            "id": "6",
+                            "color": {
+                                "b": 0,
+                                "g": 45,
+                                "r": 53
+                            }
+                        },
+                        {
+                            "id": "7",
+                            "color": {
+                                "b": 0,
+                                "g": 45,
+                                "r": 53
+                            }
+                        },
+                        {
+                            "id": "8",
+                            "color": {
+                                "b": 0,
+                                "g": 45,
+                                "r": 53
+                            }
+                        },
+                        {
+                            "id": "9",
+                            "color": {
+                                "color": {
+                                    "blue": null,
+                                    "green": null,
+                                    "red": null
+                                }
+                            }
+                        },
+                        {
+                            "id": "10",
+                            "color": {
+                                "color": {
+                                    "r": 20,
+                                    "g": 10,
+                                    "b": 8
+                                }
+                            }
+                        },
+                        {
+                            "id": "11",
+                            "color": {
+                                "b": 0,
+                                "g": 0,
+                                "r": 33
+                            }
+                        },
+                        {
+                            "id": "12",
+                            "color": {
+                                "b": 0,
+                                "g": 0,
+                                "r": 33
+                            }
+                        },
+                        {
+                            "id": "13",
+                            "color": {
+                                "b": 0,
+                                "g": 0,
+                                "r": 33
+                            }
+                        },
+                        {
+                            "id": "14",
+                            "color": {
+                                "b": 1,
+                                "g": 0,
+                                "r": 33
+                            }
+                        }
+                    ]
+                },
+                "brightness": 0.5,
+                "startRPM": 0,
+                "ShiftLights": {
+                    "colors": [
+                        {
+                            "id": 0,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 1,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 2,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 3,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 4,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 5,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 6,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 7,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 8,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 9,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 10,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 11,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 12,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 13,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        },
+                        {
+                            "id": 14,
+                            "color": {
+                                "r": 0,
+                                "g": 45,
+                                "b": 12
+                            }
+                        }
+                    ],
+                    "pattern": {
+                        "selected": "Left to Right",
+                        "options": [
+                            "Flash",
+                            "Left to Right",
+                            "Right to Left",
+                            "Center In",
+                            "Center Out"
+                        ]
+                    }
+                },
+                "endRPM": 5000
+            },
+            "id": "ShiftLights_0",
+            "type": "ShiftLights"
+        }
     },
     "Pins": {
         "30": {

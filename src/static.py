@@ -117,6 +117,8 @@ FAVICON_PATH = f"{WEB_FILES_PATH}/resu-horiz-white.png"
 PORT = 8000
 
 ROUTE_CONFIG = "/config"
+ROUTE_CONFIG_UP = f"/uploadConfig"
+ROUTE_CONFIG_DOWN = f"/downloadConfig"
 ROUTE_RPM = "/rpm"
 ROUTE_ADDFUNC = "/addFunc"
 ROUTE_RMFUNC = "/rmFunc"
