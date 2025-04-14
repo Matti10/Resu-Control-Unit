@@ -81,8 +81,6 @@ class RcuFunction:
         return self.to_dict()
     
     def post(self,data):
-        print(data)
-        print(type(data))
         self.update_fromDict(data)
         return {'message': f"{self.functionID} updated"}, 201
 

@@ -7,27 +7,29 @@ let pinSelectors;
 window.config = null;
 window.rcuFuncCorrelation = {
     "ShiftLights": {
-        "buildFunc":build_shiftLight_table,
-        "displayName" : "Shift Lights"
+        "buildFunc": build_shiftLight_table,
+        "displayName": "Shift Lights"
 
     },
     "RPMReader": {
-        "buildFunc":build_rpmReader_table,
-        "displayName" : "RPM Input"
+        "buildFunc": build_rpmReader_table,
+        "displayName": "RPM Input"
 
     },
 }
+
+
 let configChanged = false;
 let funcToRemove = null;
 
 
 async function getAllConfig() {
-    return await getEndpoint("/config/",cacheBust=`?_=${Date.now()}`);
+    return await getEndpoint("/config/", cacheBust = `?_=${Date.now()}`);
 }
 
-async function getEndpoint(endpoint,cacheBust = "") {
+async function getEndpoint(post_endpoint, cacheBust = "") {
     try {
-        const response = await fetch(`${endpoint}${cacheBust}`);
+        const response = await fetch(`${post_endpoint}${cacheBust}`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -40,21 +42,21 @@ async function getEndpoint(endpoint,cacheBust = "") {
     }
 }
 
-function convertEndpointToConfigKey(endpoint) {
-    endpoint = endpoint.replace("/config", "");
-    return endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
+function convertpost_endpointToConfigKey(post_endpoint) {
+    post_endpoint = post_endpoint.replace("/config", "");
+    return post_endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
 }
 
-function getLocalConfigFromEndpoint(endpoint, config = window.config) {
-    const keys = convertEndpointToConfigKey(endpoint);
+function getLocalConfigFromEndpoint(post_endpoint, config = window.config) {
+    const keys = convertpost_endpointToConfigKey(post_endpoint);
     let value = config;
 
     for (const key of keys) {
         if (value[key] !== undefined) {
             value = value[key];
         } else {
-            console.log(`${key} does not exist, likely due to endpoint ${endpoint} being incorrect`)
-            // throw new Error(`${key} does not exist, likely due to endpoint ${endpoint} being incorrect`)
+            console.log(`${key} does not exist, likely due to post_endpoint ${post_endpoint} being incorrect`)
+            // throw new Error(`${key} does not exist, likely due to post_endpoint ${post_endpoint} being incorrect`)
         }
     }
 
@@ -62,14 +64,21 @@ function getLocalConfigFromEndpoint(endpoint, config = window.config) {
 }
 
 
-function setLocalConfigFromEndpoint(endpoint, data, config = window.config) {
-    const keys = convertEndpointToConfigKey(endpoint);
+function setLocalConfigFromEndpoint(post_endpoint, data, config = window.config) {
+    const keys = convertpost_endpointToConfigKey(post_endpoint);
     let current = config;
     configChanged = true;
 
-    for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
+    while (post_endpoint.includes("//")) {
+        post_endpoint.replace("//","/")
+    }
 
+    for (let i = 0; i < keys.length; i++) {
+        let key = keys[i];
+
+        if (key.includes("[")) {
+            key = key.replace("[","").replace("]","")
+        }
         // If it's the last key, set the value
         if (i === keys.length - 1) {
             current[key] = data;
@@ -83,33 +92,46 @@ function setLocalConfigFromEndpoint(endpoint, data, config = window.config) {
     }
 }
 
-async function setEndpoint(endpoint, data, method = "POST") {
+async function setEndpoint(post_endpoint, data, method = "POST") {
     try {
-        const response = await fetch(`${endpoint}`, {
+        const response = await fetch(`${post_endpoint}`, {
             method: method,
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ data: data })
+            body: JSON.stringify(data)
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to update ${endpoint} with data: ${data} Error: ${response.statusText}`);
+            throw new Error(`Failed to update ${post_endpoint} with data: ${data} Error: ${response.statusText}`);
         }
 
         const responseData = await response.text()
-        console.log(`Updated ${endpoint} with data:`, responseData);
+        console.log(`Updated ${post_endpoint} with data:`, responseData);
 
-        return responseData; 
+        return responseData;
     } catch (error) {
         console.error(error);
     }
 }
 
 function setInnerTextFromEndpoint(element) {
-    element.innerText = getLocalEndpoint(element.getAttribute("endpoint"))
+    element.innerText = getLocalEndpoint(element.getAttribute("post_endpoint"))
 }
 
+function handle_RCUFunc_configChange(element, data, post_endpoint = null, config = window.config) {
+    if (null === post_endpoint) {
+        post_endpoint = element.getAttribute("post_endpoint")
+    }
+
+    setLocalConfigFromEndpoint(post_endpoint, data)
+
+    const func_table = find_function_table(element)
+
+    if (null !== func_table) {
+        setEndpoint(func_table.post_endpoint, config.RCUFuncs[func_table.funcID])
+    }
+}
 
 
 function downloadConfig() {
@@ -185,28 +207,36 @@ function pickColor(circle) {
     colorPicker.click();
 }
 
-function postColorChange(endpoint, id, newColor) {
-    // Prepare the request payload
-    const requestBody = {
-        color: applyColorAdjustments(hexToRgb(newColor)) //apply color adjustments before sending to the server. 
-    };
-
-    setLocalConfigFromEndpoint(`${endpoint}/[${id}]/color`, requestBody)
+async function sampleColor(adjustedColor, endpoint, subkey) {
+    const spoofedColorObj = {
+        "id" : selectedCircle.id,
+        "color" : adjustedColor
+    }
+    return await run_method(endpoint, "sample_color", args = [spoofedColorObj, subkey]);
 }
 
 function changeColor(event) {
     // Change the circle's background color
     let newColor = event.target.value;
     selectedCircle.style.backgroundColor = newColor;
+    const adjustedColor = applyColorAdjustments(hexToRgb(newColor));
+    const func_table = find_function_table(selectedCircle)
+    const cirlce_endpoint = selectedCircle.getAttribute("post_endpoint")
 
-    postColorChange(selectedCircle.getAttribute("endpoint"), selectedCircle.id, newColor)
+    sampleColor(adjustedColor, func_table.post_endpoint, cirlce_endpoint.split("/").at(-2)).then(
+        () => {
+            const post_endpoint = `/RCUFuncs${func_table.post_endpoint}${cirlce_endpoint}/[${selectedCircle.id}]/color`
+            handle_RCUFunc_configChange(selectedCircle, adjustedColor, post_endpoint)
+        }
+    );
+
 }
 
 function addCirle(container, color, id) {
     const circle = document.createElement('div');
     circle.className = 'circle';
     circle.id = `${id}`;
-    circle.setAttribute("endpoint", `/ShiftLights/ShiftLights/colors`)
+    circle.setAttribute("post_endpoint", `/ShiftLights/ShiftLights/colors`)
     circle.onclick = function () { pickColor(this); };
 
     // Convert color values to CSS format
@@ -221,7 +251,7 @@ function populateButtonGroup(container, buttonData) {
         const button = document.createElement('button');
         button.id = `${pattern}-${container.id}`;
         button.innerText = pattern;
-        button.setAttribute("endpoint", `${container.getAttribute('endpoint')}/selected`)
+        button.setAttribute("post_endpoint", `${container.getAttribute('post_endpoint')}/selected`)
         button.onclick = function () { handleButtonGroupClick(this); };
 
         if (pattern === selected) {
@@ -236,7 +266,7 @@ function populateButtonGroup(container, buttonData) {
 function handleButtonGroupClick(button) {
 
     let buttons = button.parentNode.querySelectorAll("button");
-    let endpoint = button.getAttribute('endpoint')
+    let post_endpoint = button.getAttribute('post_endpoint')
 
     // Remove active class from all buttons
     buttons.forEach(btn => btn.className = "pure-button");
@@ -245,7 +275,7 @@ function handleButtonGroupClick(button) {
     button.className = "pure-button pure-button-active";
 
     // Send API request with the selected button's ID
-    setLocalConfigFromEndpoint(endpoint, button.innerText);
+    handle_RCUFunc_configChange(button, button.innerText);
 
 }
 
@@ -256,9 +286,9 @@ function buildSliderFromEndpoint() {
     for (const container of containers) {
         const slider = container.getElementsByClassName("sliderBar")[0];
         const inputBox = container.getElementsByClassName("value")[0];
-        const endpoint = container.getAttribute('endpoint');
+        const post_endpoint = container.getAttribute('post_endpoint');
         const scaler = container.getAttribute('scaler') || 1;
-        const value = getLocalConfigFromEndpoint(endpoint) * scaler;
+        const value = getLocalConfigFromEndpoint(post_endpoint) * scaler;
 
         slider.value = value;
         inputBox.value = value;
@@ -281,13 +311,13 @@ function buildSliderFromEndpoint() {
 
 function handleSliderInput(slider) {
     let parent = slider.parentNode
-    let endpoint = parent.getAttribute('endpoint');
+    let post_endpoint = parent.getAttribute('post_endpoint');
     if (parent.id == "brightNessSlider") {
-        setBrightness(endpoint, slider.value)
+        setBrightness(post_endpoint, slider.value)
     }
     else {
         let scaler = parent.getAttribute('scaler') || 1;
-        setLocalConfigFromEndpoint(endpoint, slider.value / scaler);
+        setLocalConfigFromEndpoint(parent, slider.value / scaler);
     }
 
 }
@@ -296,45 +326,21 @@ function buildButtonGroupsFromEndpoint() {
     const buttonGroups = document.getElementsByClassName("pure-button-group")
 
     for (const buttonGroup of buttonGroups) {
-        const buttonInfo = getLocalConfigFromEndpoint(buttonGroup.getAttribute("endpoint"))
+        const buttonInfo = getLocalConfigFromEndpoint(buttonGroup.getAttribute("post_endpoint"))
         populateButtonGroup(buttonGroup, buttonInfo)
     }
 }
 
 function buildColorCirclesFromEndpoint() {
     for (const colorContainer of colorContainers) {
-        getLocalConfigFromEndpoint(colorContainer.getAttribute("endpoint")).forEach(light => {
+        getLocalConfigFromEndpoint(colorContainer.getAttribute("post_endpoint")).forEach(light => {
             addCirle(colorContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
         });
     }
 }
 
-
-function toggleTableRows(element, post = true) {
-    // show/hide content
-    table = element.closest("table")
-    const rows = table.querySelectorAll("tr:not(:first-child)");
-    rows.forEach(row => {
-        row.style.display = element.checked ? "" : "none";
-    });
-    if (post) {
-        setLocalConfigFromEndpoint(element.getAttribute("endpoint"), element.checked);
-    }
-}
-
-function buildToggleSwitchesFromEndpoint() {
-    for (const toggleSwitch of toggleSwitches) {
-        toggleSwitch.checked = getLocalConfigFromEndpoint(toggleSwitch.getAttribute("endpoint"));
-        toggleSwitch.addEventListener("change", function () {
-            toggleTableRows(this); // `this` refers to `toggleSwitch`
-        });
-        toggleTableRows(toggleSwitch, post = false)
-    }
-}
-
-
-
-async function setBrightness(endpoint, brightness) {
+async function setBrightness(element, brightness) {
+    //TODO CALL sample brightness here
     global_brightness = brightness;
     // Iterate over the found elements
     for (let i = 0; i < colorContainers.length; i++) {
@@ -350,9 +356,9 @@ async function setBrightness(endpoint, brightness) {
         });
 
         // Store the fetch promise
-        await setLocalConfigFromEndpoint(colorContainers[i].getAttribute("endpoint"), brightenedColors)
+        await setLocalConfigFromEndpoint(colorContainers[i].getAttribute("post_endpoint"), brightenedColors)
         if (i < 1) {
-            setLocalConfigFromEndpoint(endpoint, brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
+            handle_RCUFunc_configChange(element, brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
         }
     }
 }
@@ -373,7 +379,7 @@ function handlePinSelectionClick(option) {
     if (selectedOption.innerText == "Unassigned") {
         unassignFuncsPin(funcName)
     } else {
-        setLocalConfigFromEndpoint(selectedOption.endpoint, funcName); // the ID to assign the PIN too is stored in function name attr
+        setLocalConfigFromEndpoint(selectedOption.post_endpoint, funcName); // the ID to assign the PIN too is stored in function name attr
     }
 
     // update all pin selectors with the change
@@ -383,18 +389,18 @@ function handlePinSelectionClick(option) {
             buildPinSelectorsFromEndpoint() //rebuilding them all is easy but inefficent #TODO
         });
     });
-        
+
 
 }
 
 
 function buildPinSelectorsFromEndpoint(pinConfig = window.config.Pins) {
 
-    
+
     pinSelectors.forEach(pinSelector => {
         // Clear existing options (if any)
         pinSelector.innerHTML = '';
-        
+
         // Create "unassigned" option
         const unassignedOption = document.createElement('option');
         unassignedOption.style.backgroundColor = 'grey';
@@ -402,8 +408,8 @@ function buildPinSelectorsFromEndpoint(pinConfig = window.config.Pins) {
         unassignedOption.value = ""
         //add unassigned option
         pinSelector.appendChild(unassignedOption);
-        
-        
+
+
         // default selection to  
         unassignedOption.selected = true;
 
@@ -414,7 +420,7 @@ function buildPinSelectorsFromEndpoint(pinConfig = window.config.Pins) {
             if (pinData.class.includes(allowedClass)) {
                 const option = document.createElement('option');
                 option.value = pinNumber;  // Use pinNumber as the value
-                option.endpoint = `${pinSelector.getAttribute("endpoint")}/${pinNumber}/type`
+                option.post_endpoint = `${pinSelector.getAttribute("post_endpoint")}/${pinNumber}/type`
 
                 // get assignment data. This is called in a loop during build so not very efficent... Code is tidier though?
                 const pinFunction = pinSelector.getAttribute('function-Name');
@@ -479,8 +485,7 @@ function build_all(redirect = "") {
         buildColorCirclesFromEndpoint();
         buildPinSelectorsFromEndpoint();
         buildSliderFromEndpoint();
-        buildToggleSwitchesFromEndpoint();
-        setInterval(setAllConfig, configSetPeriodMs)
+        // setInterval(setAllConfig, configSetPeriodMs)
     }).then(() => {
         window.location.hash = redirect
         hide_loadingScreen()
@@ -510,11 +515,29 @@ function updateRPM() {
         .then(data => document.getElementById('currentRPM').innerText = data.rpm);
 }
 
+function find_function_table(element) {
+    // Base case: If the element is null or undefined, return null
+    if (!element) {
+        return null;
+    }
+
+    // Check if the current element is a table with the class "function-table"
+    if (element.tagName === "TABLE" && element.classList.contains("function-table")) {
+        return element;
+    }
+
+    // Recurse up to the parent element
+    return find_function_table(element.parentElement);
+}
+
 function build_function_table(funcID, displayName, container = document.getElementById("mainbody")) {
     displayName = `${displayName} <span style="font-size: 0.8em;display: inline-block; text-align: left;">(${funcID.split("_").at(-1)})</span>`
     const id = `${funcID}-table`
     const table = document.createElement('table');
+    table.classList.add("function-table")
     table.id = id;
+    table.funcID = funcID
+    table.post_endpoint = `/${funcID}`
     table.innerHTML = `
     <tr>
         <td class="table-global-heading" colspan="2">
@@ -527,9 +550,9 @@ function build_function_table(funcID, displayName, container = document.getEleme
             </div>
         </td>
     </tr>`;
-    
+
     container.appendChild(table);
-    
+
     // Add click event to close button
     table.querySelector('.close-btn').addEventListener('click', () => {
         funcToRemove = funcID
@@ -563,7 +586,7 @@ function add_PinSelection_function_table_row(table, heading, tooltipText, id, al
         table,
         heading,
         tooltipText,
-        `<select class="pinSelector-dropdown" endpoint="/config/Pins" function-name="${id}" allowed-class="${allowedClass}"><!--This is dynamically set by JS --></select>`
+        `<select class="pinSelector-dropdown" post_endpoint="/config/Pins" function-name="${id}" allowed-class="${allowedClass}"><!--This is dynamically set by JS --></select>`
     );
 }
 function add_sidebar_entry(text, href) {
@@ -577,7 +600,7 @@ function add_sidebar_entry(text, href) {
 
 }
 
-function clear_all_dynamic(){
+function clear_all_dynamic() {
     clear_dynamic_content()
     clear_dynamic_sidebar()
 };
@@ -613,37 +636,37 @@ function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_
         funcTable,
         `Light Color`,
         `Select the color of each of the 15 shift lights by clicking on the corresponding light below. The color will update once you "click out" of the color picker.`,
-        `<div class="color-container"  endpoint="${shiftLightConfigRoot}/ShiftLights/colors"> <!--This is dynamically set by JS--></div> <input type="color" id="colorPicker" style="opacity: 0; position: absolute; pointer-events: none;" onchange="changeColor(event)">`
+        `<div class="color-container"  post_endpoint="${shiftLightConfigRoot}/ShiftLights/colors"> <!--This is dynamically set by JS--></div> <input type="color" id="colorPicker" style="opacity: 0; position: absolute; pointer-events: none;" onchange="changeColor(event)">`
     );
     add_function_table_row(
         funcTable,
         `Rev Pattern`,
         `Select the pattern used through the rev range`,
-        `<div id="revPattern-containter" class="pure-button-group" role="group"  endpoint="${shiftLightConfigRoot}/ShiftLights/pattern" aria-label="..."> </div>`
+        `<div id="revPattern-containter" class="pure-button-group" role="group"  post_endpoint="${shiftLightConfigRoot}/ShiftLights/pattern" aria-label="..."> </div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Color`,
         `Select the color the shiftlights change to when the shift point is reached`,
-        `<div class="color-container"  endpoint="${shiftLightConfigRoot}/Limiter/colors"> <!--This is dynamically set by JS --></div>`
+        `<div class="color-container"  post_endpoint="${shiftLightConfigRoot}/Limiter/colors"> <!--This is dynamically set by JS --></div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Pattern`,
         `Select the pattern used when shift point is reached`,
-        `<div id="limiterPattern-containter" class="pure-button-group" role="group"  endpoint="${shiftLightConfigRoot}/Limiter/pattern" aria-label="..."> </div>`
+        `<div id="limiterPattern-containter" class="pure-button-group" role="group"  post_endpoint="${shiftLightConfigRoot}/Limiter/pattern" aria-label="..."> </div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Period (ms)`,
         `This sets speed the limiter plays its pattern (in milliseconds)`,
-        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="50" max="1000" value="50"> <input type="number" class="value" min="50" max="1000" value="50"> </div>`
+        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" post_endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="50" max="1000" value="50"> <input type="number" class="value" min="50" max="1000" value="50"> </div>`
     );
     add_function_table_row(
         funcTable,
         `Brightness`,
         `I think you already know what this one does ;). This Controls the Overall Brightness of the shift lights`,
-        `<div class="slider-container" scaler=${brightnessScaler} id="brightnessSlider" endpoint="${shiftLightConfigRoot}/brightness"> <input type="range" class="sliderBar" min="0" max="100" value="50"> <input type="number" class="value" min="0" max="100" value="50"> </div>`
+        `<div class="slider-container" scaler=${brightnessScaler} id="brightnessSlider" post_endpoint="${shiftLightConfigRoot}/brightness"> <input type="range" class="sliderBar" min="0" max="100" value="50"> <input type="number" class="value" min="0" max="100" value="50"> </div>`
     );
 
 }
@@ -656,7 +679,7 @@ function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
         funcTable,
         `RPM Input Mode`,
         `This tells the RCU where to look for the RPM signal!`,
-        `<div id="rpmInput-containter" class="pure-button-group" role="group" endpoint="${rpmReaderConfigRoot}/options" aria-label="..."></div>`
+        `<div id="rpmInput-containter" class="pure-button-group" role="group" post_endpoint="${rpmReaderConfigRoot}/options" aria-label="..."></div>`
     );
     add_PinSelection_function_table_row(
         funcTable,
@@ -723,14 +746,14 @@ function confirmFuncSelection(button) {
         button.disabled = false
 
     });
-    
-    
+
+
 }
 
 function confirmFuncRemove(button) {
     button.disabled = true
     show_loadingScreen()
-    rm_rcuFunction(funcToRemove).then(()=>{
+    rm_rcuFunction(funcToRemove).then(() => {
         rebuild_all();
         closePopup("rmFunc-popup");
         button.disabled = false
@@ -738,7 +761,8 @@ function confirmFuncRemove(button) {
     funcToRemove = null;
 }
 
-async function run_method(endpoint,method,args=[],kwargs={}) {
+
+async function run_method(post_endpoint, method, args = [], kwargs = {}) {
     if (!Array.isArray(args)) {
         args = [args]
     }
@@ -746,18 +770,18 @@ async function run_method(endpoint,method,args=[],kwargs={}) {
         throw "Kwargs must be an object of key value pairs"
     }
     const data = {
-        "func" : method,
-        "kwargs" : kwargs,
-        "args" : args
+        "func": method,
+        "kwargs": kwargs,
+        "args": args
     }
-    return await setEndpoint(endpoint,data,method="PUT")
+    return await setEndpoint(post_endpoint, data, method = "PUT")
 }
 
-async function add_rcuFunction(funcType, endpoint = "/RCU") {
-    await run_method(endpoint,"add_RCUFunc",args=funcType)
-    return await run_method(endpoint,"export_config")
+async function add_rcuFunction(funcType, post_endpoint = "/RCU") {
+    await run_method(post_endpoint, "add_RCUFunc", args = funcType)
+    return await run_method(post_endpoint, "export_config")
 }
 
-async function rm_rcuFunction(id, endpoint = "/rmFunc") {
-    return await setEndpoint(endpoint,id)
+async function rm_rcuFunction(id, post_endpoint = "/rmFunc") {
+    return await setEndpoint(post_endpoint, id)
 }

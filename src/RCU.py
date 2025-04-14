@@ -80,12 +80,13 @@ class RCU:
             for rcuFuncConfig in self.config[RCUFUNC_KEY].values():
                 self.add_RCUFunc(
                     rcuFuncConfig[RCUFUNC_KEY_TYPE],
-                    rcuFuncConfig[RCUFUNC_KEY_ID]
+                    rcuFuncConfig[RCUFUNC_KEY_ID],
+                    init=False
                 )
         except KeyError:
             print("No RCU Funcs in Config adding empty list")
 
-    def add_RCUFunc(self, type, id = ""):
+    def add_RCUFunc(self, type, id = "",init=True):
         if id == "":
             id = self.gen_RCUFunc_id(type)
             
@@ -100,6 +101,10 @@ class RCU:
         # assign pins to RCUFuncs
         self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[id], reinit=False)
 
+        if init:
+            asyncio.run(self.init_RCUFunc(id))
+        
+        
         # add server endpoint
         asyncServer.server.add_resource(self.INSTANCE_REGISTER[id],f"/{id}")
         

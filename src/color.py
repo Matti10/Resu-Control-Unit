@@ -3,7 +3,7 @@ from static import *
 
 
 class Color:
-    def __init__(self, id, *args):
+    def __init__(self, *args, id=-1):
         self.id = id # Do we really need and ID? (no, we can use index but so many changes #TODO)
         if len(args) == 3:
             self.r, self.g, self.b = args
@@ -12,25 +12,30 @@ class Color:
         else:
             raise ValueError("Color must be initialized with either 3 or 0 arguments")
         
+    def __str__(self):
+        return f"id:{self.id} r:{self.r} g:{self.g} b:{self.b}"
+        
     def to_dict(self):
         return {
-            RcuFunction.RCUFUNC_KEY_ID: self.id,
+            KEY_ID: str(self.id),
             KEY_COLOR: {
-                KEY_RED: self.r,
-                KEY_GREEN: self.g,
-                KEY_BLUE: self.b,
+                KEY_RED: int(self.r),
+                KEY_GREEN: int(self.g),
+                KEY_BLUE: int(self.b),
             }
         }
+        
     def to_npColor(self):
-        return (self.r,self.g,self.b)
+        return (int(self.r),int(self.g),int(self.b))
     
     @staticmethod
     def build_fromDict(obj):
         return Color(
-            obj[RCUFUNC_KEY_ID],
-            obj[KEY_RED],
-            obj[KEY_GREEN],
-            obj[KEY_BLUE],
+            int(obj[KEY_COLOR][KEY_RED]),
+            int(obj[KEY_COLOR][KEY_GREEN]),
+            int(obj[KEY_COLOR][KEY_BLUE]),
+            id=int(obj[KEY_ID])
+            
         )
         
 

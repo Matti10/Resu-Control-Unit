@@ -27,24 +27,25 @@ class ShiftLight(RcuFunction.RcuFunction):
             obj[RCUFUNC_KEY_ID],
             **kwargs
         )
-    # TODO for the love of god use *args for these jesus christ man....
     def update_fromDict(self,obj):
         kwargs = self.dictTo_kwargs(obj)
         self.config = self.build_config(**kwargs)
+        
         
     @staticmethod
     def dictTo_kwargs(obj):
         kwargs = {
             "limiterPattern" : obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
-            "limiterColors" : [color.Color(col[KEY_ID],col[KEY_COLOR][KEY_RED],col[KEY_COLOR][KEY_GREEN],col[KEY_COLOR][KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
+            "limiterColors" : [color.Color.build_fromDict(col) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
             "revPattern" : obj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_PATTERN][KEY_SELECTED], 
-            "revColors" : [color.Color(col[KEY_ID],col[KEY_COLOR][KEY_RED],col[KEY_COLOR][KEY_GREEN],col[KEY_COLOR][KEY_BLUE]) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]],
+            "revColors" : [color.Color.build_fromDict(col) for col in obj[KEY_SHIFTLIGHT][KEY_SHIFTLIGHT][KEY_COLORS]],
             "startRPM" : obj[KEY_SHIFTLIGHT][KEY_START_RPM],
             "endRPM" : obj[KEY_SHIFTLIGHT][KEY_END_RPM],
             "brightness" : obj[KEY_SHIFTLIGHT][KEY_BRIGHTNESS],
             "limiterPeriod_s" : obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_LIMITER_PERIOD_S]
         }
 
+        
         return kwargs
 
     def to_dict(self):
@@ -64,25 +65,22 @@ class ShiftLight(RcuFunction.RcuFunction):
         id,
         _, # timer getter
         pins = [],
-        limiterPattern = PATTERN_CO,
-        limiterColors = [color.Color(id) for id in range(LIGHT_COUNT)],
-        revPattern = PATTERN_LR,
-        revColors = [color.Color(id) for id in range(LIGHT_COUNT)],
-        startRPM = 0,
-        endRPM = 5000,
-        brightness = 0.5,
-        limiterPeriod_s = 1,
+        **kwargs
 
     ):
+        # Default Values
+        kwargs["limiterPattern"] = kwargs.get("limiterPattern",PATTERN_CO)
+        kwargs["limiterColors"] = kwargs.get("limiterColors",[color.Color(id=id) for id in range(LIGHT_COUNT)])
+        kwargs["revPattern"] = kwargs.get("revPattern",PATTERN_LR)
+        kwargs["revColors"] = kwargs.get("revColors",[color.Color(id=id) for id in range(LIGHT_COUNT)])
+        kwargs["startRPM"] = kwargs.get("startRPM",0)
+        kwargs["endRPM"] = kwargs.get("endRPM",5000)
+        kwargs["brightness"] = kwargs.get("brightness",0.5)
+        kwargs["limiterPeriod_s"] = kwargs.get("limiterPeriod_s",1)
+        
+        #build config
         self.config = self.build_config(
-            limiterPattern,
-            limiterColors,
-            revPattern,
-            revColors,
-            startRPM,
-            endRPM,
-            brightness,
-            limiterPeriod_s
+            **kwargs
         )
         super().__init__(
             KEY_SHIFTLIGHT,
@@ -92,10 +90,7 @@ class ShiftLight(RcuFunction.RcuFunction):
             self._stop,
             self._deinit,
             self.dependencies,
-            instance_register,
-            sample_funcs_reg = {
-
-            }
+            instance_register
         )
         self.task = None
         # self.rpm_getter = instance_register[RCU.ID].get_rpm
@@ -103,19 +98,21 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.lib_neopixel = module_register[MOD_NEOPIXEL]
         self.lib_Pin = module_register[MOD_PIN]
         self.pins = pins
-        self.clearColor = color.Color(-1,0,0,0)
+        self.clearColor = color.Color(0,0,0)
 
     @staticmethod
     def build_config(
-        limiterPattern,
-        limiterColors, 
-        revPattern,
-        revColors, 
-        startRPM,  
-        endRPM,
-        brightness,
-        limiterPeriod_s
-    ):
+        **kwargs
+    ): #TODO this could be simplified by defaulting kwargs to current values, would remove the need to send all data
+        limiterPattern = kwargs["limiterPattern"]
+        limiterColors = kwargs["limiterColors"] 
+        revPattern = kwargs["revPattern"]
+        revColors = kwargs["revColors"] 
+        startRPM = kwargs["startRPM"]  
+        endRPM = kwargs["endRPM"]
+        brightness = kwargs["brightness"]
+        limiterPeriod_s = kwargs["limiterPeriod_s"]
+        
         return {
             KEY_SHIFTLIGHT: {
                 KEY_COLORS: revColors,
@@ -150,7 +147,6 @@ class ShiftLight(RcuFunction.RcuFunction):
             self.lightCount // 2 + (self.lightCount % 2) - 1
         )  # magic number 1 is to account for 0 index
 
-        print(f"initing pins {self.pins}")
         if self.pins != []:
             self.init_np()
             
@@ -169,7 +165,6 @@ class ShiftLight(RcuFunction.RcuFunction):
 
     # -------------- Setup  -------------- #
     def init_np(self):
-        print(f"{self.functionID} - pin {self.pins[0][KEY_FIRM_ID]}")
         self.np = self.lib_neopixel(
             self.lib_Pin(self.pins[0][KEY_FIRM_ID], self.lib_Pin.OUT),
             self.lightCount
@@ -232,6 +227,12 @@ class ShiftLight(RcuFunction.RcuFunction):
             self.set_configColor_fromDict(id,dict[id][KEY_COLOR],subKey)
 
     # -------------- Samples for when Data is Set  -------------- #
+    def sample_color(self, colorDict, subKey):
+        newColor = color.Color.build_fromDict(colorDict)
+        self.setAll_color_fromConfig(subKey)
+        self.set_color(int(newColor.id),newColor)
+        self.update()
+
     def sample_pattern(self, pattern = None, period = None, subKey = None):
         if subKey == None:
             subKey = KEY_LIMITER

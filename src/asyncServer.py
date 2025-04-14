@@ -3,7 +3,6 @@ import tinyweb.tinyweb as tinyweb
 from static import *
 
 def run_method(cls,data):
-    data = data["data"]
     return getattr(cls,data[KEY_FUNC])(*data[KEY_ARGS],**data[KEY_KWARGS])
 
 
@@ -28,7 +27,6 @@ async def getConfig(req,resp):
 @server.route(ROUTE_CONFIG_UP, methods=["POST"])
 async def uploadConfig(req,resp):
     data = await req.read_parse_form_data()
-    print(data)
 
 server.run(host="192.168.0.168", port=PORT,loop_forever=False)
 
