@@ -245,6 +245,10 @@ class ShiftLight(RcuFunction.RcuFunction):
         else:
             pattern_handler = self.get_patternCorr()[pattern]
 
+        print(f"pattern:{pattern}")
+        print(f"period:{period}")
+        print(f"subKey:{subKey}")
+
         self.clear_all()
         self.update()
 
@@ -259,18 +263,16 @@ class ShiftLight(RcuFunction.RcuFunction):
         
         self.clear_all()
 
-    def sample_brightness(self, new_brightness, old_brightness):
+    def sample_brightness(self, new_brightness, old_brightness=None):
+        if None == old_brightness:
+            old_brightness = self.config[KEY_BRIGHTNESS]
 
-        print(old_brightness)
-        print(new_brightness)
         brightness = new_brightness / old_brightness 
-        print(f"bright{brightness}")
+        print(f"brightness:{brightness} = new {new_brightness} / old {old_brightness} ")
         if self.lights_are_clear():
             self.setAll_color_fromConfig()
-        print(f"np before {[col for col in self.np]}")
         for id in range(len(self.np)):
             self.np[id] = tuple(int(color * brightness) for color in self.np[id])
-        print(f"np after {[col for col in self.np]}")
         
         self.update()
 

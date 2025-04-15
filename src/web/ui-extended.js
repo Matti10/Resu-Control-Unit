@@ -18,6 +18,11 @@ window.rcuFuncCorrelation = {
     },
 }
 
+window.sampleFunctions = {
+    "sample_pattern" : samplePattern,
+    "sample_brightness" : sampleBrightness,
+    "sample_color" : sampleColor,
+}
 
 let configChanged = false;
 let funcToRemove = null;
@@ -207,23 +212,58 @@ function pickColor(circle) {
     colorPicker.click();
 }
 
-async function sampleColor(adjustedColor, endpoint, subkey) {
+function getShiftLightSubKey_fromEndpoint(endpoint) {
+    subKey = "Limiter"
+    if (!endpoint.includes(subKey)) {
+        subKey = "ShiftLights"
+    }
+    return subKey
+}
+
+async function sampleColor(adjustedColor, rcuFuncID = null, endpoint = null) {
     const spoofedColorObj = {
         "id" : selectedCircle.id,
         "color" : adjustedColor
     }
-    return await run_method(endpoint, "sample_color", args = [spoofedColorObj, subkey]);
+    subkey = getShiftLightSubKey_fromEndpoint(endpoint)
+    return await run_method(rcuFuncID, "sample_color", args = [spoofedColorObj, subkey]);
 }
 
-async function samplePattern(pattern = null, period = null, subKey = null) {
+async function samplePattern(data, rcuFuncID = null, endpoint = null) {
     const _kwargs = {
-        "pattern" : pattern,
-        "period" : period,
-        "subKey" : subKey
+        "pattern" : null,
+        "period" : null,
+        "subKey" : getShiftLightSubKey_fromEndpoint(endpoint) || null // this defaults to "ShiftLights"
     }
-    return await run_method(endpoint, "sample_pattern", kwargs=_kwargs);
+
+    if (endpoint.includes("period")) {
+        _kwargs["period"] = data
+    } else {
+        _kwargs["pattern"] = data
+
+    }
+
+    return await run_method(rcuFuncID, "sample_pattern", kwargs=_kwargs);
 }
 
+async function sampleBrightness(newBrightness, rcuFuncID = null, endpoint = null) {
+    const _args = [
+        newBrightness
+    ]
+    return await run_method(rcuFuncID, "sample_brightness", args=_args);
+}
+
+async function run_sampleFunction(element,data,endpoint=null) {
+    const sample_func_id = element.getAttribute("sample_func")
+    if (null !== sample_func_id) {
+        const rcuFunc_id = find_function_table(element)
+        if (null == endpoint) {
+            endpoint = element.getAttribute("post_endpoint")
+        }
+        return await window.sampleFunctions[sample_func_id](data,rcuFunc_id,endpoint)
+    }
+
+}
 
 function changeColor(event) {
     // Change the circle's background color
@@ -232,8 +272,7 @@ function changeColor(event) {
     const adjustedColor = applyColorAdjustments(hexToRgb(newColor));
     const func_table = find_function_table(selectedCircle)
     const cirlce_endpoint = selectedCircle.getAttribute("post_endpoint")
-
-    sampleColor(adjustedColor, func_table.post_endpoint, cirlce_endpoint.split("/").at(-2)).then(
+    run_sampleFunction(selectedCircle).then(
         () => {
             const post_endpoint = `/RCUFuncs${func_table.post_endpoint}${cirlce_endpoint}/[${selectedCircle.id}]/color`
             handle_RCUFunc_configChange(selectedCircle, adjustedColor, post_endpoint)
@@ -246,6 +285,7 @@ function addCirle(container, color, id) {
     const circle = document.createElement('div');
     circle.className = 'circle';
     circle.id = `${id}`;
+    circle.setAttribute("sample_func", "sample_color")
     circle.setAttribute("post_endpoint", `/ShiftLights/ShiftLights/colors`)
     circle.onclick = function () { pickColor(this); };
 
@@ -276,7 +316,6 @@ function populateButtonGroup(container, buttonData) {
 function handleButtonGroupClick(button) {
 
     let buttons = button.parentNode.querySelectorAll("button");
-    let post_endpoint = button.getAttribute('post_endpoint')
 
     // Remove active class from all buttons
     buttons.forEach(btn => btn.className = "pure-button");
@@ -285,7 +324,10 @@ function handleButtonGroupClick(button) {
     button.className = "pure-button pure-button-active";
 
     // Send API request with the selected button's ID
-    handle_RCUFunc_configChange(button, button.innerText);
+    run_sampleFunction(button.parentNode,button.innerText).then(() => {
+        handle_RCUFunc_configChange(button, button.innerText);
+
+    });
 
 }
 
@@ -326,8 +368,11 @@ function handleSliderInput(slider) {
         setBrightness(post_endpoint, slider.value)
     }
     else {
-        let scaler = parent.getAttribute('scaler') || 1;
-        setLocalConfigFromEndpoint(parent, slider.value / scaler);
+        const scaler = parent.getAttribute('scaler') || 1;
+        const scaledData = slider.value / scaler
+        run_sampleFunction(parent,scaledData,post_endpoint).then(() => {
+            handle_RCUFunc_configChange(slider,scaledData,post_endpoint);
+        });
     }
 
 }
@@ -350,27 +395,26 @@ function buildColorCirclesFromEndpoint() {
 }
 
 async function setBrightness(element, brightness) {
-    //TODO CALL sample brightness here
-    global_brightness = brightness;
-    // Iterate over the found elements
-    for (let i = 0; i < colorContainers.length; i++) {
-        const brightenedColors = Array.from(colorContainers[i].getElementsByClassName('circle')).map(circle => {
-            // Get the color of the circle
-            const color = circle.style.backgroundColor;
-            const id = circle.id;
-
-            return {
-                id: id,
-                color: applyColorAdjustments(rgbStringToObject(color), brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
-            };
-        });
-
-        // Store the fetch promise
-        await setLocalConfigFromEndpoint(colorContainers[i].getAttribute("post_endpoint"), brightenedColors)
-        if (i < 1) {
-            handle_RCUFunc_configChange(element, brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
+    const scaled_brightness = brightness / brightnessScaler
+    run_sampleFunction(element, scaled_brightness).then(() => { // should really start the color cals and await them and the sample before changing config
+        global_brightness = brightness;
+        
+        // Iterate over the found elements
+        for (let i = 0; i < colorContainers.length; i++) {
+            const brightenedColors = Array.from(colorContainers[i].getElementsByClassName('circle')).map(circle => {
+                // Get the color of the circle
+                const color = circle.style.backgroundColor;
+                const id = circle.id;
+    
+                return {
+                    id: id,
+                    color: applyColorAdjustments(rgbStringToObject(color), brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
+                };
+            });
+    
+            handle_RCUFunc_configChange(element, brightenedColors,colorContainers[i].getAttribute("post_endpoint"))
         }
-    }
+    });
 }
 
 function unassignFuncsPin(functionName, config = window.config) {
@@ -646,37 +690,37 @@ function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_
         funcTable,
         `Light Color`,
         `Select the color of each of the 15 shift lights by clicking on the corresponding light below. The color will update once you "click out" of the color picker.`,
-        `<div class="color-container"  post_endpoint="${shiftLightConfigRoot}/ShiftLights/colors"> <!--This is dynamically set by JS--></div> <input type="color" id="colorPicker" style="opacity: 0; position: absolute; pointer-events: none;" onchange="changeColor(event)">`
+        `<div class="color-container" sample_func="sample_color" post_endpoint="${shiftLightConfigRoot}/ShiftLights/colors"> <!--This is dynamically set by JS--></div> <input type="color" id="colorPicker" style="opacity: 0; position: absolute; pointer-events: none;" onchange="changeColor(event)">`
     );
     add_function_table_row(
         funcTable,
         `Rev Pattern`,
         `Select the pattern used through the rev range`,
-        `<div id="revPattern-containter" class="pure-button-group" role="group"  post_endpoint="${shiftLightConfigRoot}/ShiftLights/pattern" aria-label="..."> </div>`
+        `<div id="revPattern-containter" class="pure-button-group" role="group" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}/ShiftLights/pattern" aria-label="..."> </div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Color`,
         `Select the color the shiftlights change to when the shift point is reached`,
-        `<div class="color-container"  post_endpoint="${shiftLightConfigRoot}/Limiter/colors"> <!--This is dynamically set by JS --></div>`
+        `<div class="color-container" sample_func="sample_color" post_endpoint="${shiftLightConfigRoot}/Limiter/colors"> <!--This is dynamically set by JS --></div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Pattern`,
         `Select the pattern used when shift point is reached`,
-        `<div id="limiterPattern-containter" class="pure-button-group" role="group"  post_endpoint="${shiftLightConfigRoot}/Limiter/pattern" aria-label="..."> </div>`
+        `<div id="limiterPattern-containter" class="pure-button-group" role="group" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}/Limiter/pattern" aria-label="..."> </div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Period (ms)`,
         `This sets speed the limiter plays its pattern (in milliseconds)`,
-        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" post_endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="50" max="1000" value="50"> <input type="number" class="value" min="50" max="1000" value="50"> </div>`
+        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="50" max="1000" value="50"> <input type="number" class="value" min="50" max="1000" value="50"> </div>`
     );
     add_function_table_row(
         funcTable,
         `Brightness`,
         `I think you already know what this one does ;). This Controls the Overall Brightness of the shift lights`,
-        `<div class="slider-container" scaler=${brightnessScaler} id="brightnessSlider" post_endpoint="${shiftLightConfigRoot}/brightness"> <input type="range" class="sliderBar" min="0" max="100" value="50"> <input type="number" class="value" min="0" max="100" value="50"> </div>`
+        `<div class="slider-container" scaler=${brightnessScaler} id="brightnessSlider" sample_func="sample_brightness"  post_endpoint="${shiftLightConfigRoot}/brightness"> <input type="range" class="sliderBar" min="0" max="100" value="50"> <input type="number" class="value" min="0" max="100" value="50"> </div>`
     );
 
 }
