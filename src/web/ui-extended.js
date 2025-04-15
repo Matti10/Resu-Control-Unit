@@ -215,6 +215,16 @@ async function sampleColor(adjustedColor, endpoint, subkey) {
     return await run_method(endpoint, "sample_color", args = [spoofedColorObj, subkey]);
 }
 
+async function samplePattern(pattern = null, period = null, subKey = null) {
+    const _kwargs = {
+        "pattern" : pattern,
+        "period" : period,
+        "subKey" : subKey
+    }
+    return await run_method(endpoint, "sample_pattern", kwargs=_kwargs);
+}
+
+
 function changeColor(event) {
     // Change the circle's background color
     let newColor = event.target.value;

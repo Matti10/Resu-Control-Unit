@@ -5,6 +5,8 @@ except:
 
 import asyncio
 import gc
+import re
+import sys
 
 import asyncServer
 import pins
@@ -13,12 +15,13 @@ import pins
 import RcuFunction
 import rpmReader
 import shiftLights
-import testing_utils
 from static import *
-import re
 
-import neopixel
-from machine import Pin, Timer
+if (sys.platform == 'linux'):
+    import testing_utils
+else:
+    import neopixel
+    from machine import Pin, Timer
 
 
 
@@ -32,17 +35,18 @@ class RCU:
     }
     INSTANCE_REGISTER = {}
     
-    # MODULE_REGISTER = { # Unix/Test mode
-    #     MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
-    #     MOD_PIN: testing_utils.MockedPin,
-    #     MOD_TIMER: testing_utils.MockedTimer,
-    # }
-    
-    MODULE_REGISTER = { # ESP32
-        MOD_NEOPIXEL: neopixel.NeoPixel,
-        MOD_PIN: Pin,
-        MOD_TIMER: Timer,
-    }
+    if (sys.platform == 'linux'):
+        MODULE_REGISTER = { # Unix/Test mode
+            MOD_NEOPIXEL: testing_utils.MockedNeoPixel,
+            MOD_PIN: testing_utils.MockedPin,
+            MOD_TIMER: testing_utils.MockedTimer,
+        }
+    else:
+        MODULE_REGISTER = { # ESP32
+            MOD_NEOPIXEL: neopixel.NeoPixel,
+            MOD_PIN: Pin,
+            MOD_TIMER: Timer,
+        }
     
     RESOURCE_REGISTER = {
         KEY_TIMER : []
@@ -86,7 +90,7 @@ class RCU:
         except KeyError:
             print("No RCU Funcs in Config adding empty list")
 
-    def add_RCUFunc(self, type, id = "",init=True):
+    def add_RCUFunc(self, type, id = "",init=False):
         if id == "":
             id = self.gen_RCUFunc_id(type)
             

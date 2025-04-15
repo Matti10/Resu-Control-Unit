@@ -146,7 +146,6 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.lightMidPoint = (
             self.lightCount // 2 + (self.lightCount % 2) - 1
         )  # magic number 1 is to account for 0 index
-
         if self.pins != []:
             self.init_np()
             
@@ -162,6 +161,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.limiterI = 0
         self.previousRPM = 0
         self.shiftI = 0
+        print("midpoint")
 
     # -------------- Setup  -------------- #
     def init_np(self):
