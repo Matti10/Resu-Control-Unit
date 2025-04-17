@@ -66,6 +66,7 @@ class RCU:
         self.add_RCUFunc_fromConfig()
 
         asyncServer.server.add_resource(self,"/RCU")
+        asyncServer.server.add_resource(self.RCU_PINS,"/Pins/<pinNum>")
         self.config = None
         gc.collect()
         # asyncio.get_event_loop().run_forever()

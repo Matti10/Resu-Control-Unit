@@ -4,6 +4,8 @@ const limiterScaler = 1000;
 let colorContainers;
 let toggleSwitches;
 let pinSelectors;
+let debounceTimer;
+const debounceTime_ms = 500;
 window.config = null;
 window.rcuFuncCorrelation = {
     "ShiftLights": {
@@ -75,7 +77,7 @@ function setLocalConfigFromEndpoint(post_endpoint, data, config = window.config)
     configChanged = true;
 
     while (post_endpoint.includes("//")) {
-        post_endpoint.replace("//","/")
+        post_endpoint = post_endpoint.replace("//","/")
     }
 
     for (let i = 0; i < keys.length; i++) {
@@ -347,7 +349,7 @@ function buildSliderFromEndpoint() {
 
         // Sync input box with slider
         slider.oninput = function () {
-            handleSliderInput(this);
+            handleInput(this);
             inputBox.value = this.value;
         };
 
@@ -356,25 +358,27 @@ function buildSliderFromEndpoint() {
             if (this.value < slider.min) this.value = slider.min;
             if (this.value > slider.max) this.value = slider.max;
             slider.value = this.value;
-            handleSliderInput(this);
+            handleInput(this);
         }
     }
 }
 
-function handleSliderInput(slider) {
-    let parent = slider.parentNode
-    let post_endpoint = parent.getAttribute('post_endpoint');
-    if (parent.id == "brightNessSlider") {
-        setBrightness(post_endpoint, slider.value)
-    }
-    else {
-        const scaler = parent.getAttribute('scaler') || 1;
-        const scaledData = slider.value / scaler
-        run_sampleFunction(parent,scaledData,post_endpoint).then(() => {
-            handle_RCUFunc_configChange(slider,scaledData,post_endpoint);
-        });
-    }
-
+function handleInput(input) {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        const parent = input.parentNode
+        const post_endpoint = parent.getAttribute('post_endpoint');
+        if (parent.id == "brightNessSlider") {
+            setBrightness(post_endpoint, input.value)
+        }
+        else {
+            const scaler = parent.getAttribute('scaler') || 1;
+            const scaledData = input.value / scaler
+            run_sampleFunction(parent,scaledData,post_endpoint).then(() => {
+                handle_RCUFunc_configChange(input,scaledData,post_endpoint);
+            });
+        }
+    }, debounceTime_ms);
 }
 
 function buildButtonGroupsFromEndpoint() {
@@ -598,7 +602,7 @@ function build_function_table(funcID, displayName, container = document.getEleme
             <div class="heading-with-tooltip">
                 <div>${displayName}</div>
                 <div class="tooltip">
-                    <img src="/webFiles/close.png" alt="close" class="close-btn" style="width: 20px; height: 20px;">
+                    <img src="/webFiles/close.webp" alt="close" class="close-btn" style="width: 20px; height: 20px;">
                     <span class="tooltiptext">Remove ${displayName} from the RCU</span>
                 </div>
             </div>
@@ -624,7 +628,7 @@ function add_function_table_row(table, heading, tooltipText, content) {
                 <div class="heading-with-tooltip">
                     ${heading}
                     <div class="tooltip">
-                        <img src="/webFiles/info-icon.png" alt="Info" style="width: 20px; height: 20px;">
+                        <img src="/webFiles/info-icon.webp" alt="Info" style="width: 20px; height: 20px;">
                         <span class="tooltiptext">${tooltipText}</span>
                     </div>
                 </div>
@@ -684,7 +688,7 @@ function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_
         funcTable,
         `RPM Range Selection`,
         `Select the rpm range you want the lights to display. Any rpm over the Max RPM value will trigger the limiter pattern/colors`,
-        `<div class="pure-g"> <div class="pure-u-1-2">     <label for="name">Start RPM</label>     <input type="text" value=${funcConfig.ShiftLights.startRPM} id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2">     <label for="name">End RPM</label>     <input type="text" value=${funcConfig.ShiftLights.endRPM} id="name" name="name" style="width: 60px;"> </div> </div>`
+        `<div class="pure-g"> <div class="pure-u-1-2" post_endpoint="/${shiftLightConfigRoot}/ShiftLights/startRPM" oninput="handleInput(this)">     <label for="name">Start RPM</label>     <input type="text" value=${funcConfig.ShiftLights.startRPM} id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2" post_endpoint="/${shiftLightConfigRoot}/ShiftLights/endRPM" oninput="handleInput(this)">     <label for="name">End RPM</label>     <input type="text" value=${funcConfig.ShiftLights.endRPM} id="name" name="name" style="width: 60px;"> </div> </div>`
     );
     add_function_table_row(
         funcTable,

@@ -15,10 +15,9 @@ from static import *
 class RcuPins:
     def __init__(
         self,  
-        pinConfig
+        pinConfig,
     ):
         self.pinConfig = pinConfig
-    
     
         
     def set_pin(self, pinID, pinFuncName, overwrite=False, callback=lambda:None):
@@ -56,3 +55,5 @@ class RcuPins:
     
     def to_dict(self):
         return self.pinConfig
+    
+    # def post(self,data,id):
