@@ -184,8 +184,19 @@ class RCU:
         except AttributeError as e:
             return {'message':f"function {data[KEY_FUNC]} not found. Error:{e}"}, 404
 
-        
-        
+    @asyncServer.server.route("/pin/<id>",methods=["POST"])
+    def set_pin(self,data,id):
+        # data = {
+        #     funcID : xxxx
+        # }
+        self.RCU_PINS.unassign_func(data[KEY_FUNC])
+        self.RCU_PINS.set_pin(
+            id,
+            data[KEY_FUNC],
+            callback=self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[data[KEY_FUNC]])
+        )
+
+
     # ------------------ Config Managment ------------------ #
     def export_config(self, configPath=CONFIG_PATH):
         print(self.INSTANCE_REGISTER)

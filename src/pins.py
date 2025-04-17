@@ -28,10 +28,13 @@ class RcuPins:
         
         callback(self.pinConfig[pinID])
 
+    def unassign_func(self,funcID):
+        for pin in self.get_funcs_pins(funcID):
+            pin[RCUFUNC_KEY_TYPE] = PIN_UNASSIGN_NAME
 
     def unassign_pin(self, pinID):
-        self.pinConfig[pinID][RCUFUNC_KEY_TYPE] = PIN_UNASSIGN_NAME
-            
+            self.pinConfig[pinID][RCUFUNC_KEY_TYPE] = PIN_UNASSIGN_NAME
+        
             
     # def unassign_on_funcName(self,funcID):
         #raise "this shit wont work"
@@ -56,4 +59,4 @@ class RcuPins:
     def to_dict(self):
         return self.pinConfig
     
-    # def post(self,data,id):
+
