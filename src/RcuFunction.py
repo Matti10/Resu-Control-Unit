@@ -47,13 +47,11 @@ class RcuFunction:
         if not self.inited:
             try:
                 await self.wait_dependencies() # wait for all dependencies to be instanciated
-                print("bef")
                 self.initFunc()
             except PinsNotAssigned:
                 pass #pins aren't assigned yet, this may want actioning later?
 
             self.inited = True
-            print("afer")
         
     def reinit(self,reinit = True):
         if reinit:
