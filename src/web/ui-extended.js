@@ -29,6 +29,9 @@ window.sampleFunctions = {
 let configChanged = false;
 let funcToRemove = null;
 
+async function triggerSave() {
+    return await setEndpoint("/RCU","","PATCH")
+}
 
 async function getAllConfig() {
     return await getEndpoint("/config/", cacheBust = `?_=${Date.now()}`);
@@ -126,7 +129,7 @@ function setInnerTextFromEndpoint(element) {
     element.innerText = getLocalEndpoint(element.getAttribute("post_endpoint"))
 }
 
-function handle_RCUFunc_configChange(element, data, post_endpoint = null, config = window.config) {
+function handle_RCUFunc_configChange(element, data, post_endpoint = null, config = window.config, writeChange = true) {
     if (null === post_endpoint) {
         post_endpoint = element.getAttribute("post_endpoint")
     }
@@ -135,8 +138,8 @@ function handle_RCUFunc_configChange(element, data, post_endpoint = null, config
 
     const func_table = find_function_table(element)
 
-    if (null !== func_table) {
-        setEndpoint(func_table.post_endpoint, config.RCUFuncs[func_table.funcID])
+    if (null !== func_table && writeChange) {
+        setEndpoint(func_table.post_endpoint, config.RCUFuncs[func_table.funcID]).then(triggerSave())
     }
 }
 
@@ -242,10 +245,9 @@ async function samplePattern(data, rcuFuncID = null, endpoint = null) {
         _kwargs["period"] = data
     } else {
         _kwargs["pattern"] = data
-
     }
 
-    return await run_method(rcuFuncID, "sample_pattern", kwargs=_kwargs);
+    return await run_method(rcuFuncID, "sample_pattern", args=[], kwargs=_kwargs);
 }
 
 async function sampleBrightness(newBrightness, rcuFuncID = null, endpoint = null) {
@@ -258,7 +260,7 @@ async function sampleBrightness(newBrightness, rcuFuncID = null, endpoint = null
 async function run_sampleFunction(element,data,endpoint=null) {
     const sample_func_id = element.getAttribute("sample_func")
     if (null !== sample_func_id) {
-        const rcuFunc_id = find_function_table(element)
+        const rcuFunc_id = find_function_table(element).id.split("-")[0]
         if (null == endpoint) {
             endpoint = element.getAttribute("post_endpoint")
         }
@@ -274,7 +276,7 @@ function changeColor(event) {
     const adjustedColor = applyColorAdjustments(hexToRgb(newColor));
     const func_table = find_function_table(selectedCircle)
     const cirlce_endpoint = selectedCircle.getAttribute("post_endpoint")
-    run_sampleFunction(selectedCircle).then(
+    run_sampleFunction(selectedCircle,adjustedColor).then(
         () => {
             const post_endpoint = `/RCUFuncs${func_table.post_endpoint}${cirlce_endpoint}/[${selectedCircle.id}]/color`
             handle_RCUFunc_configChange(selectedCircle, adjustedColor, post_endpoint)
@@ -368,8 +370,8 @@ function handleInput(input) {
     debounceTimer = setTimeout(() => {
         const parent = input.parentNode
         const post_endpoint = parent.getAttribute('post_endpoint');
-        if (parent.id == "brightNessSlider") {
-            setBrightness(post_endpoint, input.value)
+        if (parent.id == "brightnessSlider") {
+            setBrightness(parent, input.value)
         }
         else {
             const scaler = parent.getAttribute('scaler') || 1;
@@ -416,8 +418,9 @@ async function setBrightness(element, brightness) {
                 };
             });
     
-            handle_RCUFunc_configChange(element, brightenedColors,colorContainers[i].getAttribute("post_endpoint"))
+            handle_RCUFunc_configChange(element, brightenedColors,colorContainers[i].getAttribute("post_endpoint"),config=window.config,writeChange=false)
         }
+        handle_RCUFunc_configChange(element,scaled_brightness,element.getAttribute("post_endpoint")) // magic numbber 0, could be any element
     });
 }
 
@@ -718,7 +721,7 @@ function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_
         funcTable,
         `Limiter Period (ms)`,
         `This sets speed the limiter plays its pattern (in milliseconds)`,
-        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="50" max="1000" value="50"> <input type="number" class="value" min="50" max="1000" value="50"> </div>`
+        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="3" max="1000" value="3"> <input type="number" class="value" min="3" max="1000" value="50"> </div>`
     );
     add_function_table_row(
         funcTable,

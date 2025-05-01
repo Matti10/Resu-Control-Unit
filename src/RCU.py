@@ -67,6 +67,7 @@ class RCU:
 
         asyncServer.server.add_resource(self,"/RCU")
         asyncServer.server.add_resource(self.RCU_PINS,"/Pins/<pinNum>")
+        asyncServer.add_static_endpoints() # we want to do this after all the other endpoints have been setup - otherwise UI could load before endpoints to build it
         self.config = None
         gc.collect()
         # asyncio.get_event_loop().run_forever()
@@ -171,7 +172,7 @@ class RCU:
         
         return dict
     
-    # ------------------ REST API Endpoints ------------------ #
+    # ------------------ API Endpoints ------------------ #
     def put(self,data):
         try:
             result =  asyncServer.run_method(self,data)
@@ -183,6 +184,14 @@ class RCU:
             return result, 200
         except AttributeError as e:
             return {'message':f"function {data[KEY_FUNC]} not found. Error:{e}"}, 404
+    
+    def patch(self,_):
+        try:
+            self.export_config()
+            return {'message':'Save success'}, 200
+        except Exception as e:
+            return {'message':f"Failed to Save. Error:{e}"}, 404
+        
 
     @asyncServer.server.route("/pin/<id>",methods=["POST"])
     def set_pin(self,data,id):
@@ -195,7 +204,7 @@ class RCU:
             data[KEY_FUNC],
             callback=self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[data[KEY_FUNC]])
         )
-
+        
 
     # ------------------ Config Managment ------------------ #
     def export_config(self, configPath=CONFIG_PATH):

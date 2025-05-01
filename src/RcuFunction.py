@@ -1,7 +1,7 @@
 import asyncio
 import json
 
-from asyncServer import run_method
+from asyncServer import async_run_method,run_method
 from static import *
 
 
@@ -37,6 +37,7 @@ class RcuFunction:
         self.timer_gen = timer_gen
         self.inited = False
         self.sample_funcs_reg = sample_funcs_reg
+        self.sample_task = None
         
         
 
@@ -68,7 +69,7 @@ class RcuFunction:
             try:
                 while self.instance_register[dependency] == None:
                     # the dependancy hasn't been instancised wait, or handle it here later
-                    asyncio.sleep(DEPENDENCY_SLEEP_TIME_S)
+                    await asyncio.sleep(DEPENDENCY_SLEEP_TIME_S)
             except Exception as e:
                 print(f"Waiting for dependencies has failed, likely due to dependency is {dependency} not being in the instance register {self.instance_register}. The error was: {e}")
                 
@@ -82,9 +83,14 @@ class RcuFunction:
         return self.to_dict()
     
     def post(self,data):
+        print(data)
         self.update_fromDict(data)
-        return {'message': f"{self.functionID} updated"}, 201
+        return {'message': f"{self.functionID} updated with data: {data}"}, 201
 
     def put(self,data):
-        result = run_method(self,data)
-        return json.dumps(result), 200
+        print(data)
+        if None != self.sample_task:
+            self.sample_task.cancel()
+        self.sample_task = async_run_method(self,data)
+        
+        return "Sample Func Running",200

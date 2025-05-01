@@ -1,4 +1,4 @@
-import RcuFunction
+import asyncio
 from static import *
 
 
@@ -29,7 +29,8 @@ class Color:
         return (int(self.r),int(self.g),int(self.b))
     
     @staticmethod
-    def build_fromDict(obj):
+    async def build_fromDict(obj):
+        await asyncio.sleep(ASYNC_PAUSE_S) # release control so sample functions can run faster along side setters
         return Color(
             int(obj[KEY_COLOR][KEY_RED]),
             int(obj[KEY_COLOR][KEY_GREEN]),

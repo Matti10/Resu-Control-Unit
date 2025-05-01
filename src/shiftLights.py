@@ -27,13 +27,16 @@ class ShiftLight(RcuFunction.RcuFunction):
             obj[RCUFUNC_KEY_ID],
             **kwargs
         )
-    def update_fromDict(self,obj):
+    async def update_fromDict(self,obj):
         kwargs = self.dictTo_kwargs(obj)
+        await asyncio.sleep(ASYNC_PAUSE_S)
         self.config = self.build_config(**kwargs)
+        await asyncio.sleep(ASYNC_PAUSE_S)
         
         
     @staticmethod
     def dictTo_kwargs(obj):
+        # why not send the data as KWARGS????????????
         kwargs = {
             "limiterPattern" : obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_PATTERN][KEY_SELECTED],
             "limiterColors" : [color.Color.build_fromDict(col) for col in obj[KEY_SHIFTLIGHT][KEY_LIMITER][KEY_COLORS]], 
@@ -226,27 +229,27 @@ class ShiftLight(RcuFunction.RcuFunction):
             self.set_configColor_fromDict(id,dict[id][KEY_COLOR],subKey)
 
     # -------------- Samples for when Data is Set  -------------- #
-    def sample_color(self, colorDict, subKey):
-        newColor = color.Color.build_fromDict(colorDict)
+    async def sample_color(self, colorDict, subKey):
+        newColor = await color.Color.build_fromDict(colorDict)
         self.setAll_color_fromConfig(subKey)
         self.set_color(int(newColor.id),newColor)
         self.update()
 
-    def sample_pattern(self, pattern = None, period = None, subKey = None):
-        if subKey == None:
+    async def sample_pattern(self, pattern=None, period=None, subKey=None):
+        # print(f"pattern:{pattern}")
+        # print(f"period:{period}")
+        # print(f"subKey:{subKey}")
+        
+        if subKey is None:
             subKey = KEY_LIMITER
         
-        if period == None:
+        if period is None:
             period = self.config[KEY_LIMITER][KEY_LIMITER_PERIOD_S]
 
-        if pattern == None:
+        if pattern is None:
             pattern_handler = self.patternFuncs[subKey]
         else:
             pattern_handler = self.get_patternCorr()[pattern]
-
-        print(f"pattern:{pattern}")
-        print(f"period:{period}")
-        print(f"subKey:{subKey}")
 
         self.clear_all()
         self.update()
@@ -256,13 +259,12 @@ class ShiftLight(RcuFunction.RcuFunction):
             # print(f"i:{i}")
             pattern_handler[KEY_FUNC](i,subKey)
             self.update()
-            # TODO make this async so it doesn't lockup the loop. Mocking the getRPM func would be a good way to do it
-            time.sleep(int(period))
+            await asyncio.sleep(period)
             i += 1
         
         self.clear_all()
 
-    def sample_brightness(self, new_brightness, old_brightness=None):
+    async def sample_brightness(self, new_brightness, old_brightness=None):
         if None == old_brightness:
             old_brightness = self.config[KEY_BRIGHTNESS]
 
