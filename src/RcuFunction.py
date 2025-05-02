@@ -23,8 +23,7 @@ class RcuFunction:
         deinit,
         dependencies,
         instance_register,
-        sample_funcs_reg = {},
-        timer_gen = None,
+        resource_handler = None,
     ):
         self.functionType = functionType
         self.functionID = functionID
@@ -34,9 +33,8 @@ class RcuFunction:
         self.deinitFunc = deinit
         self.dependencies = dependencies
         self.instance_register = instance_register,
-        self.timer_gen = timer_gen
+        self.resource_handler = resource_handler
         self.inited = False
-        self.sample_funcs_reg = sample_funcs_reg
         self.sample_task = None
         
         
@@ -79,18 +77,23 @@ class RcuFunction:
         self.reinit(reinit)
 
     # http methods 
-    def get(self,_):
+    async def get(self,_):
         return self.to_dict()
     
-    def post(self,data):
-        print(data)
-        self.update_fromDict(data)
-        return {'message': f"{self.functionID} updated with data: {data}"}, 201
+    async def post(self,data):
+        print(f"post: {data}")
+        
+        # loop = asyncio.get_event_loop()
+        # loop.run_until_complete(self.update_fromDict(data))
+        await self.update_fromDict(data)
+        return {'message': f"{self.functionID} updated with data"}, 201
 
-    def put(self,data):
-        print(data)
+    async def put(self,data):
+        print(f"put: {data}")
         if None != self.sample_task:
             self.sample_task.cancel()
         self.sample_task = async_run_method(self,data)
         
         return "Sample Func Running",200
+    
+

@@ -1,8 +1,8 @@
-import RCU
+from RCU import RCU
 from static import *
 import asyncio
 
-rcu = RCU.RCU()
+rcu = RCU()
 
 asyncio.run(rcu.init_all_RCUFuncs())
 

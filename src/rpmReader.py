@@ -54,7 +54,7 @@ class TachoRpmReader(RpmReader):
         instance_register,
         module_register,
         id,
-        timer_gen,
+        resourceHandler,
         pulsesPerRevolution = 6
     ):
         self.pulsesPerRevolution = pulsesPerRevolution
@@ -69,7 +69,7 @@ class TachoRpmReader(RpmReader):
             self.dependencies,
             instance_register
         )
-        self.timer_tacho = timer_gen()
+        self.timer_tacho = resourceHandler.get_next(KEY_TIMER)
         self.pulseCount = 0
         
     def to_dict(self):

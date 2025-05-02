@@ -23,7 +23,32 @@ else:
     import neopixel
     from machine import Pin, Timer
 
+class ResourceAssign:
+    RESOURCE_REGISTER = {}
+    
+    def __init__(self,module_register):
+        self.MODULE_REGISTER = module_register
+        
+    
+    def add_resource_type(self,resourceType):
+        if resourceType not in self.RESOURCE_REGISTER:
+            self.RESOURCE_REGISTER[resourceType] = []
+        
+    def get_next(self,resourceType):
+        """"Return a new resource. ID increments as the list len grows"""
+        self.add_resource_type(resourceType)        
+        id = len(self.RESOURCE_REGISTER[resourceType])
 
+        nextResource = self.MODULE_REGISTER[resourceType](id)
+        
+        self.RESOURCE_REGISTER[resourceType].append(
+            nextResource
+        )
+        print(f"Assigned resource {id} | {resourceType}")
+        return nextResource
+    
+        #TODO do i need a way to "return" the resource?? Maybe but right now only for vitual timers, so ceeb. Would need id to NOT just be len of list....
+    
 
 class RCU:
     CLASS_REGISTER = {
@@ -48,10 +73,7 @@ class RCU:
             MOD_TIMER: Timer,
         }
     
-    RESOURCE_REGISTER = {
-        KEY_TIMER : []
-        # KEY_VIRTUAL_TIMER : []
-    }
+
 
     def __init__(self):
         self.config = self.import_config()
@@ -60,10 +82,10 @@ class RCU:
         # self.RCU_AP = rcuNetwork.rcuAP.build_fromDict(self.config[KEY_AP])
         # self.RCU_AP.start()
         self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
-        
+        self.resourceHandler = ResourceAssign(self.MODULE_REGISTER)
 
         # instaticate any RCUFuncs from config
-        self.add_RCUFunc_fromConfig()
+        self.addAll_RCUFuncs_fromConfig()
 
         asyncServer.server.add_resource(self,"/RCU")
         asyncServer.server.add_resource(self.RCU_PINS,"/Pins/<pinNum>")
@@ -80,41 +102,56 @@ class RCU:
         tasks = [RCUFunc.init() for RCUFunc in self.INSTANCE_REGISTER.values()]
         await asyncio.gather(*tasks)
         
-    def add_RCUFunc_fromConfig(self):
+    def add_RCUFunc_fromConfig(self, rcuFuncConfig):
+        rcuFuncType = rcuFuncConfig[RCUFUNC_KEY_TYPE]
+        print(self.CLASS_REGISTER[rcuFuncType])
+        print(self.CLASS_REGISTER[rcuFuncType].build_fromDict)
+        RCUFunc = self.CLASS_REGISTER[rcuFuncType].build_fromDict(
+            rcuFuncConfig,
+            self.INSTANCE_REGISTER,
+            self.MODULE_REGISTER,
+            self.resourceHandler
+        )
+        print(RCUFunc)
+        self.add_RCUFunc(RCUFunc)
+        
+    def addAll_RCUFuncs_fromConfig(self):
         try:
-            
             for rcuFuncConfig in self.config[RCUFUNC_KEY].values():
-                self.add_RCUFunc(
-                    rcuFuncConfig[RCUFUNC_KEY_TYPE],
-                    rcuFuncConfig[RCUFUNC_KEY_ID],
-                    init=False
-                )
+                self.add_RCUFunc_fromConfig(rcuFuncConfig)
         except KeyError:
-            print("No RCU Funcs in Config adding empty list")
+            print("No RCU Funcs in Config")
 
-    def add_RCUFunc(self, type, id = "",init=False):
+    def new_RCUFunc(self, rcuFuncType, id = "",add_RCUFunc=True, init_RCUFunc=False):
         if id == "":
-            id = self.gen_RCUFunc_id(type)
-            
-        print(f"addng rcu func {id}")
-        self.INSTANCE_REGISTER[id] = self.CLASS_REGISTER[type](
+            id = self.gen_RCUFunc_id(rcuFuncType)
+        
+        new_RCUFunc = self.CLASS_REGISTER[rcuFuncType](
             self.INSTANCE_REGISTER,
             self.MODULE_REGISTER,
             id,
-            self.get_next_timer
-        )
+            self.resourceHandler
+        )    
+        
+        if add_RCUFunc or init_RCUFunc:
+            self.add_RCUFunc(new_RCUFunc, init=init_RCUFunc)
+            
+        return 
+    def add_RCUFunc(self, RCUFunc, init=False):
+        print(f"addng rcu func {RCUFunc.functionID}")
+        self.INSTANCE_REGISTER[RCUFunc.functionID] = RCUFunc
         
         # assign pins to RCUFuncs
-        self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[id], reinit=False)
+        self.add_RCUFunc_Pins(self.INSTANCE_REGISTER[RCUFunc.functionID], reinit=False)
 
         if init:
-            asyncio.run(self.init_RCUFunc(id))
+            asyncio.run(self.init_RCUFunc(RCUFunc.functionID))
         
         
         # add server endpoint
-        asyncServer.server.add_resource(self.INSTANCE_REGISTER[id],f"/{id}")
+        asyncServer.server.add_resource(self.INSTANCE_REGISTER[RCUFunc.functionID],f"/{RCUFunc.functionID}")
         
-        return self.INSTANCE_REGISTER[id]
+        return self.INSTANCE_REGISTER[RCUFunc.functionID]
     
     def remove_RCUFunc(self,id):
         print(self.INSTANCE_REGISTER)
@@ -132,17 +169,10 @@ class RCU:
         except pins.PinsNotAssigned as e:
             pass # at this stage, there isn't nessecarily an issue with no pins being assigned
         
-    def get_next_timer(self):
-        """"Return a new timer Object. ID increments as the list len grows"""
-        nextTimer = self.MODULE_REGISTER[MOD_TIMER](len(self.RESOURCE_REGISTER[KEY_TIMER]))
-        self.RESOURCE_REGISTER[KEY_TIMER].append(
-            nextTimer
-        )
-
-        return nextTimer
+    
 
     
-    def gen_RCUFunc_id(self,type):
+    def gen_RCUFunc_id(self,rcuFuncType):
         max = -1
         for key in self.INSTANCE_REGISTER.keys():
             try:                
@@ -153,7 +183,7 @@ class RCU:
                 print(f"invalid ID: {key}")
                 #TODO, fix the id?
                 
-        return f"{type}{ID_SEPERATOR}{max + 1}"
+        return f"{rcuFuncType}{ID_SEPERATOR}{max + 1}"
     
     def to_dict(self):
         dict = {}
@@ -208,7 +238,6 @@ class RCU:
 
     # ------------------ Config Managment ------------------ #
     def export_config(self, configPath=CONFIG_PATH):
-        print(self.INSTANCE_REGISTER)
         self.write_config(self.to_dict(),configPath)
     
     @staticmethod
@@ -218,6 +247,7 @@ class RCU:
 
     @staticmethod
     def write_config(config, configPath=CONFIG_PATH):
+        print(f"wrote config to {configPath}\n config is: {config}")
         with open(configPath, "w") as file:
             json.dump(config, file)
 

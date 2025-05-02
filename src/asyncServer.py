@@ -5,7 +5,6 @@ from static import *
 
 
 def run_method(cls,data):
-    print("ee")
     return getattr(cls,data[KEY_FUNC])(*data[KEY_ARGS],**data[KEY_KWARGS])
 
 def async_run_method(cls,data):
@@ -31,7 +30,7 @@ def add_static_endpoints():
         data = await req.read_parse_form_data()
 
 #init the srever
-server = tinyweb.server.webserver()
+server = tinyweb.server.webserver(debug=True)
 server.run(host="0.0.0.0",port=PORT,loop_forever=False)
 
 

@@ -117,7 +117,7 @@ async function setEndpoint(post_endpoint, data, method = "POST") {
         }
 
         const responseData = await response.text()
-        console.log(`Updated ${post_endpoint} with data:`, responseData);
+        console.log(`${method} to ${post_endpoint} with response: ${responseData}`);
 
         return responseData;
     } catch (error) {
@@ -139,7 +139,7 @@ function handle_RCUFunc_configChange(element, data, post_endpoint = null, config
     const func_table = find_function_table(element)
 
     if (null !== func_table && writeChange) {
-        setEndpoint(func_table.post_endpoint, config.RCUFuncs[func_table.funcID]).then(triggerSave())
+        setEndpoint(func_table.post_endpoint, config.RCUFuncs[func_table.funcID]).then(() => triggerSave())
     }
 }
 
@@ -278,7 +278,7 @@ function changeColor(event) {
     const cirlce_endpoint = selectedCircle.getAttribute("post_endpoint")
     run_sampleFunction(selectedCircle,adjustedColor).then(
         () => {
-            const post_endpoint = `/RCUFuncs${func_table.post_endpoint}${cirlce_endpoint}/[${selectedCircle.id}]/color`
+            const post_endpoint = `/RCUFuncs${func_table.post_endpoint}/${cirlce_endpoint}/[${selectedCircle.id}]/color`
             handle_RCUFunc_configChange(selectedCircle, adjustedColor, post_endpoint)
         }
     );
@@ -290,7 +290,8 @@ function addCirle(container, color, id) {
     circle.className = 'circle';
     circle.id = `${id}`;
     circle.setAttribute("sample_func", "sample_color")
-    circle.setAttribute("post_endpoint", `/ShiftLights/ShiftLights/colors`)
+    const endpoint = container.getAttribute("post_endpoint").split("/").slice(-3).join("/") // extract the endpoint from parent 
+    circle.setAttribute("post_endpoint", endpoint)
     circle.onclick = function () { pickColor(this); };
 
     // Convert color values to CSS format
@@ -839,7 +840,7 @@ async function run_method(post_endpoint, method, args = [], kwargs = {}) {
 }
 
 async function add_rcuFunction(funcType, post_endpoint = "/RCU") {
-    await run_method(post_endpoint, "add_RCUFunc", args = funcType)
+    await run_method(post_endpoint, "new_RCUFunc", args = funcType)
     return await run_method(post_endpoint, "export_config")
 }
 

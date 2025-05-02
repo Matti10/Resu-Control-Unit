@@ -16,23 +16,23 @@ class ShiftLight(RcuFunction.RcuFunction):
         # RCU.ID
     ]
 
+    #TODO no longer need KWARFS. Literally always interface using dict, converting each time is silly, but needs more invesitgation before naively removing
     @staticmethod
-    def build_fromDict(obj, instance_register, module_register, pins = []):        
+    def build_fromDict(obj, instance_register, module_register, resourceHandler, pins = []):        
         kwargs = ShiftLight.dictTo_kwargs(obj)
-        
+        print(obj[RCUFUNC_KEY_ID])
         return ShiftLight(
             instance_register,
             module_register,
-            pins,
             obj[RCUFUNC_KEY_ID],
+            resourceHandler,
+            pins,
             **kwargs
         )
     async def update_fromDict(self,obj):
+        # Note to Future me - You cant pass contol back to asyncio here, as it will run server tasks before this (and its parents) have returned!
         kwargs = self.dictTo_kwargs(obj)
-        await asyncio.sleep(ASYNC_PAUSE_S)
         self.config = self.build_config(**kwargs)
-        await asyncio.sleep(ASYNC_PAUSE_S)
-        
         
     @staticmethod
     def dictTo_kwargs(obj):
@@ -66,10 +66,9 @@ class ShiftLight(RcuFunction.RcuFunction):
         instance_register,
         module_register,
         id,
-        _, # timer getter
+        resource_handler,
         pins = [],
         **kwargs
-
     ):
         # Default Values
         kwargs["limiterPattern"] = kwargs.get("limiterPattern",PATTERN_CO)
@@ -93,7 +92,8 @@ class ShiftLight(RcuFunction.RcuFunction):
             self._stop,
             self._deinit,
             self.dependencies,
-            instance_register
+            instance_register,
+            resource_handler=resource_handler
         )
         self.task = None
         # self.rpm_getter = instance_register[RCU.ID].get_rpm
@@ -102,7 +102,8 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.lib_Pin = module_register[MOD_PIN]
         self.pins = pins
         self.clearColor = color.Color(0,0,0)
-
+        self.mode = 0
+        
     @staticmethod
     def build_config(
         **kwargs
@@ -160,7 +161,9 @@ class ShiftLight(RcuFunction.RcuFunction):
                 KEY_SHIFTLIGHT
             ),
         }
-
+        # setup the timer used to run limiter pattern
+        self.limiterTimer = self.resource_handler.get_next(KEY_TIMER)
+        self.timerPatternHandler = self.patternFuncs[KEY_LIMITER]
         self.limiterI = 0
         self.previousRPM = 0
         self.shiftI = 0
@@ -201,6 +204,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         return True
 
     def set_color_fromConfig(self, id, subKey=KEY_SHIFTLIGHT):
+        
         self.set_color(
             id, self.config[subKey][KEY_COLORS][id]
         )
@@ -230,8 +234,11 @@ class ShiftLight(RcuFunction.RcuFunction):
 
     # -------------- Samples for when Data is Set  -------------- #
     async def sample_color(self, colorDict, subKey):
-        newColor = await color.Color.build_fromDict(colorDict)
+        print([color.to_dict() for color in self.config[subKey][KEY_COLORS]])
+        newColor = color.Color.build_fromDict(colorDict)
+        self.clear_all()
         self.setAll_color_fromConfig(subKey)
+        print([color for color in self.np])
         self.set_color(int(newColor.id),newColor)
         self.update()
 
@@ -240,29 +247,43 @@ class ShiftLight(RcuFunction.RcuFunction):
         # print(f"period:{period}")
         # print(f"subKey:{subKey}")
         
-        if subKey is None:
-            subKey = KEY_LIMITER
-        
-        if period is None:
-            period = self.config[KEY_LIMITER][KEY_LIMITER_PERIOD_S]
+        current_pattern = self.patternFuncs[KEY_LIMITER] #backup the current pattern here so we can restore in finally block
 
-        if pattern is None:
-            pattern_handler = self.patternFuncs[subKey]
-        else:
-            pattern_handler = self.get_patternCorr()[pattern]
+        try:
+            if subKey is None:
+                subKey = KEY_LIMITER
+            
+            if period is None:
+                period = self.config[KEY_LIMITER][KEY_LIMITER_PERIOD_S]
 
-        self.clear_all()
-        self.update()
+            if pattern is None:
+                pattern_handler = self.patternFuncs[subKey]
+            else:
+                pattern_handler = self.get_patternCorr()[pattern]
 
-        i = 0
-        while i < pattern_handler[KEY_LIGHT_COUNT]:
-            # print(f"i:{i}")
-            pattern_handler[KEY_FUNC](i,subKey)
+            # To sample any pattern, we set the limiters pattern handler to the sample pattern. This then gets called by the timer as part of the normal callback
+            
+            self.patternFuncs[KEY_LIMITER] = pattern_handler 
+            
+            self.enable_limiter(period=period) # enable the limiter with whatever sample period we do or dont set
+
+
+            while self.limiterI < pattern_handler[KEY_LIGHT_COUNT]:
+                print(self.limiterI)
+                await asyncio.sleep(period)
+                
+
+            
+        except Exception as e:
+            print(e)
+        finally:
+            self.patternFuncs[KEY_LIMITER] = current_pattern
+            self.disable_limiter()
+            self.clear_all()
             self.update()
-            await asyncio.sleep(period)
-            i += 1
+
         
-        self.clear_all()
+        
 
     async def sample_brightness(self, new_brightness, old_brightness=None):
         if None == old_brightness:
@@ -371,13 +392,34 @@ class ShiftLight(RcuFunction.RcuFunction):
             self.shiftI += direction  # +1 or -1 depending on direction of revs
             direction, previousStep, thisStep = self.calc_shiftIDirection(self.shiftI,rpm)
 
-    def increment_limiterI(self, i, resetValue):
+    def increment_limiterI(self):
         # print(f"i, resetValue {i}, {resetValue}" )
-        if i >= resetValue:
-            i = 0
+        if self.limiterI >= (self.patternFuncs[KEY_LIMITER][KEY_LIGHT_COUNT] - 1):
+            self.limiterI = 0
         else:
-            i += 1
-        return i
+            self.limiterI += 1
+
+    
+    def limiter_callback(self,_):
+        self.handle_pattern(i=self.limiterI, subKey=KEY_LIMITER)
+        print("callback")
+        print(self.limiterI)
+        self.increment_limiterI()
+        
+    def enable_limiter(self,period=None):
+        if None == period:
+            self.config[KEY_LIMITER][KEY_LIMITER_PERIOD_S]
+        
+        
+        self.limiterTimer.init(
+            mode=self.resource_handler.MODULE_REGISTER[KEY_TIMER].PERIODIC,
+            period=period,
+            callback=self.limiter_callback
+        )
+
+    def disable_limiter(self):
+        self.limiterI = 0  # this ensures limiters starts from the start. Only needs to be run once per movement out of limiter...
+        self.limiterTimer.deinit()
 
     # -------------- Main Loop  -------------- #
 
@@ -391,29 +433,29 @@ class ShiftLight(RcuFunction.RcuFunction):
     async def run(self):  # TODO ERROR HANDLING FOR TASK
         while True:
             rpm = self.rpm_getter()
-            
+        
             if rpm >= self.config[KEY_END_RPM]:
-                # print(f"limiter i (before) {self.limiterI}")
-                self.handle_pattern(i=self.limiterI, subKey=KEY_LIMITER)
-                self.limiterI = self.increment_limiterI(
-                    self.limiterI,
-                    self.patternFuncs[KEY_LIMITER][KEY_LIGHT_COUNT] - 1,
-                )
-                await asyncio.sleep(
-                    self.config[KEY_LIMITER][
-                        KEY_LIMITER_PERIOD_S
-                    ]
-                )
+                self.mode = MODE_SHIFTLIGHT_LIMITER
+                
+                self.enable_limiter()
+                await asyncio.sleep(ASYNC_PAUSE_S)
+                
             elif rpm > self.config[KEY_START_RPM]:
+                if self.mode > MODE_SHIFTLIGHT_LIMITER:
+                    self.disable_limiter()
+                self.mode = MODE_SHIFTLIGHT_REV
+                
+                # does this want to be in the a timer interupt?? I.e. self.limiterTimer or the timer used to get rpm?
                 self.clear_all()  # TODO remove this and the for loop below and do the same as increment_shiftI so we only set changed lights
-                print("e")
                 self.increment_shiftI(rpm)
                 for i in range(0, self.shiftI):
                     self.handle_pattern(i=i, subKey=KEY_SHIFTLIGHT)
-                self.limiterI = 0  # this ensures limiters starts from the start. Only needs to be run once per movement out of limiter...
+                
                 await asyncio.sleep(ASYNC_PAUSE_S)
+                
             else:
-                self.shiftI = 0
+                if self.mode > MODE_SHIFTLIGHT_OFF:
+                    self.shiftI = 0
                 await asyncio.sleep(ASYNC_PAUSE_S)
             self.update()
             self.previousRPM = rpm
