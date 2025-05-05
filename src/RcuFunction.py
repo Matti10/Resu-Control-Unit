@@ -36,6 +36,7 @@ class RcuFunction:
         self.resource_handler = resource_handler
         self.inited = False
         self.sample_task = None
+        self.pins = None
         
         
 
@@ -80,20 +81,26 @@ class RcuFunction:
     async def get(self,_):
         return self.to_dict()
     
-    async def post(self,data):
-        print(f"post: {data}")
+    async def post(self,data,attr=None):
+        print(f"post: {data} | attr {attr}")
         
+        
+        if None != attr:
+            self.set_attr(data,attr)
+        else:
         # loop = asyncio.get_event_loop()
         # loop.run_until_complete(self.update_fromDict(data))
-        await self.update_fromDict(data)
+            await self.update_fromDict(data)
         return {'message': f"{self.functionID} updated with data"}, 201
 
-    async def put(self,data):
+    async def put(self,data,attr=None):
         print(f"put: {data}")
         if None != self.sample_task:
             self.sample_task.cancel()
         self.sample_task = async_run_method(self,data)
         
-        return "Sample Func Running",200
+        # await self.sample_task
+        
+        return {'message': f"Ran {data}"},200
     
 

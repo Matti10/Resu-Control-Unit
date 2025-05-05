@@ -81,7 +81,7 @@ class RCU:
         # init backbone functionality
         # self.RCU_AP = rcuNetwork.rcuAP.build_fromDict(self.config[KEY_AP])
         # self.RCU_AP.start()
-        self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy()) # copy the config as the dict needs to be persistent in RcuPins
+        self.RCU_PINS = pins.RcuPins(self.config[KEY_PIN].copy(), self.INSTANCE_REGISTER) # copy the config as the dict needs to be persistent in RcuPins
         self.resourceHandler = ResourceAssign(self.MODULE_REGISTER)
 
         # instaticate any RCUFuncs from config
@@ -118,6 +118,7 @@ class RCU:
     def addAll_RCUFuncs_fromConfig(self):
         try:
             for rcuFuncConfig in self.config[RCUFUNC_KEY].values():
+                print(rcuFuncConfig)
                 self.add_RCUFunc_fromConfig(rcuFuncConfig)
         except KeyError:
             print("No RCU Funcs in Config")
@@ -147,9 +148,8 @@ class RCU:
         if init:
             asyncio.run(self.init_RCUFunc(RCUFunc.functionID))
         
-        
         # add server endpoint
-        asyncServer.server.add_resource(self.INSTANCE_REGISTER[RCUFunc.functionID],f"/{RCUFunc.functionID}")
+        asyncServer.server.add_resource(self.INSTANCE_REGISTER[RCUFunc.functionID],f"/RCUFuncs/{RCUFunc.functionID}/<attr>")
         
         return self.INSTANCE_REGISTER[RCUFunc.functionID]
     
@@ -205,7 +205,7 @@ class RCU:
     # ------------------ API Endpoints ------------------ #
     def put(self,data):
         try:
-            result =  asyncServer.run_method(self,data)
+            result = asyncServer.run_method(self,data)
             # if its an RCU function, return it as a dict
             if isinstance(result,self.CLASS_REGISTER[RCUFUNCTION_TYPE]):
                 return json.dumps(result.to_dict()), 200
@@ -220,7 +220,7 @@ class RCU:
             self.export_config()
             return {'message':'Save success'}, 200
         except Exception as e:
-            return {'message':f"Failed to Save. Error:{e}"}, 404
+            return {'message':f"Failed to Save. Error:{e}"}, 500
         
 
     @asyncServer.server.route("/pin/<id>",methods=["POST"])

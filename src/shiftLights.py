@@ -8,17 +8,29 @@ import color
 # import RCU
 import RcuFunction
 from static import *
-from utils import deep_copy
+from utils import deep_copy,set_nested_dict
 
 
 class ShiftLight(RcuFunction.RcuFunction):
     dependencies = [
         # RCU.ID
     ]
+    
+    def set_attr(self,data,path):
+        keys = path.split(URL_DELIMITER)[1:]
+        if KEY_COLOR in path:
+            print(type(data))
+            if type(data) == list:
+                data = [color.Color.build_fromDict(col) for col in data]
+            else:
+                data = color.Color.build_fromDict(data)
+            print("converted to color")
+        print(data)
+        set_nested_dict(self.config,keys,data)
 
     #TODO no longer need KWARFS. Literally always interface using dict, converting each time is silly, but needs more invesitgation before naively removing
     @staticmethod
-    def build_fromDict(obj, instance_register, module_register, resourceHandler, pins = []):        
+    def build_fromDict(obj, instance_register, module_register, resourceHandler):        
         kwargs = ShiftLight.dictTo_kwargs(obj)
         print(obj[RCUFUNC_KEY_ID])
         return ShiftLight(
@@ -26,7 +38,6 @@ class ShiftLight(RcuFunction.RcuFunction):
             module_register,
             obj[RCUFUNC_KEY_ID],
             resourceHandler,
-            pins,
             **kwargs
         )
     async def update_fromDict(self,obj):
@@ -67,7 +78,6 @@ class ShiftLight(RcuFunction.RcuFunction):
         module_register,
         id,
         resource_handler,
-        pins = [],
         **kwargs
     ):
         # Default Values
@@ -100,7 +110,6 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.rpm_getter = None
         self.lib_neopixel = module_register[MOD_NEOPIXEL]
         self.lib_Pin = module_register[MOD_PIN]
-        self.pins = pins
         self.clearColor = color.Color(0,0,0)
         self.mode = 0
         
@@ -150,7 +159,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         self.lightMidPoint = (
             self.lightCount // 2 + (self.lightCount % 2) - 1
         )  # magic number 1 is to account for 0 index
-        if self.pins != []:
+        if self.pins != [] and self.pins != None:
             self.init_np()
             
         self.patternFuncs = {
@@ -164,6 +173,7 @@ class ShiftLight(RcuFunction.RcuFunction):
         # setup the timer used to run limiter pattern
         self.limiterTimer = self.resource_handler.get_next(KEY_TIMER)
         self.timerPatternHandler = self.patternFuncs[KEY_LIMITER]
+        self.limiterSubkey = KEY_LIMITER # set this so it can be changed by sample functions later. Allows display of non-limiter colors
         self.limiterI = 0
         self.previousRPM = 0
         self.shiftI = 0
@@ -233,19 +243,18 @@ class ShiftLight(RcuFunction.RcuFunction):
             self.set_configColor_fromDict(id,dict[id][KEY_COLOR],subKey)
 
     # -------------- Samples for when Data is Set  -------------- #
-    async def sample_color(self, colorDict, subKey):
-        print([color.to_dict() for color in self.config[subKey][KEY_COLORS]])
-        newColor = color.Color.build_fromDict(colorDict)
+    async def sample_color(self, colorDict, subKey, newColor = True):
         self.clear_all()
         self.setAll_color_fromConfig(subKey)
-        print([color for color in self.np])
-        self.set_color(int(newColor.id),newColor)
+        if newColor:
+            newColor = color.Color.build_fromDict(colorDict)
+            self.set_color(int(newColor.id),newColor)
         self.update()
 
-    async def sample_pattern(self, pattern=None, period=None, subKey=None):
-        # print(f"pattern:{pattern}")
-        # print(f"period:{period}")
-        # print(f"subKey:{subKey}")
+    async def sample_pattern(self, pattern=None, period=None, subKey=None,cycle_count = 2):
+        print(f"pattern:{pattern}")
+        print(f"period:{period}")
+        print(f"subKey:{subKey}")
         
         current_pattern = self.patternFuncs[KEY_LIMITER] #backup the current pattern here so we can restore in finally block
 
@@ -260,24 +269,21 @@ class ShiftLight(RcuFunction.RcuFunction):
                 pattern_handler = self.patternFuncs[subKey]
             else:
                 pattern_handler = self.get_patternCorr()[pattern]
-
+                
+            print(pattern_handler[KEY_LIGHT_COUNT])
+            print(pattern_handler[KEY_FUNC])
             # To sample any pattern, we set the limiters pattern handler to the sample pattern. This then gets called by the timer as part of the normal callback
-            
+            self.limiterSubkey = subKey
             self.patternFuncs[KEY_LIMITER] = pattern_handler 
             
             self.enable_limiter(period=period) # enable the limiter with whatever sample period we do or dont set
 
-
-            while self.limiterI < pattern_handler[KEY_LIGHT_COUNT]:
-                print(self.limiterI)
-                await asyncio.sleep(period)
-                
-
-            
+            await asyncio.sleep(period*pattern_handler[KEY_LIGHT_COUNT]*cycle_count) # await N cycles                
         except Exception as e:
             print(e)
         finally:
             self.patternFuncs[KEY_LIMITER] = current_pattern
+            self.limiterSubkey = KEY_LIMITER
             self.disable_limiter()
             self.clear_all()
             self.update()
@@ -285,18 +291,8 @@ class ShiftLight(RcuFunction.RcuFunction):
         
         
 
-    async def sample_brightness(self, new_brightness, old_brightness=None):
-        if None == old_brightness:
-            old_brightness = self.config[KEY_BRIGHTNESS]
-
-        brightness = new_brightness / old_brightness 
-        print(f"brightness:{brightness} = new {new_brightness} / old {old_brightness} ")
-        if self.lights_are_clear():
-            self.setAll_color_fromConfig()
-        for id in range(len(self.np)):
-            self.np[id] = tuple(int(color * brightness) for color in self.np[id])
-        
-        self.update()
+    async def sample_brightness(self, _):
+        await self.sample_color(None,KEY_SHIFTLIGHT,newColor=False)
 
     # -------------- Pattern Handling  -------------- #
     def handle_pattern(self, i, subKey):
@@ -401,15 +397,15 @@ class ShiftLight(RcuFunction.RcuFunction):
 
     
     def limiter_callback(self,_):
-        self.handle_pattern(i=self.limiterI, subKey=KEY_LIMITER)
-        print("callback")
-        print(self.limiterI)
+        self.handle_pattern(i=self.limiterI, subKey=self.limiterSubkey)
+        self.update()
         self.increment_limiterI()
         
     def enable_limiter(self,period=None):
         if None == period:
             self.config[KEY_LIMITER][KEY_LIMITER_PERIOD_S]
         
+        period = int(period * 1000)
         
         self.limiterTimer.init(
             mode=self.resource_handler.MODULE_REGISTER[KEY_TIMER].PERIODIC,

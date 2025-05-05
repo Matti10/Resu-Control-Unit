@@ -284,9 +284,11 @@ def set_nested_dict(dict, route, value):
                 dict = dict[index]  # Access list element
         else:
             if i == len(route) - 1:
+                print(f"setting value: {value}")
                 dict[key] = value  # Set the value at the key
             else:
                 dict = dict[key]  # Access dictionary key
+        print(f"finished exploring {key}")
 
 
 def handle_preparsed_request(request, preParsedRequest):

@@ -1,10 +1,12 @@
 let selectedCircle = null;
 const configSetPeriodMs = 3000;
+const saveAfterClickMs = 20000;
 const limiterScaler = 1000;
 let colorContainers;
 let toggleSwitches;
 let pinSelectors;
 let debounceTimer;
+let saveTimer
 const debounceTime_ms = 500;
 window.config = null;
 window.rcuFuncCorrelation = {
@@ -28,6 +30,16 @@ window.sampleFunctions = {
 
 let configChanged = false;
 let funcToRemove = null;
+
+
+// Manage Saving
+document.getElementById("mainbody").addEventListener("click", () => {
+    // Clear any existing timer
+    clearTimeout(saveTimer);
+
+    // Start a new 5-second timer
+    saveTimer = setTimeout(triggerSave, saveAfterClickMs); // save every x seconds after a click
+});
 
 async function triggerSave() {
     return await setEndpoint("/RCU","","PATCH")
@@ -54,7 +66,8 @@ async function getEndpoint(post_endpoint, cacheBust = "") {
 
 function convertpost_endpointToConfigKey(post_endpoint) {
     post_endpoint = post_endpoint.replace("/config", "");
-    return post_endpoint.split('/').filter(key => key); // Split the path and filter out empty strings
+    let keys = post_endpoint.split(/\/|\-/); // Split on "/" or "-"
+    return keys.filter(key => key); // Split the path and filter out empty strings
 }
 
 function getLocalConfigFromEndpoint(post_endpoint, config = window.config) {
@@ -129,20 +142,41 @@ function setInnerTextFromEndpoint(element) {
     element.innerText = getLocalEndpoint(element.getAttribute("post_endpoint"))
 }
 
-function handle_RCUFunc_configChange(element, data, post_endpoint = null, config = window.config, writeChange = true) {
-    if (null === post_endpoint) {
-        post_endpoint = element.getAttribute("post_endpoint")
+// function sampleThenSet(element, data, post_endpoint = null, config = window.config, writeChange = true) {
+//     if (null === post_endpoint) {
+//         post_endpoint = element.getAttribute("post_endpoint")
+//     }
+
+//     setLocalConfigFromEndpoint(post_endpoint, data)
+
+//     const func_table = find_function_table(element)
+
+//     if (null !== func_table && writeChange) {
+//         setEndpoint(func_table.post_endpoint, config.RCUFuncs[func_table.funcID]).then(() => triggerSave())
+//     }
+// }
+
+async function sampleThenSet(element, data, post_endpoint = null, sample_func = null) {
+    if (null == sample_func) {
+        sample_func = findClosestAttribute(element, "sample_func");
+    }
+    if (null == post_endpoint) {
+        post_endpoint = findClosestAttribute(element, "post_endpoint");
     }
 
-    setLocalConfigFromEndpoint(post_endpoint, data)
-
-    const func_table = find_function_table(element)
-
-    if (null !== func_table && writeChange) {
-        setEndpoint(func_table.post_endpoint, config.RCUFuncs[func_table.funcID]).then(() => triggerSave())
+    let samplePromise = null;
+    if (null != sample_func) { // not everything has a sample func
+        samplePromise = run_sampleFunction(sample_func,data,post_endpoint,element);
+    } else {
+        samplePromise = Promise.resolve();
     }
+
+    samplePromise.then(() => {
+        setEndpoint(post_endpoint,data,"POST")
+    });
+    
+
 }
-
 
 function downloadConfig() {
     window.location.href = '/downloadConfig';
@@ -192,6 +226,20 @@ async function uploadConfig(file, alert = false) {
         });
 }
 
+function findClosestAttribute(element, attr) {
+    while (element) {
+        // Check if the element has the attr attribute
+        if (element.hasAttribute(attr)) {
+            const attrData = element.getAttribute(attr);
+            if (attrData) { // Ensure the attribute has some data
+                return attrData;
+            }
+        }
+        // Move to the parent element
+        element = element.parentElement;
+    }
+    return null; // Return null if no matching element is found
+}
 
 function pickColor(circle) {
     selectedCircle = circle;  // Store the clicked circle
@@ -226,12 +274,9 @@ function getShiftLightSubKey_fromEndpoint(endpoint) {
 }
 
 async function sampleColor(adjustedColor, rcuFuncID = null, endpoint = null) {
-    const spoofedColorObj = {
-        "id" : selectedCircle.id,
-        "color" : adjustedColor
-    }
+
     subkey = getShiftLightSubKey_fromEndpoint(endpoint)
-    return await run_method(rcuFuncID, "sample_color", args = [spoofedColorObj, subkey]);
+    return await run_method(`RCUFuncs/${rcuFuncID}/`, "sample_color", args = [adjustedColor, subkey]);
 }
 
 async function samplePattern(data, rcuFuncID = null, endpoint = null) {
@@ -247,23 +292,19 @@ async function samplePattern(data, rcuFuncID = null, endpoint = null) {
         _kwargs["pattern"] = data
     }
 
-    return await run_method(rcuFuncID, "sample_pattern", args=[], kwargs=_kwargs);
+    return await run_method(`RCUFuncs/${rcuFuncID}/`, "sample_pattern", args=[], kwargs=_kwargs);
 }
 
 async function sampleBrightness(newBrightness, rcuFuncID = null, endpoint = null) {
     const _args = [
         newBrightness
     ]
-    return await run_method(rcuFuncID, "sample_brightness", args=_args);
+    return await run_method(`RCUFuncs/${rcuFuncID}/`, "sample_brightness", args=_args);
 }
 
-async function run_sampleFunction(element,data,endpoint=null) {
-    const sample_func_id = element.getAttribute("sample_func")
+async function run_sampleFunction(sample_func_id,data,endpoint, element) {
+    const rcuFunc_id = find_function_table_funcID(element) // find func ID 
     if (null !== sample_func_id) {
-        const rcuFunc_id = find_function_table(element).id.split("-")[0]
-        if (null == endpoint) {
-            endpoint = element.getAttribute("post_endpoint")
-        }
         return await window.sampleFunctions[sample_func_id](data,rcuFunc_id,endpoint)
     }
 
@@ -273,16 +314,14 @@ function changeColor(event) {
     // Change the circle's background color
     let newColor = event.target.value;
     selectedCircle.style.backgroundColor = newColor;
-    const adjustedColor = applyColorAdjustments(hexToRgb(newColor));
+    const adjustedColor = {
+        "id":selectedCircle.id,
+        "color" : applyColorAdjustments(hexToRgb(newColor))
+    };
     const func_table = find_function_table(selectedCircle)
-    const cirlce_endpoint = selectedCircle.getAttribute("post_endpoint")
-    run_sampleFunction(selectedCircle,adjustedColor).then(
-        () => {
-            const post_endpoint = `/RCUFuncs${func_table.post_endpoint}/${cirlce_endpoint}/[${selectedCircle.id}]/color`
-            handle_RCUFunc_configChange(selectedCircle, adjustedColor, post_endpoint)
-        }
-    );
-
+    const circle_endpoint = selectedCircle.getAttribute("post_endpoint")
+    const post_endpoint = `/${circle_endpoint}-[${selectedCircle.id}]`
+    sampleThenSet(selectedCircle, adjustedColor, post_endpoint)
 }
 
 function addCirle(container, color, id) {
@@ -306,7 +345,7 @@ function populateButtonGroup(container, buttonData) {
         const button = document.createElement('button');
         button.id = `${pattern}-${container.id}`;
         button.innerText = pattern;
-        button.setAttribute("post_endpoint", `${container.getAttribute('post_endpoint')}/selected`)
+        button.setAttribute("post_endpoint", `${container.getAttribute('post_endpoint')}-selected`)
         button.onclick = function () { handleButtonGroupClick(this); };
 
         if (pattern === selected) {
@@ -329,11 +368,7 @@ function handleButtonGroupClick(button) {
     button.className = "pure-button pure-button-active";
 
     // Send API request with the selected button's ID
-    run_sampleFunction(button.parentNode,button.innerText).then(() => {
-        handle_RCUFunc_configChange(button, button.innerText);
-
-    });
-
+    sampleThenSet(button, button.innerText);
 }
 
 
@@ -370,16 +405,13 @@ function handleInput(input) {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
         const parent = input.parentNode
-        const post_endpoint = parent.getAttribute('post_endpoint');
         if (parent.id == "brightnessSlider") {
             setBrightness(parent, input.value)
         }
         else {
-            const scaler = parent.getAttribute('scaler') || 1;
+            const scaler = findClosestAttribute(input,'scaler') || 1;
             const scaledData = input.value / scaler
-            run_sampleFunction(parent,scaledData,post_endpoint).then(() => {
-                handle_RCUFunc_configChange(input,scaledData,post_endpoint);
-            });
+            sampleThenSet(input,scaledData);
         }
     }, debounceTime_ms);
 }
@@ -395,34 +427,51 @@ function buildButtonGroupsFromEndpoint() {
 
 function buildColorCirclesFromEndpoint() {
     for (const colorContainer of colorContainers) {
+
+        let container_endpoint = findClosestAttribute(colorContainer,"post_endpoint") 
+        let brightness_endpoint = container_endpoint.replace("ShiftLights-colors","brightness").replace("Limiter-colors","brightness") // we need to replace in both the shiftlight and limiter intances
+        let brightness = getLocalConfigFromEndpoint(brightness_endpoint)
         getLocalConfigFromEndpoint(colorContainer.getAttribute("post_endpoint")).forEach(light => {
-            addCirle(colorContainer, reverseColorAdjustments(light.color), light.id); //add cirlce making sure to revert color changes made when sending to the server
+            addCirle(colorContainer, reverseColorAdjustments(light.color, brightness = brightness), light.id); //add circle making sure to revert color changes made when sending to the server
         });
     }
 }
 
 async function setBrightness(element, brightness) {
-    const scaled_brightness = brightness / brightnessScaler
-    run_sampleFunction(element, scaled_brightness).then(() => { // should really start the color cals and await them and the sample before changing config
-        global_brightness = brightness;
-        
-        // Iterate over the found elements
-        for (let i = 0; i < colorContainers.length; i++) {
-            const brightenedColors = Array.from(colorContainers[i].getElementsByClassName('circle')).map(circle => {
-                // Get the color of the circle
-                const color = circle.style.backgroundColor;
-                const id = circle.id;
+    brightness = brightness/brightnessScaler
+    global_brightness = brightness;
+    let samplePromise = Promise.resolve()
+    let setPromise
     
-                return {
-                    id: id,
-                    color: applyColorAdjustments(rgbStringToObject(color), brightness / brightnessScaler) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
-                };
+    // Iterate over the color containers
+    for (let i = 0; i < colorContainers.length; i++) {
+        const brightenedColors = Array.from(colorContainers[i].getElementsByClassName('circle')).map(circle => {
+            // Get the color of the circle
+            const color = circle.style.backgroundColor;
+            const id = circle.id;
+
+            return {
+                id: id,
+                color: applyColorAdjustments(rgbStringToObject(color), brightness) // divide by brightnessScaler as brightness is stor as a float between 0 and 1 on server
+            };
+        });
+        // we can't actually sample the brightness without doing all the math on one of the arrays. This results in a weird implementation. First we do the math, & set all the colors. Then we call the sample function. Then, we do the math on the rest of the arrays and set them
+        let color_post_endpoint = findClosestAttribute(colorContainers[i], "post_endpoint");
+        setPromise = samplePromise.then(() => { // wait for sample to finish so we don't lag the server
+            setEndpoint(color_post_endpoint,brightenedColors,"POST")
+        });
+        if (i == 0) { // set the first attrs then run the sample
+            setPromise.then(() => {
+                samplePromise = run_sampleFunction("sample_brightness",brightness,color_post_endpoint,element)
             });
-    
-            handle_RCUFunc_configChange(element, brightenedColors,colorContainers[i].getAttribute("post_endpoint"),config=window.config,writeChange=false)
         }
-        handle_RCUFunc_configChange(element,scaled_brightness,element.getAttribute("post_endpoint")) // magic numbber 0, could be any element
+    }
+    // finally we need to set the actual brightness value so it can be written to config!
+    setPromise.then(() => {
+        brightness_post_endpoint = findClosestAttribute(element, "post_endpoint");
+        setEndpoint(brightness_post_endpoint,brightness,"POST");
     });
+
 }
 
 function unassignFuncsPin(functionName, config = window.config) {
@@ -441,24 +490,17 @@ function handlePinSelectionClick(option) {
     if (selectedOption.innerText == "Unassigned") {
         unassignFuncsPin(funcName)
     } else {
-        setLocalConfigFromEndpoint(selectedOption.post_endpoint, funcName); // the ID to assign the PIN too is stored in function name attr
+        setEndpoint(selectedOption.post_endpoint, funcName, "POST"); // the ID to assign the PIN too is stored in function name attr
+
+        // we still need to set local config for these ones as all pin selectors will be rebuilt
+        setLocalConfigFromEndpoint(`${selectedOption.post_endpoint}/type`, funcName); 
+        buildPinSelectorsFromEndpoint() //rebuilding them all is easy but inefficent #TODO
+
     }
-
-    // update all pin selectors with the change
-    setAllConfig().then(() => {
-        getAllConfig().then(config => {
-            window.config = config
-            buildPinSelectorsFromEndpoint() //rebuilding them all is easy but inefficent #TODO
-        });
-    });
-
-
 }
 
 
 function buildPinSelectorsFromEndpoint(pinConfig = window.config.Pins) {
-
-
     pinSelectors.forEach(pinSelector => {
         // Clear existing options (if any)
         pinSelector.innerHTML = '';
@@ -482,7 +524,7 @@ function buildPinSelectorsFromEndpoint(pinConfig = window.config.Pins) {
             if (pinData.class.includes(allowedClass)) {
                 const option = document.createElement('option');
                 option.value = pinNumber;  // Use pinNumber as the value
-                option.post_endpoint = `${pinSelector.getAttribute("post_endpoint")}/${pinNumber}/type`
+                option.post_endpoint = `${pinSelector.getAttribute("post_endpoint")}/${pinNumber}`
 
                 // get assignment data. This is called in a loop during build so not very efficent... Code is tidier though?
                 const pinFunction = pinSelector.getAttribute('function-Name');
@@ -592,6 +634,10 @@ function find_function_table(element) {
     return find_function_table(element.parentElement);
 }
 
+function find_function_table_funcID(element) {
+    return find_function_table(element).id.split("-")[0]
+}
+
 function build_function_table(funcID, displayName, container = document.getElementById("mainbody")) {
     displayName = `${displayName} <span style="font-size: 0.8em;display: inline-block; text-align: left;">(${funcID.split("_").at(-1)})</span>`
     const id = `${funcID}-table`
@@ -648,7 +694,7 @@ function add_PinSelection_function_table_row(table, heading, tooltipText, id, al
         table,
         heading,
         tooltipText,
-        `<select class="pinSelector-dropdown" post_endpoint="/config/Pins" function-name="${id}" allowed-class="${allowedClass}"><!--This is dynamically set by JS --></select>`
+        `<select class="pinSelector-dropdown" post_endpoint="/Pins" function-name="${id}" allowed-class="${allowedClass}"><!--This is dynamically set by JS --></select>`
     );
 }
 function add_sidebar_entry(text, href) {
@@ -692,43 +738,43 @@ function build_shiftLight_table(funcConfig = window.config.RCUFuncs.ShiftLights_
         funcTable,
         `RPM Range Selection`,
         `Select the rpm range you want the lights to display. Any rpm over the Max RPM value will trigger the limiter pattern/colors`,
-        `<div class="pure-g"> <div class="pure-u-1-2" post_endpoint="/${shiftLightConfigRoot}/ShiftLights/startRPM" oninput="handleInput(this)">     <label for="name">Start RPM</label>     <input type="text" value=${funcConfig.ShiftLights.startRPM} id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2" post_endpoint="/${shiftLightConfigRoot}/ShiftLights/endRPM" oninput="handleInput(this)">     <label for="name">End RPM</label>     <input type="text" value=${funcConfig.ShiftLights.endRPM} id="name" name="name" style="width: 60px;"> </div> </div>`
+        `<div class="pure-g"> <div class="pure-u-1-2" post_endpoint="${shiftLightConfigRoot}-startRPM">     <label for="name">Start RPM</label>     <input oninput="handleInput(this)" type="text" value=${funcConfig.ShiftLights.startRPM} id="name" name="name" style="width: 60px;"> </div> <div class="pure-u-1-2" post_endpoint="${shiftLightConfigRoot}-endRPM" >     <label for="name">End RPM</label>     <input type="text" oninput="handleInput(this)" value=${funcConfig.ShiftLights.endRPM} id="name" name="name" style="width: 60px;"> </div> </div>`
     );
     add_function_table_row(
         funcTable,
         `Light Color`,
         `Select the color of each of the 15 shift lights by clicking on the corresponding light below. The color will update once you "click out" of the color picker.`,
-        `<div class="color-container" sample_func="sample_color" post_endpoint="${shiftLightConfigRoot}/ShiftLights/colors"> <!--This is dynamically set by JS--></div> <input type="color" id="colorPicker" style="opacity: 0; position: absolute; pointer-events: none;" onchange="changeColor(event)">`
+        `<div class="color-container" sample_func="sample_color" post_endpoint="${shiftLightConfigRoot}-ShiftLights-colors"> <!--This is dynamically set by JS--></div> <input type="color" id="colorPicker" style="opacity: 0; position: absolute; pointer-events: none;" onchange="changeColor(event)">`
     );
     add_function_table_row(
         funcTable,
         `Rev Pattern`,
         `Select the pattern used through the rev range`,
-        `<div id="revPattern-containter" class="pure-button-group" role="group" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}/ShiftLights/pattern" aria-label="..."> </div>`
+        `<div id="revPattern-containter" class="pure-button-group" role="group" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}-ShiftLights-pattern" aria-label="..."> </div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Color`,
         `Select the color the shiftlights change to when the shift point is reached`,
-        `<div class="color-container" sample_func="sample_color" post_endpoint="${shiftLightConfigRoot}/Limiter/colors"> <!--This is dynamically set by JS --></div>`
+        `<div class="color-container" sample_func="sample_color" post_endpoint="${shiftLightConfigRoot}-Limiter-colors"> <!--This is dynamically set by JS --></div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Pattern`,
         `Select the pattern used when shift point is reached`,
-        `<div id="limiterPattern-containter" class="pure-button-group" role="group" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}/Limiter/pattern" aria-label="..."> </div>`
+        `<div id="limiterPattern-containter" class="pure-button-group" role="group" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}-Limiter-pattern" aria-label="..."> </div>`
     );
     add_function_table_row(
         funcTable,
         `Limiter Period (ms)`,
         `This sets speed the limiter plays its pattern (in milliseconds)`,
-        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}/Limiter/period_s"> <input type="range" class="sliderBar" min="3" max="1000" value="3"> <input type="number" class="value" min="3" max="1000" value="50"> </div>`
+        `<div class="slider-container" scaler=${limiterScaler} id="limiterPeriodSlider" sample_func="sample_pattern" post_endpoint="${shiftLightConfigRoot}-Limiter-period_s"> <input type="range" class="sliderBar" min="3" max="1000" value="3"> <input type="number" class="value" min="3" max="1000" value="50"> </div>`
     );
     add_function_table_row(
         funcTable,
         `Brightness`,
         `I think you already know what this one does ;). This Controls the Overall Brightness of the shift lights`,
-        `<div class="slider-container" scaler=${brightnessScaler} id="brightnessSlider" sample_func="sample_brightness"  post_endpoint="${shiftLightConfigRoot}/brightness"> <input type="range" class="sliderBar" min="0" max="100" value="50"> <input type="number" class="value" min="0" max="100" value="50"> </div>`
+        `<div class="slider-container" scaler=${brightnessScaler} id="brightnessSlider" sample_func="sample_brightness"  post_endpoint="${shiftLightConfigRoot}-brightness"> <input type="range" class="sliderBar" min="0" max="100" value="50"> <input type="number" class="value" min="0" max="100" value="50"> </div>`
     );
 
 }
@@ -741,7 +787,7 @@ function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
         funcTable,
         `RPM Input Mode`,
         `This tells the RCU where to look for the RPM signal!`,
-        `<div id="rpmInput-containter" class="pure-button-group" role="group" post_endpoint="${rpmReaderConfigRoot}/options" aria-label="..."></div>`
+        `<div id="rpmInput-containter" class="pure-button-group" role="group" post_endpoint="${rpmReaderConfigRoot}-options" aria-label="..."></div>`
     );
     add_PinSelection_function_table_row(
         funcTable,
@@ -754,7 +800,7 @@ function build_rpmReader_table(funcConfig, displayName = "RPM Input") {
         funcTable,
         `Pulses Per Revolution`,
         `Please enter the number of pulses your RPM sensor sends per engine revolution. This number is typically 6 or 8 and acts as a scaler for the RPM value. If you're unsure, adjust the number below until the current RPM value matches your tacho`,
-        `<label for="name"></label><input value="${funcConfig.RPMReader.Tacho.pulsesPerRev || 6}" type="text" id="name" style="width:100%">`
+        `<label for="name"></label><input value="${funcConfig.RPMReader.Tacho.pulsesPerRev || 6}" type="text" id="name" style="width:100%" min="1" oninput="handleInput(this)" post_endpoint="${rpmReaderConfigRoot}-Tacho-pulsesPerRev">`
     );
     add_function_table_row(
         funcTable,
@@ -831,6 +877,8 @@ async function run_method(post_endpoint, method, args = [], kwargs = {}) {
     if (typeof kwargs !== "object") {
         throw "Kwargs must be an object of key value pairs"
     }
+
+
     const data = {
         "func": method,
         "kwargs": kwargs,

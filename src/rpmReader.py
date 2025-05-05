@@ -48,7 +48,16 @@ class RpmReader(RcuFunction):
     
 class TachoRpmReader(RpmReader):
     dependencies = []
-    # def __init__(self,config,timer_tachoce_register, lib_pin = None):
+    @staticmethod
+    def build_fromDict(obj, instance_register, module_register, resourceHandler):
+        return  TachoRpmReader(
+            instance_register,
+            module_register,
+            obj[RCUFUNC_KEY_ID],
+            resourceHandler,
+            pulsesPerRevolution=obj[RPMREADER_TYPE][RPMREADER_TACHO_TYPE][KEY_PULSES_PER_REV]
+        )
+    
     def __init__(
         self,
         instance_register,
@@ -70,6 +79,7 @@ class TachoRpmReader(RpmReader):
             instance_register
         )
         self.timer_tacho = resourceHandler.get_next(KEY_TIMER)
+        self.tachoPin = None
         self.pulseCount = 0
         
     def to_dict(self):
@@ -80,21 +90,35 @@ class TachoRpmReader(RpmReader):
         
         return parentConfig
     
+
+    def set_attr(self,data,path):
+        print(data)
+        print(path)
+        if (KEY_PULSES_PER_REV in path):
+            self.pulsesPerRevolution = data
+            if (self.inited):
+                print(self.inited)
+                self._deinit()
+                self._init()
+    
     def _init(self):
         try:
+            if self.pulsesPerRevolution == 0:
+                self.pulsesPerRevolution = 6 # back to default, zero is no possible and will result in errors
             self.tachoRPMScaler = int(
                 (60*(1000/RPM_TACHO_TIMER_PERIOD_MS)) / float(self.pulsesPerRevolution)
             )
-            self.tachoPin = self.lib_pin(
-                self.pins[0][KEY_FIRM_ID],
-                self.lib_pin.IN,
-                self.lib_pin.PULL_DOWN
-            )
-            self.timer_tacho(
-                period = RPM_TACHO_TIMER_PERIOD_MS,
-                mode=self.timer_tacho.PERIODIC,
-                callback=self.tacho_calc_rpm_callback
-            )
+            if None != self.pins:
+                self.tachoPin = self.lib_pin(
+                    self.pins[0][KEY_FIRM_ID],
+                    self.lib_pin.IN,
+                    self.lib_pin.PULL_DOWN
+                )
+                self.timer_tacho.init(
+                    mode=self.timer_tacho.PERIODIC,
+                    period = RPM_TACHO_TIMER_PERIOD_MS,
+                    callback=self.tacho_calc_rpm_callback
+                )
         except AttributeError:
             raise PinsNotAssigned()
 
@@ -107,7 +131,8 @@ class TachoRpmReader(RpmReader):
         self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=self.tacho_irq)  # Interrupt on rising edge
 
     def _stop(self):
-        self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=lambda:None)
+        if None != self.tachoPin:
+            self.tachoPin.irq(trigger=self.lib_pin.IRQ_RISING, handler=lambda:None)
         
     def tacho_calc_rpm_callback(self,_):
         self.rpm = self.pulseCount * self.tachoRPMScaler

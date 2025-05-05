@@ -2,10 +2,6 @@
 	"folders": [
 		{
 			"path": "..\\"
-		},
-		{
-			"name": "serial:/COM9",
-			"uri": "serial://com9/"
 		}
 	],
 	"settings": {

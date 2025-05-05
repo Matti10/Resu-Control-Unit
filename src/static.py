@@ -5,6 +5,8 @@ if (sys.platform == 'linux'):
 else:
     ROOT_PATH = ""
 
+URL_DELIMITER = "-"
+
 # RCU
 CONFIG_PATH = f"{ROOT_PATH}/data/config.json"
 FUNC_ACTIVE_KEY = "activated"
